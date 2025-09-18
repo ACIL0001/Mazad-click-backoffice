@@ -16,7 +16,7 @@ import app from '../config';
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import useAuth from '@/hooks/useAuth';
-import { hasAdminPrivileges } from '@/types/Role';
+import { hasAdminPrivileges, RoleCode } from '@/types/Role';
 import LoginForm from '../sections/auth/login/LoginForm';
 
 const RootStyle = styled('div')(({ theme }) => ({
@@ -83,7 +83,9 @@ export default function Login() {
             const isAdminPortal = currentPort === '3002';
             const isSellerPortal = currentPort === '3003';
 
-            const userHasAdminAccess = hasAdminPrivileges(auth.user.type) || hasAdminPrivileges(auth.user.accountType);
+            // Type cast to RoleCode or provide a safe conversion function
+            const userHasAdminAccess = hasAdminPrivileges(auth.user.type as RoleCode) || 
+                                     hasAdminPrivileges(auth.user.accountType as RoleCode);
             const userHasSellerAccess = auth.user.type === 'SELLER' || auth.user.accountType === 'SELLER';
             
             // Check if user has access to this portal
@@ -92,9 +94,9 @@ export default function Login() {
             if (!hasPortalAccess) {
                 console.log('User does not have access to this portal, clearing auth');
                 clear();
-            } else if (auth.session?.accessToken) {
-                // User has valid session and access - let LoginForm handle redirect
-                console.log('User has valid session and portal access');
+            } else if (auth.tokens?.accessToken) {
+                // User has valid tokens and access - let LoginForm handle redirect
+                console.log('User has valid tokens and portal access');
             }
         }
     }, [isReady, isLogged, auth, clear]);

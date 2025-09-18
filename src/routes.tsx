@@ -21,16 +21,10 @@ import Categories from './pages/Categories';
 import AddCategory from './pages/Categories/AddCategory';
 import UpdateCategory from './pages/Categories/UpdateCategory';
 import CategoryDetailsPage from './pages/Categories/CategoryDetailsPage';
-import SubCategories from './pages/SubCategories/SubCategories';
-import AddSouCategory from './pages/SubCategories/AddSubCategories';
-import SubCategoryDetailsPage from './pages/SubCategories/SubCategoryDetailsPage';
-import UpdateSubCategory from './pages/SubCategories/UpdateSubCategory'; 
+
 
 // SubSubCategories imports
-import SubSubCategories from './pages/SubSubCategories/SubSubCategories';
-import AddSubSubCategory from './pages/SubSubCategories/AddSubSubCategory';
-import SubSubCategoryDetailsPage from './pages/SubSubCategories/SubSubCategoryDetailsPage';
-import UpdateSubSubCategory from './pages/SubSubCategories/UpdateSubSubCategory';
+
 
 // Subscription imports
 import Subscription from './pages/Subscription';
@@ -97,21 +91,11 @@ export default function Router() {
                 { path: 'identities', element: <RequirePhoneVerification><Identity /></RequirePhoneVerification> },
                 { path: 'identities/:id', element: <RequirePhoneVerification><IdentityVerificationDetailsPage /></RequirePhoneVerification> },
                 { path: 'categories/new', element: <RequirePhoneVerification><AddCategory /></RequirePhoneVerification> }, 
-                { path: 'sous-categories/add', element: <RequirePhoneVerification><AddSouCategory /></RequirePhoneVerification> },
                 { path: 'categories/edit/:id', element: <RequirePhoneVerification><UpdateCategory /></RequirePhoneVerification> }, 
                 { path: 'categories/:id', element: <RequirePhoneVerification><CategoryDetailsPage /></RequirePhoneVerification> }, 
                 { path: 'categories', element: <RequirePhoneVerification><Categories /></RequirePhoneVerification> }, 
-                { path: 'sous-categories', element: <RequirePhoneVerification><SubCategories /></RequirePhoneVerification> },
-                { path: 'sous-categories/:id', element: <RequirePhoneVerification><SubCategoryDetailsPage /></RequirePhoneVerification> }, 
-                { path: 'sous-categories/edit/:id', element: <RequirePhoneVerification><UpdateSubCategory /></RequirePhoneVerification> }, 
                 
-                // SubSubCategories routes
-                { path: 'sous-sous-categories', element: <RequirePhoneVerification><SubSubCategories /></RequirePhoneVerification> },
-                { path: 'sous-sous-categories/create', element: <RequirePhoneVerification><AddSubSubCategory /></RequirePhoneVerification> },
-                { path: 'sous-sous-categories/:id', element: <RequirePhoneVerification><SubSubCategoryDetailsPage /></RequirePhoneVerification> },
-                { path: 'sous-sous-categories/edit/:id', element: <RequirePhoneVerification><UpdateSubSubCategory /></RequirePhoneVerification> },
-
-                // Subscription route
+               
                 { path: 'subscription', element: <RequirePhoneVerification><Subscription /></RequirePhoneVerification> },
 
                 // Terms & Conditions route

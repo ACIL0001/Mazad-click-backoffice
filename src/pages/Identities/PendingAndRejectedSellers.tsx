@@ -259,7 +259,7 @@ function SellersTableBody({
                 <Chip
                   label={conversionInfo.label}
                   size="small"
-                  color={conversionInfo.color}
+                  color={conversionInfo.color as "default" | "primary" | "secondary" | "error" | "info" | "success" | "warning"}
                   sx={{
                     height: 28,
                     borderRadius: 2,

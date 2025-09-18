@@ -18,8 +18,14 @@ import { ThemeContextProvider } from './contexts/ThemeContext';
 import { useEffect, useState, useCallback, useRef } from 'react';
 import useAuth from './hooks/useAuth';
 import { hasAdminPrivileges } from './types/Role'; // Import the helper function
+import { RoleCode } from './types/Role'; // Import the RoleCode type
 
 // ----------------------------------------------------------------------
+
+// Helper function to check if a user is a seller
+const isSeller = (role: string): boolean => {
+  return role === 'SELLER' || role === 'VENDOR' || role.includes('SELLER');
+};
 
 export default function App() {
   const { initializeAuth, isLogged, auth, clear } = useAuth();
@@ -44,9 +50,13 @@ export default function App() {
       const isSellerPortal = currentPort === '3003';
       
       if (isLogged && auth?.user) {
-        // Use hasAdminPrivileges function for proper ADMIN/SOUS_ADMIN checking
-        const userHasAdminAccess = hasAdminPrivileges(auth.user.type) || hasAdminPrivileges(auth.user.accountType);
-        const userHasSellerAccess = auth.user.type === 'SELLER' || auth.user.accountType === 'SELLER';
+        // Safely cast to RoleCode for admin privileges check
+        const userType = auth.user.type as RoleCode;
+        const accountType = auth.user.accountType as RoleCode;
+        const userHasAdminAccess = hasAdminPrivileges(userType) || hasAdminPrivileges(accountType);
+        
+        // Use string comparison for seller check since SELLER might not be in RoleCode
+        const userHasSellerAccess = isSeller(auth.user.type) || isSeller(auth.user.accountType);
         
         const hasAccess = (isAdminPortal && userHasAdminAccess) || (isSellerPortal && userHasSellerAccess);
         
@@ -89,9 +99,13 @@ export default function App() {
       const isAdminPortal = currentPort === '3002';
       const isSellerPortal = currentPort === '3003';
       
-      // Use hasAdminPrivileges function for consistent access checking
-      const userHasAdminAccess = hasAdminPrivileges(auth.user.type) || hasAdminPrivileges(auth.user.accountType);
-      const userHasSellerAccess = auth.user.type === 'SELLER' || auth.user.accountType === 'SELLER';
+      // Safely cast to RoleCode for admin privileges check
+      const userType = auth.user.type as RoleCode;
+      const accountType = auth.user.accountType as RoleCode;
+      const userHasAdminAccess = hasAdminPrivileges(userType) || hasAdminPrivileges(accountType);
+      
+      // Use string comparison for seller check since SELLER might not be in RoleCode
+      const userHasSellerAccess = isSeller(auth.user.type) || isSeller(auth.user.accountType);
       
       const hasAccess = (isAdminPortal && userHasAdminAccess) || (isSellerPortal && userHasSellerAccess);
       

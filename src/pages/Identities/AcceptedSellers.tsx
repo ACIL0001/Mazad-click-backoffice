@@ -23,7 +23,7 @@ import {
 import Iconify from "@/components/Iconify"
 import { useSnackbar } from "notistack"
 import MuiTable from "../../components/Tables/MuiTable"
-import { IdentityDocument } from "./identity" // Import from API
+import { IdentityDocument } from "@/api/identity" // Import from API
 
 interface AcceptedSellersProps {
   acceptedSellers: IdentityDocument[]

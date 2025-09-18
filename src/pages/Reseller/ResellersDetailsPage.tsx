@@ -28,7 +28,7 @@ import {
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import Iconify from '@/components/Iconify';
-import { PopulatedUser } from '../Identities/index';
+import { PopulatedUser } from '@/types/PopulatedUser';
 import app from '@/config';
 import { UserAPI } from '../../api/user';
 import { useSnackbar } from 'notistack';
@@ -543,7 +543,7 @@ export default function ResellersDetailsPage() {
                                     Date de création
                                 </Typography>
                                 <Typography variant={isMobile ? "body1" : "body1"} sx={{ fontWeight: 600, fontSize: isMobile ? '0.85rem' : 'inherit' }}>
-                                    {formatDate(user?.createdAt)}
+                                    {formatDate(typeof user?.createdAt === 'string' ? user.createdAt : user?.createdAt?.toISOString())}
                                 </Typography>
                             </InfoRow>
 
@@ -552,7 +552,7 @@ export default function ResellersDetailsPage() {
                                     Dernière mise à jour
                                 </Typography>
                                 <Typography variant={isMobile ? "body1" : "body1"} sx={{ fontWeight: 600, fontSize: isMobile ? '0.85rem' : 'inherit' }}>
-                                    {formatDate(user?.updatedAt)}
+                                    {formatDate(typeof user?.updatedAt === 'string' ? user.updatedAt : user?.updatedAt?.toISOString())}
                                 </Typography>
                             </InfoRow>
 

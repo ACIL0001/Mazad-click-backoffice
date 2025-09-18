@@ -23,16 +23,15 @@ export default function RequirePhoneVerification({ children }: RequirePhoneVerif
   useEffect(() => {
     const checkUserStatus = async () => {
       try {
-        // Check for both token structures - auth.tokens or auth.session
-        const hasTokens = auth?.tokens?.accessToken || auth?.session?.accessToken;
+        // Check for token structure - only auth.tokens exists
+        const hasTokens = auth?.tokens?.accessToken;
         
         // Check if user is authenticated before making API calls
         if (!auth?.user?._id || !hasTokens) {
           console.log('RequirePhoneVerification: User not authenticated, skipping checks');
           console.log('RequirePhoneVerification: Auth state:', { 
             user: auth?.user, 
-            tokens: auth?.tokens, 
-            session: auth?.session 
+            tokens: auth?.tokens
           });
           setIsChecking(false);
           return;
@@ -103,7 +102,7 @@ export default function RequirePhoneVerification({ children }: RequirePhoneVerif
     };
 
     checkUserStatus();
-  }, [auth?.user, auth?.tokens, auth?.session]); // Watch both token structures
+  }, [auth?.user, auth?.tokens]); // Watch only user and tokens
 
   // Show loading while checking user status
   if (isChecking) {

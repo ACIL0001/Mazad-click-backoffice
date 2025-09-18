@@ -68,6 +68,12 @@ const theme = createTheme({
       light: "#22D3EE",
       dark: "#0891B2",
     },
+    neutral: {
+      main: "#64748B",
+      light: "#94A3B8",
+      dark: "#475569",
+      contrastText: "#ffffff",
+    },
     success: {
       main: "#10B981",
       light: "#34D399",
@@ -98,6 +104,9 @@ const theme = createTheme({
       fontWeight: 600,
       fontSize: '1.25rem',
     }
+  },
+  status: {
+    danger: '#FF5630',
   },
   components: {
     MuiButton: {

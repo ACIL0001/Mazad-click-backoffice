@@ -133,7 +133,7 @@ export default function AdminPermissions() {
   };
 
   const hasRolePermission = (action: string, role: RoleCode): boolean => {
-    return hasPermission(role, action as keyof typeof PERMISSIONS);
+    return checkPermission(role, action as keyof typeof PERMISSIONS);
   };
 
   const getRoleDescription = (role: RoleCode): string => {

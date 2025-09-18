@@ -834,7 +834,9 @@ export default function DashboardCategoriesPage() {
         <MuiTable
           data={filteredData}
           columns={CATEGORY_TABLE_HEAD}
-          TableBodyComponent={CategoriesTableBody}
+          TableBodyComponent={(props) => (
+            <CategoriesTableBody {...props} onCategoryDeleted={onCategoryDeleted} />
+          )}
           page={page}
           setPage={setPage}
           order={order}
@@ -851,7 +853,6 @@ export default function DashboardCategoriesPage() {
           numSelected={selected.length}
           onDeleteSelected={handleDeleteSelectedCategories}
           loading={loading}
-          onCategoryDeleted={onCategoryDeleted}
         />
       </Container>
     </Page>

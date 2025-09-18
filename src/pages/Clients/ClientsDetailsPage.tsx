@@ -28,7 +28,7 @@ import {
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import Iconify from '@/components/Iconify';
-import { PopulatedUser } from '../Identities/index';
+import PopulatedUser from '@/types/PopulatedUser';
 import app from '@/config';
 import { UserAPI } from '../../api/user';
 import { useSnackbar } from 'notistack';
@@ -37,11 +37,11 @@ import useMediaQuery from '@mui/material/useMediaQuery';
 // Extended type to handle additional properties that might exist
 interface ExtendedPopulatedUser extends PopulatedUser {
     fullName?: string;
-    photoURL?: string;
     isHasIdentity?: boolean;
-    isPhoneVerified?: boolean;
     t?: string;
     id?: string;
+    isBanned?: boolean;
+    rate?: number;
 }
 
 // Styled components for modern design

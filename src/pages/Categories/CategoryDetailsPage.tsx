@@ -34,7 +34,7 @@ import Iconify from "@/components/Iconify";
 import Page from "../../components/Page";
 import Label from "../../components/Label";
 import { CategoryAPI } from "@/api/category";
-import type ICategory from "@/types/Category";
+import type { ICategory } from "@/types/Category";
 import app from '@/config';
 
 // Keyframe for subtle floating animation

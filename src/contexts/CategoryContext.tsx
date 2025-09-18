@@ -2,10 +2,8 @@
 
 import { useState, useEffect, createContext } from 'react';
 import useAuth from '../hooks/useAuth';
-import ICategory from '@/types/Category';
+import { ICategory } from '@/types/Category';
 import { CategoryAPI } from '@/api/category';
-
-
 
 interface ICategoryContext {
   categories: ICategory[]
@@ -24,7 +22,7 @@ const CategoryProvider = ({ children }: any) => {
 
     const updateCategory = async () => {
 
-    CategoryAPI.getCategories().then(({ data }: { data: ICategory[] }) => {
+    CategoryAPI.getCategories().then((data: ICategory[]) => {
 
       setCategories(data)
 

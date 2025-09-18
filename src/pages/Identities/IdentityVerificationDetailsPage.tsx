@@ -31,7 +31,7 @@ import { sentenceCase } from 'change-case';
 import Iconify from '@/components/Iconify';
 import Label from '../../components/Label';
 import { IdentityAPI } from '../../api/identity';
-import { SellerIdentity, PopulatedUser, PopulatedAttachment} from '../Identities/index';
+import { IdentityDocument } from '@/api/identity';
 import app from '@/config';
 import { UserAPI } from '../../api/user';
 import { useSnackbar } from 'notistack';
@@ -45,7 +45,7 @@ export default function IdentityVerificationDetailsPage() {
     const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
     const isTablet = useMediaQuery(theme.breakpoints.down('md'));
 
-    const [identityDetails, setIdentityDetails] = useState<SellerIdentity | null>(null);
+    const [identityDetails, setIdentityDetails] = useState<IdentityDocument | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [isVerifying, setIsVerifying] = useState(false);
@@ -72,7 +72,7 @@ export default function IdentityVerificationDetailsPage() {
         try {
             setLoading(true);
             const response = await IdentityAPI.getIdentityById(id);
-            let userProfile: PopulatedUser = (response.user && typeof response.user === 'object' && response.user._id)
+            let userProfile: any = (response.user && typeof response.user === 'object' && response.user._id)
                 ? response.user
                 : { _id: response.user?.toString() || 'unknown', firstName: 'Inconnu', lastName: '', email: 'unknown@example.com' };
 

@@ -19,7 +19,7 @@
   },
   "babel": {
     "presets": [
-      "srcbabel/preset-react"
+      "@babel/preset-react"
     ]
   },
   "browserslist": {

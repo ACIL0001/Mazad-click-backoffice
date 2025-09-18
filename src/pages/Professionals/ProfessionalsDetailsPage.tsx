@@ -28,7 +28,7 @@ import {
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import Iconify from '@/components/Iconify';
-import { PopulatedUser } from '../Identities/index';
+import { PopulatedUser } from '@/types/PopulatedUser';
 import app from '@/config';
 import { UserAPI } from '../../api/user';
 import { useSnackbar } from 'notistack';

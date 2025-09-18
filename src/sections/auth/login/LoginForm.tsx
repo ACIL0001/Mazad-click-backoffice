@@ -25,7 +25,7 @@ export default function LoginForm() {
   useEffect(() => {
     console.log('LoginForm useEffect - isLogged:', isLogged, 'auth:', auth);
     // Only redirect if user is already fully authenticated and verified
-    if (isLogged && auth?.user && auth?.session?.accessToken) {
+    if (isLogged && auth?.user && auth?.tokens?.accessToken) {
       const userRole = auth.user.type as RoleCode;
       const accountRole = auth.user.accountType as RoleCode;
       
