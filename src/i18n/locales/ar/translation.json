@@ -1,0 +1,80 @@
+{
+  "common": {
+    "loading": "جاري التحميل...",
+    "error": "خطأ",
+    "success": "نجح",
+    "cancel": "إلغاء",
+    "save": "حفظ",
+    "delete": "حذف",
+    "edit": "تعديل",
+    "view": "عرض",
+    "back": "رجوع",
+    "next": "التالي",
+    "previous": "السابق",
+    "submit": "إرسال",
+    "close": "إغلاق",
+    "confirm": "تأكيد",
+    "yes": "نعم",
+    "no": "لا",
+    "search": "بحث",
+    "filter": "تصفية",
+    "sort": "ترتيب",
+    "refresh": "تحديث",
+    "export": "تصدير",
+    "import": "استيراد",
+    "download": "تحميل",
+    "upload": "رفع"
+  },
+  "auctions": {
+    "title": "المزادات",
+    "create": "إنشاء مزاد",
+    "edit": "تعديل المزاد",
+    "delete": "حذف المزاد",
+    "details": "تفاصيل المزاد",
+    "status": {
+      "active": "نشط",
+      "inactive": "غير نشط",
+      "pending": "في الانتظار",
+      "completed": "مكتمل",
+      "cancelled": "ملغي"
+    },
+    "errors": {
+      "loadingDetails": "خطأ في تحميل تفاصيل المزاد",
+      "creating": "خطأ في إنشاء المزاد",
+      "updating": "خطأ في تحديث المزاد",
+      "deleting": "خطأ في حذف المزاد"
+    },
+    "success": {
+      "created": "تم إنشاء المزاد بنجاح",
+      "updated": "تم تحديث المزاد بنجاح",
+      "deleted": "تم حذف المزاد بنجاح"
+    }
+  },
+  "bids": {
+    "title": "العروض",
+    "status": {
+      "pending": "في الانتظار",
+      "accepted": "مقبول",
+      "rejected": "مرفوض",
+      "withdrawn": "مسحوب"
+    }
+  },
+  "users": {
+    "title": "المستخدمون",
+    "profile": "الملف الشخصي للمستخدم",
+    "settings": "إعدادات المستخدم"
+  },
+  "dashboard": {
+    "title": "لوحة التحكم",
+    "overview": "نظرة عامة",
+    "statistics": "الإحصائيات",
+    "recent": "النشاط الأخير"
+  },
+  "navigation": {
+    "dashboard": "لوحة التحكم",
+    "auctions": "المزادات",
+    "users": "المستخدمون",
+    "reports": "التقارير",
+    "settings": "الإعدادات"
+  }
+}

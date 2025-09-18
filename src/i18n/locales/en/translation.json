@@ -1,0 +1,80 @@
+{
+  "common": {
+    "loading": "Loading...",
+    "error": "Error",
+    "success": "Success",
+    "cancel": "Cancel",
+    "save": "Save",
+    "delete": "Delete",
+    "edit": "Edit",
+    "view": "View",
+    "back": "Back",
+    "next": "Next",
+    "previous": "Previous",
+    "submit": "Submit",
+    "close": "Close",
+    "confirm": "Confirm",
+    "yes": "Yes",
+    "no": "No",
+    "search": "Search",
+    "filter": "Filter",
+    "sort": "Sort",
+    "refresh": "Refresh",
+    "export": "Export",
+    "import": "Import",
+    "download": "Download",
+    "upload": "Upload"
+  },
+  "auctions": {
+    "title": "Auctions",
+    "create": "Create Auction",
+    "edit": "Edit Auction",
+    "delete": "Delete Auction",
+    "details": "Auction Details",
+    "status": {
+      "active": "Active",
+      "inactive": "Inactive",
+      "pending": "Pending",
+      "completed": "Completed",
+      "cancelled": "Cancelled"
+    },
+    "errors": {
+      "loadingDetails": "Error loading auction details",
+      "creating": "Error creating auction",
+      "updating": "Error updating auction",
+      "deleting": "Error deleting auction"
+    },
+    "success": {
+      "created": "Auction created successfully",
+      "updated": "Auction updated successfully",
+      "deleted": "Auction deleted successfully"
+    }
+  },
+  "bids": {
+    "title": "Bids",
+    "status": {
+      "pending": "Pending",
+      "accepted": "Accepted",
+      "rejected": "Rejected",
+      "withdrawn": "Withdrawn"
+    }
+  },
+  "users": {
+    "title": "Users",
+    "profile": "User Profile",
+    "settings": "User Settings"
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "overview": "Overview",
+    "statistics": "Statistics",
+    "recent": "Recent Activity"
+  },
+  "navigation": {
+    "dashboard": "Dashboard",
+    "auctions": "Auctions",
+    "users": "Users",
+    "reports": "Reports",
+    "settings": "Settings"
+  }
+}

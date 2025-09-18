@@ -1,0 +1,21 @@
+const auth = {
+    user: {
+      _id: "62b37de7fa874704ada84759",
+      name: "Sami Aliouch",
+      tel: 799999999,
+      roles: [
+        {
+          _id: "62b36f20a584fd1d172b36e1",
+          code: "SUPERADMIN"
+        }
+      ],
+      network: "62b3855244601b0854e2fce5"
+    },
+    tokens: {
+      accessToken: "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJhYmRlbGhhbWlkbGFyYWNoaS5jb20iLCJhdWQiOiJhYmRlbGhhbWlkbGFyYWNoaS5jb20iLCJzdWIiOiI2MmIzN2RlN2ZhODc0NzA0YWRhODQ3NTkiLCJpYXQiOjE2NTkyNzMxNjAsImV4cCI6MTY2MTg2NTE2MCwicHJtIjoiYWI1MWUxYmQ0YjM0YmIxNjgyZTgzY2Y3ZTllMjUxYjRjMzE1ZTJmNGU5NWE1YTg2OTQ5MDA4Nzg2ODhhYmMxM2ZkNDI3NmU3Mjg2MGM1ODA4MzM4ZDk2MzkxMTZmYTUyYjdhZmIxNDYyNzQzNDQwNDc0MTJmY2E0YTBlYmUwNTQifQ.G14h9I4pDrVKLoTd-BH2USjfgc1DMz3gavdCBtUIqn_40eqL2npQH4hNDVTt58vLcBg4zoaM5GlWncsR9Y0bYQ",
+      refreshToken: "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJhYmRlbGhhbWlkbGFyYWNoaS5jb20iLCJhdWQiOiJhYmRlbGhhbWlkbGFyYWNoaS5jb20iLCJzdWIiOiI2MmIzN2RlN2ZhODc0NzA0YWRhODQ3NTkiLCJpYXQiOjE2NTkyNzMxNjAsImV4cCI6MTY2MTg2NTE2MCwicHJtIjoiYjY1MDIwMGQ2Mjk4NmNjNDhkZWRiMTk4OTk5M2RhM2YyY2QwMjc1MDhiMGQ2M2UzMWQ4YjIzOGZiMWFkOTRjNWYyMjJkMGI3ZGIyZjhkNDM2YWNjZTQyMjg1MGRhNWVkOTUxMTIwNzIzZWQzMTVmOTYzNTMwNGNmMDlmMzJhOTUifQ.HABDv2h72QVAuXFKSq16zIfoUVZsiTedk3PU3jR3xYiF2sXUjAizaa0EZlaVq-cOlMBQh8jqaO5a8UwY1Kda_w"
+    }
+  }
+
+
+export default auth;

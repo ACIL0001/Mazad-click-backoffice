@@ -1,0 +1,80 @@
+{
+  "common": {
+    "loading": "Chargement...",
+    "error": "Erreur",
+    "success": "Succès",
+    "cancel": "Annuler",
+    "save": "Enregistrer",
+    "delete": "Supprimer",
+    "edit": "Modifier",
+    "view": "Voir",
+    "back": "Retour",
+    "next": "Suivant",
+    "previous": "Précédent",
+    "submit": "Soumettre",
+    "close": "Fermer",
+    "confirm": "Confirmer",
+    "yes": "Oui",
+    "no": "Non",
+    "search": "Rechercher",
+    "filter": "Filtrer",
+    "sort": "Trier",
+    "refresh": "Actualiser",
+    "export": "Exporter",
+    "import": "Importer",
+    "download": "Télécharger",
+    "upload": "Téléverser"
+  },
+  "auctions": {
+    "title": "Enchères",
+    "create": "Créer une enchère",
+    "edit": "Modifier l'enchère",
+    "delete": "Supprimer l'enchère",
+    "details": "Détails de l'enchère",
+    "status": {
+      "active": "Actif",
+      "inactive": "Inactif",
+      "pending": "En attente",
+      "completed": "Terminé",
+      "cancelled": "Annulé"
+    },
+    "errors": {
+      "loadingDetails": "Erreur lors du chargement des détails de l'enchère",
+      "creating": "Erreur lors de la création de l'enchère",
+      "updating": "Erreur lors de la mise à jour de l'enchère",
+      "deleting": "Erreur lors de la suppression de l'enchère"
+    },
+    "success": {
+      "created": "Enchère créée avec succès",
+      "updated": "Enchère mise à jour avec succès",
+      "deleted": "Enchère supprimée avec succès"
+    }
+  },
+  "bids": {
+    "title": "Offres",
+    "status": {
+      "pending": "En attente",
+      "accepted": "Acceptée",
+      "rejected": "Rejetée",
+      "withdrawn": "Retirée"
+    }
+  },
+  "users": {
+    "title": "Utilisateurs",
+    "profile": "Profil utilisateur",
+    "settings": "Paramètres utilisateur"
+  },
+  "dashboard": {
+    "title": "Tableau de bord",
+    "overview": "Aperçu",
+    "statistics": "Statistiques",
+    "recent": "Activité récente"
+  },
+  "navigation": {
+    "dashboard": "Tableau de bord",
+    "auctions": "Enchères",
+    "users": "Utilisateurs",
+    "reports": "Rapports",
+    "settings": "Paramètres"
+  }
+}
