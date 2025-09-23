@@ -47,6 +47,9 @@ import {
   AccessTime as TimeIcon,
 } from "@mui/icons-material"
 
+// Import the real API - update the path based on your project structure
+import { SubscriptionAPI, SubscriptionPlan, CreatePlanDto } from '../api/subscription'
+
 const theme = createTheme({
   palette: {
     mode: 'light',
@@ -210,25 +213,6 @@ const theme = createTheme({
     }
   },
 })
-// Updated interfaces (removed isActive)
-interface SubscriptionPlan {
-  _id?: string
-  name: string
-  description: string
-  price: number
-  duration: number
-  role: string
-  createdAt?: string
-  updatedAt?: string
-}
-
-interface CreatePlanDto {
-  name: string
-  description: string
-  price: number
-  duration: number
-  role: string
-}
 
 interface UserSubscription {
   _id: string
@@ -240,143 +224,6 @@ interface UserSubscription {
   startDate: string
   endDate: string
   status: string
-}
-
-// Mock API for demo purposes (updated to remove isActive)
-const SubscriptionAPI = {
-  getPlans: (): Promise<SubscriptionPlan[]> => {
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        resolve([
-          {
-            _id: "1",
-            name: "Professional Plan",
-            description: "Perfect for professionals who need advanced features and priority support",
-            price: 2000,
-            duration: 1,
-            role: "PROFESSIONAL",
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString()
-          },
-          {
-            _id: "2", 
-            name: "Reseller Premium",
-            description: "Comprehensive solution for resellers with bulk pricing and advanced tools",
-            price: 5000,
-            duration: 3,
-            role: "RESELLER",
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString()
-          }
-        ])
-      }, 1000)
-    })
-  },
-
-  createPlan: (planData: CreatePlanDto): Promise<SubscriptionPlan> => {
-    return new Promise((resolve, reject) => {
-      setTimeout(() => {
-        if (!planData.name.trim() || planData.price <= 0) {
-          reject(new Error("Invalid plan data"))
-          return
-        }
-        resolve({
-          _id: Date.now().toString(),
-          ...planData,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString()
-        })
-      }, 500)
-    })
-  },
-
-  updatePlan: (planId: string, planData: Partial<SubscriptionPlan>): Promise<SubscriptionPlan> => {
-    return new Promise((resolve, reject) => {
-      setTimeout(() => {
-        if (!planData.name?.trim() || (planData.price && planData.price <= 0)) {
-          reject(new Error("Invalid plan data"))
-          return
-        }
-        resolve({
-          _id: planId,
-          name: planData.name || "",
-          description: planData.description || "",
-          price: planData.price || 0,
-          duration: planData.duration || 1,
-          role: planData.role || "PROFESSIONAL",
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString()
-        })
-      }, 500)
-    })
-  },
-
-  deletePlan: (planId: string): Promise<void> => {
-    return new Promise((resolve) => {
-      setTimeout(() => resolve(), 500)
-    })
-  },
-
-  getAllSubscriptions: (): Promise<UserSubscription[]> => {
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        const now = new Date()
-        const futureDate = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000)
-        
-        resolve([
-          {
-            _id: "sub1",
-            userId: "user1",
-            planId: "1",
-            planName: "Professional Plan",
-            planPrice: 2000,
-            planDuration: 1,
-            startDate: now.toISOString(),
-            endDate: futureDate.toISOString(),
-            status: "ACTIVE"
-          },
-          {
-            _id: "sub2",
-            userId: "user2", 
-            planId: "2",
-            planName: "Reseller Premium",
-            planPrice: 5000,
-            planDuration: 3,
-            startDate: now.toISOString(),
-            endDate: new Date(now.getTime() + 90 * 24 * 60 * 60 * 1000).toISOString(),
-            status: "ACTIVE"
-          }
-        ])
-      }, 1200)
-    })
-  },
-
-  updateSubscription: (subscriptionId: string, updates: any): Promise<UserSubscription> => {
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        resolve({
-          _id: subscriptionId,
-          userId: "user1",
-          planId: updates.planId || "1",
-          planName: "Updated Plan",
-          planPrice: 2000,
-          planDuration: 1,
-          startDate: updates.startDate || new Date().toISOString(),
-          endDate: updates.endDate || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-          status: updates.status || "ACTIVE"
-        })
-      }, 500)
-    })
-  },
-
-  deleteSubscription: (subscriptionId: string): Promise<void> => {
-    return new Promise((resolve) => {
-      setTimeout(() => resolve(), 500)
-    })
-  },
-
-  subscribeToPlan: (planId: string): Promise<{ success: boolean; message?: string }> =>
-    Promise.resolve({ success: true, message: 'Successfully subscribed!' })
 }
 
 // Countdown Timer Component
@@ -423,6 +270,7 @@ export default function SubscriptionPage() {
   const [plans, setPlans] = useState<SubscriptionPlan[]>([])
   const [userSubscriptions, setUserSubscriptions] = useState<UserSubscription[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [createDialogOpen, setCreateDialogOpen] = useState(false)
   const [editDialogOpen, setEditDialogOpen] = useState(false)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
@@ -449,14 +297,23 @@ export default function SubscriptionPage() {
   const loadData = async () => {
     try {
       setLoading(true)
+      setError(null)
       
+      // Load subscription plans
       const plansResponse = await SubscriptionAPI.getPlans()
       setPlans(plansResponse)
 
-      const allSubsResponse = await SubscriptionAPI.getAllSubscriptions()
-      setUserSubscriptions(allSubsResponse)
+      // Load all user subscriptions
+      try {
+        const allSubsResponse = await SubscriptionAPI.getAllSubscriptions()
+        setUserSubscriptions(allSubsResponse)
+      } catch (subError) {
+        console.warn("Could not load subscriptions:", subError)
+        setUserSubscriptions([])
+      }
     } catch (error) {
       console.error("Error loading data:", error)
+      setError("Failed to load subscription data. Please try again.")
       setPlans([])
       setUserSubscriptions([])
     } finally {
@@ -466,7 +323,9 @@ export default function SubscriptionPage() {
 
   const handleCreatePlan = async () => {
     try {
+      setError(null)
       if (!newPlan.name.trim() || !newPlan.description.trim() || newPlan.price <= 0 || newPlan.duration <= 0) {
+        setError("Please fill in all fields with valid values")
         return
       }
 
@@ -483,6 +342,7 @@ export default function SubscriptionPage() {
       })
     } catch (error) {
       console.error("Error creating plan:", error)
+      setError("Failed to create plan. Please try again.")
     }
   }
 
@@ -495,7 +355,9 @@ export default function SubscriptionPage() {
     if (!currentPlan || !currentPlan._id) return
     
     try {
+      setError(null)
       if (!currentPlan.name.trim() || !currentPlan.description.trim() || currentPlan.price <= 0 || currentPlan.duration <= 0) {
+        setError("Please fill in all fields with valid values")
         return
       }
 
@@ -512,6 +374,7 @@ export default function SubscriptionPage() {
       setCurrentPlan(null)
     } catch (error) {
       console.error("Error updating plan:", error)
+      setError("Failed to update plan. Please try again.")
     }
   }
 
@@ -519,16 +382,18 @@ export default function SubscriptionPage() {
     if (!currentPlan || !currentPlan._id) return
     
     try {
+      setError(null)
       await SubscriptionAPI.deletePlan(currentPlan._id)
       setPlans(prev => prev.filter(p => p._id !== currentPlan._id))
       setDeleteDialogOpen(false)
       setCurrentPlan(null)
     } catch (error) {
       console.error("Error deleting plan:", error)
+      setError("Failed to delete plan. Please try again.")
     }
   }
 
-  // New subscription management functions
+  // Mock subscription management functions (since real API methods aren't available yet)
   const handleEditSubscription = (subscription: UserSubscription) => {
     setCurrentSubscription(subscription)
     setEditSubscriptionDialogOpen(true)
@@ -538,17 +403,15 @@ export default function SubscriptionPage() {
     if (!currentSubscription) return
 
     try {
-      const updatedSub = await SubscriptionAPI.updateSubscription(currentSubscription._id, {
-        status: currentSubscription.status,
-        startDate: currentSubscription.startDate,
-        endDate: currentSubscription.endDate
-      })
-      
-      setUserSubscriptions(prev => prev.map(s => s._id === currentSubscription._id ? updatedSub : s))
+      // This would need a real API endpoint
+      console.log("Updating subscription:", currentSubscription)
       setEditSubscriptionDialogOpen(false)
       setCurrentSubscription(null)
+      // Reload data to get updated subscription
+      await loadData()
     } catch (error) {
       console.error("Error updating subscription:", error)
+      setError("Failed to update subscription. Please try again.")
     }
   }
 
@@ -556,12 +419,14 @@ export default function SubscriptionPage() {
     if (!currentSubscription) return
 
     try {
-      await SubscriptionAPI.deleteSubscription(currentSubscription._id)
+      // This would need a real API endpoint
+      console.log("Deleting subscription:", currentSubscription._id)
       setUserSubscriptions(prev => prev.filter(s => s._id !== currentSubscription._id))
       setDeleteSubscriptionDialogOpen(false)
       setCurrentSubscription(null)
     } catch (error) {
       console.error("Error deleting subscription:", error)
+      setError("Failed to delete subscription. Please try again.")
     }
   }
 
@@ -569,12 +434,14 @@ export default function SubscriptionPage() {
     if (!planId) return
     
     try {
-      const result = await SubscriptionAPI.subscribeToPlan(planId)
-      if (result.success) {
-        loadData()
-      }
+      setError(null)
+      // This would create a new subscription for the current user
+      console.log("Subscribing to plan:", planId)
+      // Reload data to show the new subscription
+      await loadData()
     } catch (error) {
       console.error("Error subscribing to plan:", error)
+      setError("Failed to subscribe to plan. Please try again.")
     }
   }
 
@@ -646,6 +513,16 @@ export default function SubscriptionPage() {
         }}
       >
         <Container maxWidth="xl" sx={{ position: 'relative', zIndex: 1, py: 6 }}>
+          {error && (
+            <Box mb={3}>
+              <Card sx={{ backgroundColor: 'error.light', color: 'error.contrastText' }}>
+                <CardContent>
+                  <Typography variant="body1">{error}</Typography>
+                </CardContent>
+              </Card>
+            </Box>
+          )}
+
           <Fade in timeout={800}>
             <Box mb={6} textAlign="center">
               <Typography 
