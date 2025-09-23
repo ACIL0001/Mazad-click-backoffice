@@ -21,12 +21,12 @@ const app = {
   name: 'MazadClick',
   pole: 'NotEasy',
   timeout: 15000,
-  domain: 'www.easyeats.com',
+  domain: 'mazad.click',
   
-  // FIXED: Based on your logs, your backend API is actually on port 3000, not 3003
-  socket: 'https://mazad-click-server.onrender.com/',
-  route: "https://mazad-click-server.onrender.com",
-  baseURL: "https://mazad-click-server.onrender.com/",
+  // Dynamic URLs based on environment
+  socket: import.meta.env.VITE_SOCKET_URL || 'wss://mazad-click-server.onrender.com/',
+  route: import.meta.env.VITE_STATIC_URL || "https://mazad-click-server.onrender.com/static/",
+  baseURL: import.meta.env.VITE_API_URL || "https://mazad-click-server.onrender.com/",
 
   apiKey: '8f2a61c94d7e3b5f9c0a8d2e6b4f1c7a',
   
