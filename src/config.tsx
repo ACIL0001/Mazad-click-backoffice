@@ -20,7 +20,7 @@ const getStorageKey = () => {
 const app = {
   name: 'MazadClick',
   pole: 'NotEasy',
-  timeout: 15000,
+  timeout: 30000,
   domain: 'mazad.click',
   
   // Dynamic URLs based on environment
@@ -28,7 +28,7 @@ const app = {
   route: import.meta.env.VITE_STATIC_URL || "https://mazad-click-server.onrender.com/static/",
   baseURL: import.meta.env.VITE_API_URL || "https://mazad-click-server.onrender.com/",
 
-  apiKey: '8f2a61c94d7e3b5f9c0a8d2e6b4f1c7a',
+  apiKey: '64d2e8b7c3a9f1e5d8b2a4c6e9f0d3a5',
   
   // Export storage key function for auth isolation
   getStorageKey,
