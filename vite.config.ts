@@ -8,7 +8,7 @@ export default defineConfig({
   build: {
     outDir: 'dist',
   },
-  base: '/admin/',
+  base: process.env.NODE_ENV === 'production' ? '/' : '/admin/',
   server: {
     port: 3003, 
     proxy: {
