@@ -20,7 +20,7 @@ const getStorageKey = () => {
 const app = {
   name: 'MazadClick',
   pole: 'NotEasy',
-  timeout: 30000,
+  timeout: 45000, // Increased to 45 seconds to handle slow responses
   domain: 'mazad.click',
   
   // Dynamic URLs based on environment
@@ -28,7 +28,19 @@ const app = {
   route: import.meta.env.VITE_STATIC_URL || "https://mazad-click-server.onrender.com/static/",
   baseURL: import.meta.env.VITE_API_URL || "https://mazad-click-server.onrender.com/",
 
-  apiKey: '64d2e8b7c3a9f1e5d8b2a4c6e9f0d3a5',
+  apiKey: '8f2a61c94d7e3b5f9c0a8d2e6b4f1c7a',
+  
+  // Retry configuration for failed requests
+  retryAttempts: 3,
+  retryDelay: 2000, // 2 seconds initial delay
+  
+  // Connection settings
+  connectTimeout: 10000, // 10 seconds for initial connection
+  maxRedirects: 5,
+  
+  // Request settings to handle Render.com limitations
+  keepAlive: true,
+  maxSockets: 10,
   
   // Export storage key function for auth isolation
   getStorageKey,
@@ -36,3 +48,5 @@ const app = {
 
 export { getStorageKey };
 export default app;
+
+
