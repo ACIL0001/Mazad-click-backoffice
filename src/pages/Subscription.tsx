@@ -18,8 +18,6 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
-  Switch,
-  FormControlLabel,
   Grid,
   Paper,
   CircularProgress,
@@ -28,10 +26,8 @@ import {
   createTheme,
   IconButton,
   Avatar,
-  Divider,
   Fade,
   Slide,
-  useTheme,
   alpha,
 } from "@mui/material"
 import {
@@ -50,9 +46,6 @@ import {
   Cancel as CancelIcon,
   AccessTime as TimeIcon,
 } from "@mui/icons-material"
-
-// Import your real API
-import { SubscriptionAPI, SubscriptionPlan, CreatePlanDto } from '../api/subscription'
 
 const theme = createTheme({
   palette: {
@@ -86,7 +79,23 @@ const theme = createTheme({
     text: {
       primary: "#1E293B",
       secondary: "#64748B",
+    },
+    grey: {
+      50: "#F8FAFC",
+      100: "#F1F5F9",
+      200: "#E2E8F0",
+      300: "#CBD5E1",
+      400: "#94A3B8",
+      500: "#64748B",
+      600: "#475569",
+      700: "#334155",
+      800: "#1E293B",
+      900: "#0F172A",
     }
+  },
+  // Add the required status property
+  status: {
+    danger: "#EF4444", // or any color value you prefer
   },
   typography: {
     fontFamily: '"Inter", "Roboto", "Helvetica", "Arial", sans-serif',
@@ -105,8 +114,15 @@ const theme = createTheme({
       fontSize: '1.25rem',
     }
   },
-  status: {
-    danger: '#FF5630',
+  // Add customShadows if needed
+  customShadows: {
+    z1: '0 1px 2px rgba(0, 0, 0, 0.1)',
+    z4: '0 4px 8px rgba(0, 0, 0, 0.1)',
+    z8: '0 8px 16px rgba(0, 0, 0, 0.1)',
+    z12: '0 12px 24px rgba(0, 0, 0, 0.1)',
+    z16: '0 16px 32px rgba(0, 0, 0, 0.1)',
+    z20: '0 20px 40px rgba(0, 0, 0, 0.1)',
+    z24: '0 24px 48px rgba(0, 0, 0, 0.1)',
   },
   components: {
     MuiButton: {
@@ -121,11 +137,11 @@ const theme = createTheme({
           border: 'none',
         },
         contained: {
-          background: "linear-gradient(135deg, #0EA5E9 0%, #FFFFFF 100%)",
-          color: "#1E293B",
+          background: "linear-gradient(135deg, #0EA5E9 0%, #06B6D4 100%)",
+          color: "#FFFFFF",
           boxShadow: '0 4px 20px rgba(14, 165, 233, 0.3)',
           "&:hover": {
-            background: "linear-gradient(135deg, #0284C7 0%, #F1F5F9 100%)",
+            background: "linear-gradient(135deg, #0284C7 0%, #0891B2 100%)",
             transform: "translateY(-2px)",
             boxShadow: '0 8px 30px rgba(14, 165, 233, 0.4)',
           },
@@ -194,6 +210,25 @@ const theme = createTheme({
     }
   },
 })
+// Updated interfaces (removed isActive)
+interface SubscriptionPlan {
+  _id?: string
+  name: string
+  description: string
+  price: number
+  duration: number
+  role: string
+  createdAt?: string
+  updatedAt?: string
+}
+
+interface CreatePlanDto {
+  name: string
+  description: string
+  price: number
+  duration: number
+  role: string
+}
 
 interface UserSubscription {
   _id: string
@@ -204,12 +239,143 @@ interface UserSubscription {
   planDuration: number
   startDate: string
   endDate: string
-  isActive: boolean
   status: string
 }
 
-const UserAPI = {
-  addSubscriptionPlan: (planId: string): Promise<{ success: boolean; message?: string }> =>
+// Mock API for demo purposes (updated to remove isActive)
+const SubscriptionAPI = {
+  getPlans: (): Promise<SubscriptionPlan[]> => {
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        resolve([
+          {
+            _id: "1",
+            name: "Professional Plan",
+            description: "Perfect for professionals who need advanced features and priority support",
+            price: 2000,
+            duration: 1,
+            role: "PROFESSIONAL",
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+          },
+          {
+            _id: "2", 
+            name: "Reseller Premium",
+            description: "Comprehensive solution for resellers with bulk pricing and advanced tools",
+            price: 5000,
+            duration: 3,
+            role: "RESELLER",
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+          }
+        ])
+      }, 1000)
+    })
+  },
+
+  createPlan: (planData: CreatePlanDto): Promise<SubscriptionPlan> => {
+    return new Promise((resolve, reject) => {
+      setTimeout(() => {
+        if (!planData.name.trim() || planData.price <= 0) {
+          reject(new Error("Invalid plan data"))
+          return
+        }
+        resolve({
+          _id: Date.now().toString(),
+          ...planData,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        })
+      }, 500)
+    })
+  },
+
+  updatePlan: (planId: string, planData: Partial<SubscriptionPlan>): Promise<SubscriptionPlan> => {
+    return new Promise((resolve, reject) => {
+      setTimeout(() => {
+        if (!planData.name?.trim() || (planData.price && planData.price <= 0)) {
+          reject(new Error("Invalid plan data"))
+          return
+        }
+        resolve({
+          _id: planId,
+          name: planData.name || "",
+          description: planData.description || "",
+          price: planData.price || 0,
+          duration: planData.duration || 1,
+          role: planData.role || "PROFESSIONAL",
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        })
+      }, 500)
+    })
+  },
+
+  deletePlan: (planId: string): Promise<void> => {
+    return new Promise((resolve) => {
+      setTimeout(() => resolve(), 500)
+    })
+  },
+
+  getAllSubscriptions: (): Promise<UserSubscription[]> => {
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        const now = new Date()
+        const futureDate = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000)
+        
+        resolve([
+          {
+            _id: "sub1",
+            userId: "user1",
+            planId: "1",
+            planName: "Professional Plan",
+            planPrice: 2000,
+            planDuration: 1,
+            startDate: now.toISOString(),
+            endDate: futureDate.toISOString(),
+            status: "ACTIVE"
+          },
+          {
+            _id: "sub2",
+            userId: "user2", 
+            planId: "2",
+            planName: "Reseller Premium",
+            planPrice: 5000,
+            planDuration: 3,
+            startDate: now.toISOString(),
+            endDate: new Date(now.getTime() + 90 * 24 * 60 * 60 * 1000).toISOString(),
+            status: "ACTIVE"
+          }
+        ])
+      }, 1200)
+    })
+  },
+
+  updateSubscription: (subscriptionId: string, updates: any): Promise<UserSubscription> => {
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        resolve({
+          _id: subscriptionId,
+          userId: "user1",
+          planId: updates.planId || "1",
+          planName: "Updated Plan",
+          planPrice: 2000,
+          planDuration: 1,
+          startDate: updates.startDate || new Date().toISOString(),
+          endDate: updates.endDate || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+          status: updates.status || "ACTIVE"
+        })
+      }, 500)
+    })
+  },
+
+  deleteSubscription: (subscriptionId: string): Promise<void> => {
+    return new Promise((resolve) => {
+      setTimeout(() => resolve(), 500)
+    })
+  },
+
+  subscribeToPlan: (planId: string): Promise<{ success: boolean; message?: string }> =>
     Promise.resolve({ success: true, message: 'Successfully subscribed!' })
 }
 
@@ -256,7 +422,6 @@ function CountdownTimer({ endDate }: { endDate: string }) {
 export default function SubscriptionPage() {
   const [plans, setPlans] = useState<SubscriptionPlan[]>([])
   const [userSubscriptions, setUserSubscriptions] = useState<UserSubscription[]>([])
-  const [mySubscription, setMySubscription] = useState<UserSubscription | null>(null)
   const [loading, setLoading] = useState(true)
   const [createDialogOpen, setCreateDialogOpen] = useState(false)
   const [editDialogOpen, setEditDialogOpen] = useState(false)
@@ -264,13 +429,17 @@ export default function SubscriptionPage() {
   const [currentPlan, setCurrentPlan] = useState<SubscriptionPlan | null>(null)
   const [activeTab, setActiveTab] = useState(0)
 
+  // Subscription management states
+  const [editSubscriptionDialogOpen, setEditSubscriptionDialogOpen] = useState(false)
+  const [deleteSubscriptionDialogOpen, setDeleteSubscriptionDialogOpen] = useState(false)
+  const [currentSubscription, setCurrentSubscription] = useState<UserSubscription | null>(null)
+
   const [newPlan, setNewPlan] = useState<CreatePlanDto>({
     name: "",
     description: "",
     price: 0,
     duration: 1,
     role: "PROFESSIONAL",
-    isActive: true,
   })
 
   useEffect(() => {
@@ -284,26 +453,12 @@ export default function SubscriptionPage() {
       const plansResponse = await SubscriptionAPI.getPlans()
       setPlans(plansResponse)
 
-      try {
-        const mySubResponse = await SubscriptionAPI.getMySubscription()
-        setMySubscription(mySubResponse)
-      } catch (error) {
-        console.warn("No subscription found for user:", error)
-        setMySubscription(null)
-      }
-
-      try {
-        const allSubsResponse = await SubscriptionAPI.getAllSubscriptions()
-        setUserSubscriptions(allSubsResponse)
-      } catch (error) {
-        console.warn("Error loading all subscriptions:", error)
-        setUserSubscriptions([])
-      }
+      const allSubsResponse = await SubscriptionAPI.getAllSubscriptions()
+      setUserSubscriptions(allSubsResponse)
     } catch (error) {
       console.error("Error loading data:", error)
       setPlans([])
       setUserSubscriptions([])
-      setMySubscription(null)
     } finally {
       setLoading(false)
     }
@@ -325,7 +480,6 @@ export default function SubscriptionPage() {
         price: 0,
         duration: 1,
         role: "PROFESSIONAL",
-        isActive: true,
       })
     } catch (error) {
       console.error("Error creating plan:", error)
@@ -350,7 +504,6 @@ export default function SubscriptionPage() {
         description: currentPlan.description,
         price: currentPlan.price,
         duration: currentPlan.duration,
-        isActive: currentPlan.isActive,
         role: currentPlan.role,
       })
       
@@ -375,11 +528,48 @@ export default function SubscriptionPage() {
     }
   }
 
+  // New subscription management functions
+  const handleEditSubscription = (subscription: UserSubscription) => {
+    setCurrentSubscription(subscription)
+    setEditSubscriptionDialogOpen(true)
+  }
+
+  const handleUpdateSubscription = async () => {
+    if (!currentSubscription) return
+
+    try {
+      const updatedSub = await SubscriptionAPI.updateSubscription(currentSubscription._id, {
+        status: currentSubscription.status,
+        startDate: currentSubscription.startDate,
+        endDate: currentSubscription.endDate
+      })
+      
+      setUserSubscriptions(prev => prev.map(s => s._id === currentSubscription._id ? updatedSub : s))
+      setEditSubscriptionDialogOpen(false)
+      setCurrentSubscription(null)
+    } catch (error) {
+      console.error("Error updating subscription:", error)
+    }
+  }
+
+  const handleDeleteSubscription = async () => {
+    if (!currentSubscription) return
+
+    try {
+      await SubscriptionAPI.deleteSubscription(currentSubscription._id)
+      setUserSubscriptions(prev => prev.filter(s => s._id !== currentSubscription._id))
+      setDeleteSubscriptionDialogOpen(false)
+      setCurrentSubscription(null)
+    } catch (error) {
+      console.error("Error deleting subscription:", error)
+    }
+  }
+
   const handleSubscribeToPlan = async (planId: string) => {
     if (!planId) return
     
     try {
-      const result = await UserAPI.addSubscriptionPlan(planId)
+      const result = await SubscriptionAPI.subscribeToPlan(planId)
       if (result.success) {
         loadData()
       }
@@ -399,17 +589,22 @@ export default function SubscriptionPage() {
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat("en-US", {
       style: "currency",
-      currency: "DZD",
+      currency: "USD",
       minimumFractionDigits: 0,
-    }).format(price)
-  }
-
-  const getRoleIcon = (role: string) => {
-    return role === 'PROFESSIONAL' ? <WorkIcon /> : <BusinessIcon />
+    }).format(price / 100)
   }
 
   const getRoleColor = (role: string) => {
     return role === 'PROFESSIONAL' ? 'primary' : 'secondary'
+  }
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'ACTIVE': return 'success'
+      case 'EXPIRED': return 'error'
+      case 'CANCELLED': return 'warning'
+      default: return 'default'
+    }
   }
 
   if (loading) {
@@ -423,40 +618,11 @@ export default function SubscriptionPage() {
             alignItems: "center",
             justifyContent: "center",
             position: 'relative',
-            "&::before": {
-              content: '""',
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              background: 'radial-gradient(circle at 30% 20%, rgba(14, 165, 233, 0.1) 0%, transparent 50%), radial-gradient(circle at 70% 80%, rgba(255, 255, 255, 0.3) 0%, transparent 50%)',
-              pointerEvents: 'none',
-            }
           }}
         >
           <Fade in={loading}>
-            <Box 
-              textAlign="center" 
-              sx={{ 
-                p: 6,
-                borderRadius: 4,
-                background: 'rgba(255, 255, 255, 0.8)',
-                backdropFilter: 'blur(20px)',
-                boxShadow: '0 20px 60px rgba(14, 165, 233, 0.1)',
-                border: 'none'
-              }}
-            >
-              <CircularProgress 
-                size={60} 
-                sx={{ 
-                  color: 'primary.main', 
-                  mb: 3,
-                  '& .MuiCircularProgress-circle': {
-                    strokeLinecap: 'round',
-                  }
-                }} 
-              />
+            <Box textAlign="center">
+              <CircularProgress size={60} sx={{ color: 'primary.main', mb: 3 }} />
               <Typography variant="h5" fontWeight="600" color="text.primary" gutterBottom>
                 Loading Subscription Data
               </Typography>
@@ -477,16 +643,6 @@ export default function SubscriptionPage() {
           minHeight: "100vh",
           background: "linear-gradient(135deg, #E0F2FE 0%, #FFFFFF 50%, #F0F9FF 100%)",
           position: 'relative',
-          "&::before": {
-            content: '""',
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            background: 'radial-gradient(circle at 30% 20%, rgba(14, 165, 233, 0.1) 0%, transparent 50%), radial-gradient(circle at 70% 80%, rgba(255, 255, 255, 0.3) 0%, transparent 50%)',
-            pointerEvents: 'none',
-          }
         }}
       >
         <Container maxWidth="xl" sx={{ position: 'relative', zIndex: 1, py: 6 }}>
@@ -499,7 +655,7 @@ export default function SubscriptionPage() {
                 sx={{ 
                   color: 'text.primary',
                   mb: 2,
-                  background: 'linear-gradient(135deg, #0EA5E9 0%, #FFFFFF 100%)',
+                  background: 'linear-gradient(135deg, #0EA5E9 0%, #06B6D4 100%)',
                   backgroundClip: 'text',
                   WebkitBackgroundClip: 'text',
                   WebkitTextFillColor: 'transparent',
@@ -508,52 +664,50 @@ export default function SubscriptionPage() {
                 Subscription Management
               </Typography>
               <Typography variant="h6" sx={{ color: 'text.secondary', maxWidth: '600px', mx: 'auto', fontWeight: 400 }}>
-                Create, manage, and monitor subscription plans with our comprehensive dashboard
+                Create, manage, and monitor subscription plans and user subscriptions
               </Typography>
             </Box>
           </Fade>
 
-          {(mySubscription || userSubscriptions.length > 0) && (
-            <Fade in timeout={1000}>
-              <Paper elevation={0} sx={{ mb: 4 }}>
-                <Tabs
-                  value={activeTab}
-                  onChange={(_, newValue) => setActiveTab(newValue)}
-                  variant="fullWidth"
-                  sx={{
-                    "& .MuiTab-root": {
-                      textTransform: "none",
-                      fontWeight: 500,
-                      fontSize: '1rem',
-                      py: 3,
-                      color: 'text.secondary',
-                      transition: 'all 0.3s ease',
-                    },
-                    "& .Mui-selected": {
-                      color: 'primary.main',
-                      fontWeight: 600,
-                    },
-                    "& .MuiTabs-indicator": {
-                      height: 3,
-                      borderRadius: 2,
-                      background: 'linear-gradient(135deg, #0EA5E9 0%, #FFFFFF 100%)',
-                    }
-                  }}
-                >
-                  <Tab 
-                    label="Subscription Plans" 
-                    icon={<StarIcon />} 
-                    iconPosition="start"
-                  />
-                  <Tab 
-                    label="User Subscriptions" 
-                    icon={<UsersIcon />} 
-                    iconPosition="start"
-                  />
-                </Tabs>
-              </Paper>
-            </Fade>
-          )}
+          <Fade in timeout={1000}>
+            <Paper elevation={0} sx={{ mb: 4 }}>
+              <Tabs
+                value={activeTab}
+                onChange={(_, newValue) => setActiveTab(newValue)}
+                variant="fullWidth"
+                sx={{
+                  "& .MuiTab-root": {
+                    textTransform: "none",
+                    fontWeight: 500,
+                    fontSize: '1rem',
+                    py: 3,
+                    color: 'text.secondary',
+                    transition: 'all 0.3s ease',
+                  },
+                  "& .Mui-selected": {
+                    color: 'primary.main',
+                    fontWeight: 600,
+                  },
+                  "& .MuiTabs-indicator": {
+                    height: 3,
+                    borderRadius: 2,
+                    background: 'linear-gradient(135deg, #0EA5E9 0%, #06B6D4 100%)',
+                  }
+                }}
+              >
+                <Tab 
+                  label="Subscription Plans" 
+                  icon={<StarIcon />} 
+                  iconPosition="start"
+                />
+                <Tab 
+                  label="User Subscriptions" 
+                  icon={<UsersIcon />} 
+                  iconPosition="start"
+                />
+              </Tabs>
+            </Paper>
+          </Fade>
 
           {activeTab === 0 && (
             <Fade in timeout={1200}>
@@ -590,26 +744,6 @@ export default function SubscriptionPage() {
                             overflow: 'visible',
                           }}
                         >
-                          {plan.isActive && (
-                            <Box
-                              sx={{
-                                position: 'absolute',
-                                top: 16,
-                                right: 16,
-                                background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)',
-                                color: 'white',
-                                px: 2,
-                                py: 0.5,
-                                borderRadius: 2,
-                                fontSize: '0.75rem',
-                                fontWeight: 600,
-                                zIndex: 2,
-                              }}
-                            >
-                              Active
-                            </Box>
-                          )}
-                          
                           <CardContent sx={{ flexGrow: 1, p: 4 }}>
                             <Box display="flex" justifyContent="space-between" alignItems="flex-start" mb={3}>
                               <Box flex={1}>
@@ -627,7 +761,7 @@ export default function SubscriptionPage() {
                                 variant="h3" 
                                 fontWeight="700"
                                 sx={{ 
-                                  background: 'linear-gradient(135deg, #0EA5E9 0%, #FFFFFF 100%)',
+                                  background: 'linear-gradient(135deg, #0EA5E9 0%, #06B6D4 100%)',
                                   backgroundClip: 'text',
                                   WebkitBackgroundClip: 'text',
                                   WebkitTextFillColor: 'transparent',
@@ -661,7 +795,6 @@ export default function SubscriptionPage() {
                             <Button
                               variant="contained"
                               onClick={() => handleSubscribeToPlan(plan._id!)}
-                              disabled={!plan.isActive}
                               sx={{ flexGrow: 1 }}
                             >
                               Subscribe
@@ -733,7 +866,7 @@ export default function SubscriptionPage() {
                       User Subscriptions
                     </Typography>
                     <Typography variant="body1" color="text.secondary">
-                      Monitor and manage all active user subscriptions
+                      Monitor and manage all user subscriptions
                     </Typography>
                   </Box>
                   <Box display="flex" alignItems="center" gap={2}>
@@ -769,7 +902,7 @@ export default function SubscriptionPage() {
                                 </Typography>
                               </Box>
                             </Grid>
-                            <Grid item xs={6} md={2}>
+                            <Grid item xs={6} md={1.5}>
                               <Box>
                                 <Typography variant="body2" color="text.secondary" gutterBottom>
                                   Price
@@ -789,7 +922,7 @@ export default function SubscriptionPage() {
                                 </Typography>
                               </Box>
                             </Grid>
-                            <Grid item xs={6} md={2}>
+                            <Grid item xs={6} md={1.5}>
                               <Box>
                                 <Typography variant="body2" color="text.secondary" gutterBottom>
                                   Start Date
@@ -799,7 +932,7 @@ export default function SubscriptionPage() {
                                 </Typography>
                               </Box>
                             </Grid>
-                            <Grid item xs={6} md={2}>
+                            <Grid item xs={6} md={1.5}>
                               <Box>
                                 <Typography variant="body2" color="text.secondary" gutterBottom>
                                   End Date
@@ -817,12 +950,41 @@ export default function SubscriptionPage() {
                                 <CountdownTimer endDate={subscription.endDate} />
                               </Box>
                             </Grid>
-                            <Grid item xs={12} md={1}>
+                            <Grid item xs={6} md={1}>
                               <Chip
                                 label={subscription.status}
-                                color={subscription.status === 'ACTIVE' ? 'success' : 'default'}
+                                color={getStatusColor(subscription.status) as any}
                                 sx={{ fontWeight: 500 }}
                               />
+                            </Grid>
+                            <Grid item xs={6} md={1.5}>
+                              <Box display="flex" gap={1}>
+                                <IconButton
+                                  onClick={() => handleEditSubscription(subscription)}
+                                  sx={{ 
+                                    color: 'primary.main',
+                                    '&:hover': { 
+                                      background: alpha(theme.palette.primary.main, 0.1) 
+                                    }
+                                  }}
+                                >
+                                  <EditIcon />
+                                </IconButton>
+                                <IconButton
+                                  onClick={() => {
+                                    setCurrentSubscription(subscription)
+                                    setDeleteSubscriptionDialogOpen(true)
+                                  }}
+                                  sx={{ 
+                                    color: 'error.main',
+                                    '&:hover': { 
+                                      background: alpha(theme.palette.error.main, 0.1) 
+                                    }
+                                  }}
+                                >
+                                  <DeleteIcon />
+                                </IconButton>
+                              </Box>
                             </Grid>
                           </Grid>
                         </CardContent>
@@ -862,6 +1024,112 @@ export default function SubscriptionPage() {
                 </IconButton>
               </Box>
               <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                Fill in the details for your new subscription plan
+              </Typography>
+            </DialogTitle>
+            <DialogContent sx={{ pt: 3 }}>
+              <Grid container spacing={3}>
+                <Grid item xs={12}>
+                  <TextField
+                    label="Plan Name"
+                    value={newPlan.name}
+                    onChange={(e) => setNewPlan({ ...newPlan, name: e.target.value })}
+                    fullWidth
+                    variant="outlined"
+                  />
+                </Grid>
+                <Grid item xs={12}>
+                  <TextField
+                    label="Description"
+                    value={newPlan.description}
+                    onChange={(e) => setNewPlan({ ...newPlan, description: e.target.value })}
+                    multiline
+                    rows={3}
+                    fullWidth
+                    variant="outlined"
+                  />
+                </Grid>
+                <Grid item xs={6}>
+                  <TextField
+                    label="Price (Cents)"
+                    type="number"
+                    value={newPlan.price}
+                    onChange={(e) => setNewPlan({ ...newPlan, price: Number(e.target.value) })}
+                    fullWidth
+                    variant="outlined"
+                    InputProps={{
+                      startAdornment: <MoneyIcon sx={{ mr: 1, color: 'text.secondary' }} />
+                    }}
+                  />
+                </Grid>
+                <Grid item xs={6}>
+                  <TextField
+                    label="Duration (months)"
+                    type="number"
+                    value={newPlan.duration}
+                    onChange={(e) => setNewPlan({ ...newPlan, duration: Number(e.target.value) })}
+                    fullWidth
+                    variant="outlined"
+                    InputProps={{
+                      startAdornment: <CalendarIcon sx={{ mr: 1, color: 'text.secondary' }} />
+                    }}
+                  />
+                </Grid>
+                <Grid item xs={12}>
+                  <FormControl fullWidth variant="outlined">
+                    <InputLabel>Role</InputLabel>
+                    <Select
+                      value={newPlan.role}
+                      onChange={(e) => setNewPlan({ ...newPlan, role: e.target.value })}
+                      label="Role"
+                    >
+                      <MenuItem value="PROFESSIONAL">
+                        <Box display="flex" alignItems="center" gap={1}>
+                          <WorkIcon fontSize="small" />
+                          Professional
+                        </Box>
+                      </MenuItem>
+                      <MenuItem value="RESELLER">
+                        <Box display="flex" alignItems="center" gap={1}>
+                          <BusinessIcon fontSize="small" />
+                          Reseller
+                        </Box>
+                      </MenuItem>
+                    </Select>
+                  </FormControl>
+                </Grid>
+              </Grid>
+            </DialogContent>
+            <DialogActions sx={{ p: 3, gap: 2 }}>
+              <Button 
+                onClick={() => setCreateDialogOpen(false)}
+                variant="outlined"
+                startIcon={<CancelIcon />}
+              >
+                Cancel
+              </Button>
+              <Button 
+                variant="contained" 
+                onClick={handleCreatePlan}
+                startIcon={<SaveIcon />}
+              >
+                Create Plan
+              </Button>
+            </DialogActions>
+          </Dialog>
+
+          {/* Edit Plan Dialog */}
+          <Dialog open={editDialogOpen} onClose={() => setEditDialogOpen(false)} maxWidth="md" fullWidth>
+            <DialogTitle sx={{ pb: 1 }}>
+              <Box display="flex" alignItems="center" justifyContent="space-between">
+                <Typography variant="h5" fontWeight="600">
+                  Edit Subscription Plan
+                </Typography>
+                <IconButton onClick={() => setEditDialogOpen(false)} size="small">
+                  <CloseIcon />
+                </IconButton>
+              </Box>
+              <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
                 Modify the details of the selected subscription plan
               </Typography>
             </DialogTitle>
@@ -874,13 +1142,6 @@ export default function SubscriptionPage() {
                     onChange={(e) => setCurrentPlan({ ...currentPlan!, name: e.target.value })}
                     fullWidth
                     variant="outlined"
-                    sx={{
-                      '& .MuiOutlinedInput-root': {
-                        borderRadius: 2,
-                        background: 'rgba(255, 255, 255, 0.8)',
-                        backdropFilter: 'blur(10px)',
-                      }
-                    }}
                   />
                 </Grid>
                 <Grid item xs={12}>
@@ -892,18 +1153,11 @@ export default function SubscriptionPage() {
                     rows={3}
                     fullWidth
                     variant="outlined"
-                    sx={{
-                      '& .MuiOutlinedInput-root': {
-                        borderRadius: 2,
-                        background: 'rgba(255, 255, 255, 0.8)',
-                        backdropFilter: 'blur(10px)',
-                      }
-                    }}
                   />
                 </Grid>
                 <Grid item xs={6}>
                   <TextField
-                    label="Price (DZD)"
+                    label="Price (Cents)"
                     type="number"
                     value={currentPlan?.price || 0}
                     onChange={(e) => setCurrentPlan({ ...currentPlan!, price: Number(e.target.value) })}
@@ -911,13 +1165,6 @@ export default function SubscriptionPage() {
                     variant="outlined"
                     InputProps={{
                       startAdornment: <MoneyIcon sx={{ mr: 1, color: 'text.secondary' }} />
-                    }}
-                    sx={{
-                      '& .MuiOutlinedInput-root': {
-                        borderRadius: 2,
-                        background: 'rgba(255, 255, 255, 0.8)',
-                        backdropFilter: 'blur(10px)',
-                      }
                     }}
                   />
                 </Grid>
@@ -932,23 +1179,10 @@ export default function SubscriptionPage() {
                     InputProps={{
                       startAdornment: <CalendarIcon sx={{ mr: 1, color: 'text.secondary' }} />
                     }}
-                    sx={{
-                      '& .MuiOutlinedInput-root': {
-                        borderRadius: 2,
-                        background: 'rgba(255, 255, 255, 0.8)',
-                        backdropFilter: 'blur(10px)',
-                      }
-                    }}
                   />
                 </Grid>
-                <Grid item xs={6}>
-                  <FormControl fullWidth variant="outlined" sx={{
-                    '& .MuiOutlinedInput-root': {
-                      borderRadius: 2,
-                      background: 'rgba(255, 255, 255, 0.8)',
-                      backdropFilter: 'blur(10px)',
-                    }
-                  }}>
+                <Grid item xs={12}>
+                  <FormControl fullWidth variant="outlined">
                     <InputLabel>Role</InputLabel>
                     <Select
                       value={currentPlan?.role || ""}
@@ -970,19 +1204,6 @@ export default function SubscriptionPage() {
                     </Select>
                   </FormControl>
                 </Grid>
-                <Grid item xs={6}>
-                  <FormControlLabel
-                    control={
-                      <Switch
-                        checked={currentPlan?.isActive || false}
-                        onChange={(e) => setCurrentPlan({ ...currentPlan!, isActive: e.target.checked })}
-                        color="primary"
-                      />
-                    }
-                    label="Active Plan"
-                    sx={{ mt: 2 }}
-                  />
-                </Grid>
               </Grid>
             </DialogContent>
             <DialogActions sx={{ p: 3, gap: 2 }}>
@@ -1003,16 +1224,11 @@ export default function SubscriptionPage() {
             </DialogActions>
           </Dialog>
 
-          {/* Delete Confirmation Dialog */}
+          {/* Delete Plan Dialog */}
           <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)} maxWidth="sm">
             <DialogTitle>
               <Box display="flex" alignItems="center" gap={2}>
-                <Avatar 
-                  sx={{ 
-                    bgcolor: 'error.main',
-                    background: 'linear-gradient(135deg, #EF4444 0%, #DC2626 100%)'
-                  }}
-                >
+                <Avatar sx={{ bgcolor: 'error.main' }}>
                   <DeleteIcon />
                 </Avatar>
                 <Box>
@@ -1048,6 +1264,132 @@ export default function SubscriptionPage() {
                 startIcon={<DeleteIcon />}
               >
                 Delete Plan
+              </Button>
+            </DialogActions>
+          </Dialog>
+
+          {/* Edit Subscription Dialog */}
+          <Dialog open={editSubscriptionDialogOpen} onClose={() => setEditSubscriptionDialogOpen(false)} maxWidth="md" fullWidth>
+            <DialogTitle sx={{ pb: 1 }}>
+              <Box display="flex" alignItems="center" justifyContent="space-between">
+                <Typography variant="h5" fontWeight="600">
+                  Edit User Subscription
+                </Typography>
+                <IconButton onClick={() => setEditSubscriptionDialogOpen(false)} size="small">
+                  <CloseIcon />
+                </IconButton>
+              </Box>
+              <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                Modify the subscription details
+              </Typography>
+            </DialogTitle>
+            <DialogContent sx={{ pt: 3 }}>
+              <Grid container spacing={3}>
+                <Grid item xs={12}>
+                  <TextField
+                    label="Plan Name"
+                    value={currentSubscription?.planName || ""}
+                    disabled
+                    fullWidth
+                    variant="outlined"
+                  />
+                </Grid>
+                <Grid item xs={6}>
+                  <TextField
+                    label="Start Date"
+                    type="datetime-local"
+                    value={currentSubscription?.startDate ? new Date(currentSubscription.startDate).toISOString().slice(0, 16) : ""}
+                    onChange={(e) => setCurrentSubscription({ ...currentSubscription!, startDate: new Date(e.target.value).toISOString() })}
+                    fullWidth
+                    variant="outlined"
+                    InputLabelProps={{ shrink: true }}
+                  />
+                </Grid>
+                <Grid item xs={6}>
+                  <TextField
+                    label="End Date"
+                    type="datetime-local"
+                    value={currentSubscription?.endDate ? new Date(currentSubscription.endDate).toISOString().slice(0, 16) : ""}
+                    onChange={(e) => setCurrentSubscription({ ...currentSubscription!, endDate: new Date(e.target.value).toISOString() })}
+                    fullWidth
+                    variant="outlined"
+                    InputLabelProps={{ shrink: true }}
+                  />
+                </Grid>
+                <Grid item xs={12}>
+                  <FormControl fullWidth variant="outlined">
+                    <InputLabel>Status</InputLabel>
+                    <Select
+                      value={currentSubscription?.status || ""}
+                      onChange={(e) => setCurrentSubscription({ ...currentSubscription!, status: e.target.value })}
+                      label="Status"
+                    >
+                      <MenuItem value="ACTIVE">Active</MenuItem>
+                      <MenuItem value="EXPIRED">Expired</MenuItem>
+                      <MenuItem value="CANCELLED">Cancelled</MenuItem>
+                    </Select>
+                  </FormControl>
+                </Grid>
+              </Grid>
+            </DialogContent>
+            <DialogActions sx={{ p: 3, gap: 2 }}>
+              <Button 
+                onClick={() => setEditSubscriptionDialogOpen(false)}
+                variant="outlined"
+                startIcon={<CancelIcon />}
+              >
+                Cancel
+              </Button>
+              <Button 
+                variant="contained" 
+                onClick={handleUpdateSubscription}
+                startIcon={<SaveIcon />}
+              >
+                Save Changes
+              </Button>
+            </DialogActions>
+          </Dialog>
+
+          {/* Delete Subscription Dialog */}
+          <Dialog open={deleteSubscriptionDialogOpen} onClose={() => setDeleteSubscriptionDialogOpen(false)} maxWidth="sm">
+            <DialogTitle>
+              <Box display="flex" alignItems="center" gap={2}>
+                <Avatar sx={{ bgcolor: 'error.main' }}>
+                  <DeleteIcon />
+                </Avatar>
+                <Box>
+                  <Typography variant="h6" fontWeight="600">
+                    Delete User Subscription
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    This action cannot be undone
+                  </Typography>
+                </Box>
+              </Box>
+            </DialogTitle>
+            <DialogContent>
+              <Typography variant="body1" color="text.secondary">
+                Are you sure you want to delete the subscription for "<strong>{currentSubscription?.planName}</strong>"? 
+                This will permanently remove the user subscription and cannot be undone.
+              </Typography>
+            </DialogContent>
+            <DialogActions sx={{ p: 3, gap: 2 }}>
+              <Button 
+                onClick={() => {
+                  setDeleteSubscriptionDialogOpen(false)
+                  setCurrentSubscription(null)
+                }}
+                variant="outlined"
+              >
+                Cancel
+              </Button>
+              <Button 
+                variant="contained" 
+                color="error"
+                onClick={handleDeleteSubscription}
+                startIcon={<DeleteIcon />}
+              >
+                Delete Subscription
               </Button>
             </DialogActions>
           </Dialog>
