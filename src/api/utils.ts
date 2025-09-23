@@ -21,7 +21,7 @@ interface LoginResponseData {
     isPhoneVerified?: boolean;
     [key: string]: any;
   };
-  session: {
+  tokens: {
     accessToken: string;
     refreshToken: string;
     [key: string]: any;
@@ -83,22 +83,12 @@ const AxiosInterceptor = ({ children }: any) => {
     // client preferred language
     req.headers['accept-language'] = auth?.user?.preference?.language || 'FR';
 
-    // FIXED: Get access token from multiple possible locations with better fallback
+    // FIXED: Get access token only from tokens property
     const getAccessToken = () => {
-      // Try auth.tokens first (root level)
+      // Only try auth.tokens (the correct structure)
       if (auth?.tokens?.accessToken) {
         console.log('🔑 Found token in auth.tokens');
         return auth.tokens.accessToken;
-      }
-      // Try auth.session
-      if (auth?.session?.accessToken) {
-        console.log('🔑 Found token in auth.session');
-        return auth.session.accessToken;
-      }
-      // Try snake_case format
-      if (auth?.session?.access_token) {
-        console.log('🔑 Found token in auth.session (snake_case)');
-        return auth.session.access_token;
       }
       console.log('❌ No token found in auth:', auth);
       return null;
@@ -116,12 +106,12 @@ const AxiosInterceptor = ({ children }: any) => {
     // FIXED: Check if this is a public endpoint first
     const isPublicEndpoint = publicEndpoints.some(endpoint => req.url.includes(endpoint));
     
-    console.log('🔍 Request details:', {
+    console.log('📋 Request details:', {
       url: req.url,
       isLogged,
       isPublicEndpoint,
       hasAuth: !!auth,
-      hasTokens: !!(auth?.tokens || auth?.session)
+      hasTokens: !!auth?.tokens
     });
 
     // FIXED: Remove admin portal restriction - add auth for all authenticated requests
@@ -196,11 +186,9 @@ const AxiosInterceptor = ({ children }: any) => {
         isRefreshing = true;
 
         try {
-          // FIXED: Check if user is logged in and has tokens before attempting refresh
+          // FIXED: Get refresh token only from tokens property
           const getRefreshToken = () => {
             if (auth?.tokens?.refreshToken) return auth.tokens.refreshToken;
-            if (auth?.session?.refreshToken) return auth.session.refreshToken;
-            if (auth?.session?.refresh_token) return auth.session.refresh_token;
             return null;
           };
 
@@ -225,7 +213,7 @@ const AxiosInterceptor = ({ children }: any) => {
 
             // FIXED: Create proper LoginResponseData structure
             const authUpdate: LoginResponseData = {
-              session: {
+              tokens: {
                 accessToken: tokens.accessToken || tokens.access_token,
                 refreshToken: tokens.refreshToken || tokens.refresh_token,
               },

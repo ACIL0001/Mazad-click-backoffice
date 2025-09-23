@@ -8,6 +8,7 @@ const initialState: { tokens?: { accessToken: string; refreshToken: string }; us
   user: undefined,
 };
 
+// FIXED: Updated interface to use tokens instead of session
 interface LoginResponseData {
     user: {
         _id: string;
@@ -21,11 +22,9 @@ interface LoginResponseData {
         isPhoneVerified?: boolean;
         [key: string]: any;
     };
-    session: {
-        accessToken?: string;
-        refreshToken?: string;
-        access_token?: string;
-        refresh_token?: string;
+    tokens: {
+        accessToken: string;
+        refreshToken: string;
         [key: string]: any;
     };
 }
@@ -85,19 +84,11 @@ export const authStore = create<IAuthStore>((zustandSet, zustandGet) => ({
         const storageKey = getStorageKey();
         console.log('🚨 Storage key:', storageKey);
         
-        // Extract tokens
-        let accessToken, refreshToken;
+        // FIXED: Extract tokens from the tokens property directly
+        const { accessToken, refreshToken } = data.tokens;
         
-        if (data.session?.accessToken && data.session?.refreshToken) {
-            accessToken = data.session.accessToken;
-            refreshToken = data.session.refreshToken;
-            console.log('🚨 Using camelCase tokens');
-        } else if (data.session?.access_token && data.session?.refresh_token) {
-            accessToken = data.session.access_token;
-            refreshToken = data.session.refresh_token;
-            console.log('🚨 Using snake_case tokens');
-        } else {
-            console.error('🚨 NO TOKENS FOUND!', data.session);
+        if (!accessToken || !refreshToken) {
+            console.error('🚨 NO TOKENS FOUND!', data.tokens);
             return;
         }
 

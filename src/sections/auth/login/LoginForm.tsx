@@ -39,13 +39,13 @@ export default function LoginForm() {
   }, [isReady, isLogged, auth?.user, navigate]);
 
   const LoginSchema = Yup.object().shape({
-    login: Yup.string().email('Email invalide').required('Email est requis'),
+    email: Yup.string().email('Email invalide').required('Email est requis'),
     password: Yup.string().required('Password est requis'),
   });
 
   const formik = useFormik({
     initialValues: {
-      login: '',
+      email: '',
       password: '',
     },
     validationSchema: LoginSchema,
@@ -54,13 +54,13 @@ export default function LoginForm() {
         console.log('Login form submitted with values:', values);
         
         const data = await AuthAPI.login({
-          login: values.login,
+          email: values.email,
           password: values.password
         });
 
         console.log('Login API response received:', data);
         
-        if (!data || !data.user || !data.session) {
+        if (!data || !data.user || (!data.tokens && !data.session)) {
           throw new Error('Réponse invalide du serveur');
         }
 
@@ -78,15 +78,24 @@ export default function LoginForm() {
           }
         }
 
-        // Extract tokens
-        const accessToken = data.session.access_token || data.session.accessToken;
-        const refreshToken = data.session.refresh_token || data.session.refreshToken;
+        // FIXED: Extract tokens and convert to consistent format
+        let accessToken, refreshToken;
+        
+        if (data.tokens) {
+          // New structure with tokens
+          accessToken = data.tokens.accessToken;
+          refreshToken = data.tokens.refreshToken;
+        } else if (data.session) {
+          // Legacy structure with session - convert to tokens format
+          accessToken = data.session.access_token || data.session.accessToken;
+          refreshToken = data.session.refresh_token || data.session.refreshToken;
+        }
 
         if (!accessToken || !refreshToken) {
           throw new Error('Tokens manquants dans la réponse');
         }
 
-        // Use the auth store to set the authentication data
+        // FIXED: Always use tokens structure for auth store
         const authData = {
           user: {
             _id: data.user._id,
@@ -99,7 +108,7 @@ export default function LoginForm() {
             isPhoneVerified: data.user.isPhoneVerified,
             photoURL: data.user.photoURL
           },
-          session: {
+          tokens: {
             accessToken: accessToken,
             refreshToken: refreshToken
           }
@@ -107,14 +116,12 @@ export default function LoginForm() {
 
         console.log('Setting auth data via auth store:', authData);
 
-        // Use the auth store set method
         set(authData);
         
         enqueueSnackbar('Connexion réussie!', { variant: 'success' });
         
-        // Navigate to dashboard immediately
         console.log('Navigating to dashboard...');
-              navigate('/dashboard/app', { replace: true });
+        navigate('/dashboard/app', { replace: true });
         
       } catch (error: any) {
         console.error('Login error:', error);
@@ -135,9 +142,9 @@ export default function LoginForm() {
             fullWidth
             type="email"
             label="Email Admin"
-            {...getFieldProps('login')}
-            error={Boolean(touched.login && errors.login)}
-            helperText={touched.login && errors.login}
+            {...getFieldProps('email')}
+            error={Boolean(touched.email && errors.email)}
+            helperText={touched.email && errors.email}
           />
 
           <TextField
