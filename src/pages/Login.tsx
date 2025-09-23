@@ -80,23 +80,20 @@ export default function Login() {
         
         if (isReady && isLogged && auth?.user) {
             const currentPort = window.location.port;
-            const isAdminPortal = currentPort === '3002';
-            const isSellerPortal = currentPort === '3003';
+            const isAdminPortal = currentPort === '3002' || currentPort === '3003'; // Both ports can be admin
 
             // Type cast to RoleCode or provide a safe conversion function
             const userHasAdminAccess = hasAdminPrivileges(auth.user.type as RoleCode) || 
                                      hasAdminPrivileges(auth.user.accountType as RoleCode);
-            const userHasSellerAccess = auth.user.type === 'SELLER' || auth.user.accountType === 'SELLER';
             
-            // Check if user has access to this portal
-            const hasPortalAccess = (isAdminPortal && userHasAdminAccess) || (isSellerPortal && userHasSellerAccess);
-            
-            if (!hasPortalAccess) {
-                console.log('User does not have access to this portal, clearing auth');
+            // Check if user has access to this admin portal
+            if (isAdminPortal && !userHasAdminAccess) {
+                console.log('User does not have admin access to this portal, clearing auth');
                 clear();
             } else if (auth.tokens?.accessToken) {
-                // User has valid tokens and access - let LoginForm handle redirect
-                console.log('User has valid tokens and portal access');
+                // User has valid tokens and access - redirect to dashboard
+                console.log('User has valid tokens and admin access, redirecting to dashboard');
+                // Don't handle redirect here, let LoginForm handle it
             }
         }
     }, [isReady, isLogged, auth, clear]);

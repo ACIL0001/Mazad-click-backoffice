@@ -1,4 +1,4 @@
-// Fixed App.tsx 
+// Fixed App.tsx - Admin Only
 
 import './i18n';
 // routes
@@ -17,15 +17,10 @@ import UserProvider from './contexts/UserContext';
 import { ThemeContextProvider } from './contexts/ThemeContext';
 import { useEffect, useState, useCallback, useRef } from 'react';
 import useAuth from './hooks/useAuth';
-import { hasAdminPrivileges } from './types/Role'; // Import the helper function
-import { RoleCode } from './types/Role'; // Import the RoleCode type
+import { hasAdminPrivileges } from './types/Role';
+import { RoleCode } from './types/Role';
 
 // ----------------------------------------------------------------------
-
-// Helper function to check if a user is a seller
-const isSeller = (role: string): boolean => {
-  return role === 'SELLER' || role === 'VENDOR' || role.includes('SELLER');
-};
 
 export default function App() {
   const { initializeAuth, isLogged, auth, clear } = useAuth();
@@ -44,35 +39,26 @@ export default function App() {
       console.log('Initializing auth for port:', window.location.port);
       await initializeAuth();
       
-      // Check if user has access to this portal after initialization
+      // Check if user has access to this admin portal after initialization
       const currentPort = window.location.port;
       const isAdminPortal = currentPort === '3002';
-      const isSellerPortal = currentPort === '3003';
       
-      if (isLogged && auth?.user) {
+      if (isLogged && auth?.user && isAdminPortal) {
         // Safely cast to RoleCode for admin privileges check
         const userType = auth.user.type as RoleCode;
         const accountType = auth.user.accountType as RoleCode;
         const userHasAdminAccess = hasAdminPrivileges(userType) || hasAdminPrivileges(accountType);
         
-        // Use string comparison for seller check since SELLER might not be in RoleCode
-        const userHasSellerAccess = isSeller(auth.user.type) || isSeller(auth.user.accountType);
-        
-        const hasAccess = (isAdminPortal && userHasAdminAccess) || (isSellerPortal && userHasSellerAccess);
-        
-        console.log('Portal access check:', {
+        console.log('Admin portal access check:', {
           currentPort,
           isAdminPortal,
-          isSellerPortal,
           userType: auth.user.type,
           accountType: auth.user.accountType,
-          userHasAdminAccess,
-          userHasSellerAccess,
-          hasAccess
+          userHasAdminAccess
         });
         
-        if (!hasAccess) {
-          console.log('User does not have access to this portal, clearing auth');
+        if (!userHasAdminAccess) {
+          console.log('User does not have admin access to this portal, clearing auth');
           clear();
         }
       }
@@ -83,44 +69,39 @@ export default function App() {
     } finally {
       setIsInitialized(true);
     }
-  }, [initializeAuth]); // Remove isLogged, auth, clear from dependencies to prevent infinite loops
+  }, [initializeAuth, isLogged, auth, clear]);
 
   useEffect(() => {
     // Only initialize if not already initialized and not attempted
     if (!isInitialized && !initializationAttempted.current) {
       initializeApp();
     }
-  }, []); // Empty dependency array to run only once
+  }, [initializeApp]);
 
   // Separate effect to handle portal access validation when auth state changes
   useEffect(() => {
     if (isInitialized && isLogged && auth?.user) {
       const currentPort = window.location.port;
       const isAdminPortal = currentPort === '3002';
-      const isSellerPortal = currentPort === '3003';
       
-      // Safely cast to RoleCode for admin privileges check
-      const userType = auth.user.type as RoleCode;
-      const accountType = auth.user.accountType as RoleCode;
-      const userHasAdminAccess = hasAdminPrivileges(userType) || hasAdminPrivileges(accountType);
-      
-      // Use string comparison for seller check since SELLER might not be in RoleCode
-      const userHasSellerAccess = isSeller(auth.user.type) || isSeller(auth.user.accountType);
-      
-      const hasAccess = (isAdminPortal && userHasAdminAccess) || (isSellerPortal && userHasSellerAccess);
-      
-      console.log('Auth state change - portal access check:', {
-        currentPort,
-        isAdminPortal,
-        userType: auth.user.type,
-        accountType: auth.user.accountType,
-        userHasAdminAccess,
-        hasAccess
-      });
-      
-      if (!hasAccess) {
-        console.log('User does not have access to this portal after auth change, clearing auth');
-        clear();
+      if (isAdminPortal) {
+        // Safely cast to RoleCode for admin privileges check
+        const userType = auth.user.type as RoleCode;
+        const accountType = auth.user.accountType as RoleCode;
+        const userHasAdminAccess = hasAdminPrivileges(userType) || hasAdminPrivileges(accountType);
+        
+        console.log('Auth state change - admin portal access check:', {
+          currentPort,
+          isAdminPortal,
+          userType: auth.user.type,
+          accountType: auth.user.accountType,
+          userHasAdminAccess
+        });
+        
+        if (!userHasAdminAccess) {
+          console.log('User does not have admin access to this portal after auth change, clearing auth');
+          clear();
+        }
       }
     }
   }, [isInitialized, isLogged, auth?.user, clear]);

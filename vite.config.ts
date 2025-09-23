@@ -9,7 +9,7 @@ export default defineConfig({
     outDir: 'dist',
   },
   server: {
-    port: 3002, 
+    port: 3003, 
     proxy: {
       '/users': 'http://localhost:3000', 
       '/auth': 'http://localhost:3000',  

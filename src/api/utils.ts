@@ -77,36 +77,80 @@ const AxiosInterceptor = ({ children }: any) => {
   const { enqueueSnackbar } = useSnackbar();
 
   const onRequest = (req: any) => {
-    console.log(req.url);
+    console.log('🚀 Request interceptor - URL:', req.url);
     setLoading(true);
 
     // client preferred language
-    req.headers['accept-language'] = auth.user?.preference?.language || 'FR';
+    req.headers['accept-language'] = auth?.user?.preference?.language || 'FR';
 
-    // Check if this request should go to the current portal's API
-    const currentPort = window.location.port;
-    const isAdminPortal = currentPort === '3002';
-    const isSellerPortal = currentPort === '3003';
-
-    // Only add Authorization header if the user type matches the portal
-    const shouldAddAuth = isLogged && 
-                         auth.tokens && 
-                         ((isAdminPortal && hasAdminPrivileges(auth.user?.type as any)) || 
-                          (isSellerPortal && auth.user?.type === 'SELLER'));
+    // FIXED: Get access token from multiple possible locations with better fallback
+    const getAccessToken = () => {
+      // Try auth.tokens first (root level)
+      if (auth?.tokens?.accessToken) {
+        console.log('🔑 Found token in auth.tokens');
+        return auth.tokens.accessToken;
+      }
+      // Try auth.session
+      if (auth?.session?.accessToken) {
+        console.log('🔑 Found token in auth.session');
+        return auth.session.accessToken;
+      }
+      // Try snake_case format
+      if (auth?.session?.access_token) {
+        console.log('🔑 Found token in auth.session (snake_case)');
+        return auth.session.access_token;
+      }
+      console.log('❌ No token found in auth:', auth);
+      return null;
+    };
 
     const publicEndpoints = [
+      '/auth/signin',
+      '/auth/signup', 
+      '/auth/exists',
+      '/auth/2factor',
       '/otp/confirm-phone',
       '/otp/resend/confirm-phone',
     ];
 
-    if (shouldAddAuth && !publicEndpoints.some((endpoint) => req.url.includes(endpoint))) {
-      if (!req.headers.Authorization) req.headers.Authorization = 'Bearer ' + auth.tokens.accessToken;
+    // FIXED: Check if this is a public endpoint first
+    const isPublicEndpoint = publicEndpoints.some(endpoint => req.url.includes(endpoint));
+    
+    console.log('🔍 Request details:', {
+      url: req.url,
+      isLogged,
+      isPublicEndpoint,
+      hasAuth: !!auth,
+      hasTokens: !!(auth?.tokens || auth?.session)
+    });
+
+    // FIXED: Remove admin portal restriction - add auth for all authenticated requests
+    if (isLogged && !isPublicEndpoint) {
+      const accessToken = getAccessToken();
+      
+      if (accessToken) {
+        console.log('✅ Adding Authorization header');
+        req.headers.Authorization = 'Bearer ' + accessToken;
+      } else {
+        console.log('⚠️ No access token available for authenticated request');
+      }
+    } else {
+      console.log('ℹ️ Skipping auth header:', {
+        reason: !isLogged ? 'not logged in' : 
+               isPublicEndpoint ? 'public endpoint' : 'unknown'
+      });
     }
 
     // FIXED: Don't override Content-Type if it's already set (for FormData)
     if (req.data instanceof FormData && !req.headers['Content-Type']) {
       req.headers['Content-Type'] = 'multipart/form-data';
     }
+
+    console.log('📤 Final request headers:', {
+      Authorization: req.headers.Authorization ? 'Bearer ***' : 'none',
+      'Content-Type': req.headers['Content-Type'],
+      'x-access-key': req.headers['x-access-key']
+    });
 
     return req;
   };
@@ -117,47 +161,94 @@ const AxiosInterceptor = ({ children }: any) => {
     return res;
   };
 
-  // @error interceptor
+  // @error interceptor - FIXED: Prevent infinite loop
   const onError = async (error: any) => {
     setLoading(false);
     const originalRequest = error.config;
 
-    // If access token expired and it's not already being refreshed
+    console.log('❌ Request error:', {
+      status: error.response?.status,
+      url: originalRequest?.url,
+      retry: originalRequest?._retry,
+      code: error.code
+    });
+
+    // FIXED: Don't handle 304 (Not Modified) as errors
+    if (error.response?.status === 304) {
+      console.log('ℹ️ 304 Not Modified - not an actual error');
+      return Promise.reject(error);
+    }
+
+    // FIXED: Only handle 401 errors for actual authentication failures
     if (error.response?.status === 401 && !originalRequest._retry) {
+      // Check if this is a token-related 401 (not other types of 401)
+      const isTokenError = error.response?.data?.error === 'Unauthorized' || 
+                          error.response?.data?.message?.includes('Token');
+      
+      if (!isTokenError) {
+        console.log('ℹ️ 401 error is not token-related, skipping refresh');
+        return Promise.reject(error);
+      }
+
       originalRequest._retry = true;
 
       if (!isRefreshing) {
         isRefreshing = true;
 
         try {
-          if (!isLogged) {
+          // FIXED: Check if user is logged in and has tokens before attempting refresh
+          const getRefreshToken = () => {
+            if (auth?.tokens?.refreshToken) return auth.tokens.refreshToken;
+            if (auth?.session?.refreshToken) return auth.session.refreshToken;
+            if (auth?.session?.refresh_token) return auth.session.refresh_token;
+            return null;
+          };
+
+          const refreshToken = getRefreshToken();
+          
+          if (!isLogged || !refreshToken) {
+            console.log('No refresh token available, clearing auth');
             isRefreshing = false;
+            clear();
             throw error;
           }
 
-          const refreshToken = auth.tokens.refreshToken;
+          console.log('🔄 Attempting token refresh...');
+          
+          // FIXED: Add timeout to prevent hanging
+          const refreshTimeout = setTimeout(() => {
+            throw new Error('Token refresh timeout');
+          }, 5000);
 
-          const { data: tokens } = await AuthAPI.refresh(refreshToken);
+          try {
+            const { data: tokens } = await AuthAPI.refresh(refreshToken);
 
-          // FIXED: Create proper LoginResponseData structure
-          const authUpdate: LoginResponseData = {
-            ...auth,
-            session: {
-              accessToken: tokens.accessToken,
-              refreshToken: tokens.refreshToken,
-            },
-            user: {
-              ...auth.user,
-            } as LoginResponseData['user'],
-          };
-          set(authUpdate);
+            // FIXED: Create proper LoginResponseData structure
+            const authUpdate: LoginResponseData = {
+              session: {
+                accessToken: tokens.accessToken || tokens.access_token,
+                refreshToken: tokens.refreshToken || tokens.refresh_token,
+              },
+              user: {
+                ...auth.user,
+              } as LoginResponseData['user'],
+            };
+            
+            console.log('✅ Token refresh successful');
+            set(authUpdate);
 
-          isRefreshing = false;
-          onRefreshed(tokens.accessToken);
-          originalRequest.headers.Authorization = `Bearer ${tokens.accessToken}`;
-          return instance(originalRequest); // Retry the original request
+            clearTimeout(refreshTimeout);
+            isRefreshing = false;
+            const newAccessToken = tokens.accessToken || tokens.access_token;
+            onRefreshed(newAccessToken);
+            originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
+            return instance(originalRequest); // Retry the original request
+          } catch (refreshError) {
+            clearTimeout(refreshTimeout);
+            throw refreshError;
+          }
         } catch (refreshError) {
-          console.error('Token refresh failed:', refreshError);
+          console.error('💥 Token refresh failed:', refreshError);
 
           isRefreshing = false;
           onRefreshed(null); // Notify waiting requests of failure
@@ -182,13 +273,13 @@ const AxiosInterceptor = ({ children }: any) => {
         }
       } else {
         // If a token refresh is already in progress, queue the original request
-        return new Promise((resolve) => {
+        return new Promise((resolve, reject) => {
           subscribeTokenRefresh((token) => {
             if (token) {
               originalRequest.headers.Authorization = `Bearer ${token}`;
               resolve(instance(originalRequest));
             } else {
-              Promise.reject(error);
+              reject(error);
             }
           });
         });
@@ -196,7 +287,7 @@ const AxiosInterceptor = ({ children }: any) => {
     }
 
     // Handle different types of errors
-    if (error.response?.status !== 401) {
+    if (error.response?.status !== 401 && error.response?.status !== 304) {
       console.log('API Error:', error.response);
 
       // Show user-friendly error message

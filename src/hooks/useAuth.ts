@@ -1,6 +1,13 @@
-import { useContext } from "react";
-import {authStore} from '@/contexts/authStore';
+// Try relative path instead of @ alias
+import { authStore } from '../contexts/authStore';
 
-// const useAuth = () => useContext(AuthContext);
-const useAuth = authStore
+console.log('USEAUTH: File loaded, authStore imported:', typeof authStore);
+
+const useAuth = () => {
+  console.log('USEAUTH: Hook called');
+  const store = authStore();
+  console.log('USEAUTH: Store result:', { set: typeof store.set, isLogged: store.isLogged });
+  return store;
+};
+
 export default useAuth;

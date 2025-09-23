@@ -64,20 +64,38 @@ export default function DashboardLayout() {
     if (isReady) {
       if (!isLogged || !auth?.user) {
         console.log('User not authenticated, redirecting to login');
-        navigate("/login", { replace: true });
+        // Add a small delay to prevent race conditions during login
+        const timer = setTimeout(() => {
+          navigate("/login", { replace: true });
+        }, 100);
+        
+        return () => clearTimeout(timer);
       } else {
         console.log('User authenticated, allowing dashboard access');
       }
     }
   }, [isReady, isLogged, auth?.user, navigate]);
 
-  // Show loading while auth is being initialized or checked
-  if (!isReady || (isReady && !isLogged)) {
+  // Show loading while auth is being initialized
+  if (!isReady) {
     return (
       <LoadingStyle>
         <CircularProgress size={40} />
         <Typography variant="body1" color="textSecondary">
-          {!isReady ? 'Initialisation...' : 'Redirection...'}
+          Initialisation...
+        </Typography>
+      </LoadingStyle>
+    );
+  }
+
+  // If ready but not logged in, let the useEffect handle the redirect
+  // Show loading briefly to prevent flash of content
+  if (isReady && !isLogged) {
+    return (
+      <LoadingStyle>
+        <CircularProgress size={40} />
+        <Typography variant="body1" color="textSecondary">
+          Vérification de l'authentification...
         </Typography>
       </LoadingStyle>
     );
