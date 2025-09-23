@@ -24,9 +24,9 @@ const app = {
   domain: 'www.easyeats.com',
   
   // FIXED: Based on your logs, your backend API is actually on port 3000, not 3003
-  socket: 'http://localhost:3000/',
-  route: "http://localhost:3000",
-  baseURL: "http://localhost:3000/",
+  socket: 'https://mazad-click-server.onrender.com/',
+  route: "https://mazad-click-server.onrender.com",
+  baseURL: "https://mazad-click-server.onrender.com/",
 
   apiKey: '8f2a61c94d7e3b5f9c0a8d2e6b4f1c7a',
   

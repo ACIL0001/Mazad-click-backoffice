@@ -8,11 +8,12 @@ export default defineConfig({
   build: {
     outDir: 'dist',
   },
+  base: '/admin/',
   server: {
     port: 3003, 
     proxy: {
-      '/users': 'http://localhost:3000', 
-      '/auth': 'http://localhost:3000',  
+      '/users': 'https://mazad-click-server.onrender.com', 
+      '/auth': 'https://mazad-click-server.onrender.com',  
     }
   },
   resolve: {
