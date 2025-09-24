@@ -17,6 +17,15 @@ const getStorageKey = () => {
   return key;
 };
 
+// Helper function to construct static file URLs properly
+const getStaticUrl = (filename: string) => {
+  const baseUrl = import.meta.env.VITE_STATIC_URL || "https://mazad-click-server.onrender.com";
+  // Ensure no double slashes by cleaning both base URL and filename
+  const cleanBaseUrl = baseUrl.replace(/\/+$/, ''); // Remove trailing slashes
+  const cleanFilename = filename.replace(/^\/+/, ''); // Remove leading slashes from filename
+  return `${cleanBaseUrl}/static/${cleanFilename}`;
+};
+
 const app = {
   name: 'MazadClick',
   pole: 'NotEasy',
@@ -25,7 +34,8 @@ const app = {
   
   // Dynamic URLs based on environment
   socket: import.meta.env.VITE_SOCKET_URL || 'wss://mazad-click-server.onrender.com/',
-  route: import.meta.env.VITE_STATIC_URL || "https://mazad-click-server.onrender.com/static/",
+  // FIXED: Remove /static/ from route to avoid double /static/ in URLs
+  route: import.meta.env.VITE_STATIC_URL || "https://mazad-click-server.onrender.com",
   baseURL: import.meta.env.VITE_API_URL || "https://mazad-click-server.onrender.com/",
 
   apiKey: '8f2a61c94d7e3b5f9c0a8d2e6b4f1c7a',
@@ -44,9 +54,9 @@ const app = {
   
   // Export storage key function for auth isolation
   getStorageKey,
+  // Helper function for constructing static URLs
+  getStaticUrl,
 };
 
-export { getStorageKey };
+export { getStorageKey, getStaticUrl };
 export default app;
-
-
