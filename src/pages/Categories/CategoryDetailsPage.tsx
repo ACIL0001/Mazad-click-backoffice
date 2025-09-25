@@ -35,7 +35,7 @@ import Page from "../../components/Page";
 import Label from "../../components/Label";
 import { CategoryAPI } from "@/api/category";
 import type { ICategory } from "@/types/Category";
-import app from '@/config';
+import app, { getStaticUrl } from '@/config'; // Import the helper function
 
 // Keyframe for subtle floating animation
 const floatAnimation = `
@@ -90,24 +90,30 @@ const getCategoryIcon = (categoryName: string): string => {
   return "material-symbols:category";
 };
 
-// Function to get image URL from attachment object
-const getImageUrl = (attachment: any, configApp: typeof app): string => {
+// Fixed function to get image URL from attachment object
+const getImageUrl = (attachment: any): string => {
   if (!attachment) return "";
+  
+  // Handle string URLs
   if (typeof attachment === "string") {
-    return attachment;
+    // If it's already a full URL, return as-is
+    if (attachment.startsWith('http://') || attachment.startsWith('https://')) {
+      return attachment;
+    }
+    // If it's a filename or relative path, use the helper function
+    return getStaticUrl(attachment);
   }
+  
+  // Handle object with url property
   if (typeof attachment === "object" && attachment.url) {
-    // Check if the URL already contains the full path (starts with http/https)
+    // If it's already a full URL, return as-is
     if (attachment.url.startsWith('http://') || attachment.url.startsWith('https://')) {
       return attachment.url;
     }
-    // If it's a relative path, check if it already starts with /static/
-    if (attachment.url.startsWith('/static/')) {
-      return configApp.route + attachment.url;
-    }
-    // If it's just a filename, prepend /static/
-    return configApp.route + '/static/' + attachment.url;
+    // If it's a filename or relative path, use the helper function
+    return getStaticUrl(attachment.url);
   }
+  
   return "";
 };
 
@@ -345,13 +351,31 @@ export default function CategoryDetailsPage() {
             >
               {categoryDetails.thumb ? (
                 <img
-                  src={getImageUrl(categoryDetails.thumb, app)}
+                  src={getImageUrl(categoryDetails.thumb)}
                   alt={categoryDetails.name}
                   style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                  onError={(e: any) => {
+                    console.error('Image failed to load:', getImageUrl(categoryDetails.thumb));
+                    // Hide the img element and show the fallback icon
+                    e.target.style.display = 'none';
+                    const fallbackIcon = e.target.nextElementSibling;
+                    if (fallbackIcon) {
+                      fallbackIcon.style.display = 'flex';
+                    }
+                  }}
                 />
-              ) : (
-                <Iconify icon="mdi:image-off" width={isMobile ? 60 : 80} height={isMobile ? 60 : 80} color="text.disabled" /> 
-              )}
+              ) : null}
+              <Box
+                sx={{
+                  display: categoryDetails.thumb ? 'none' : 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  width: '100%',
+                  height: '100%',
+                }}
+              >
+                <Iconify icon="mdi:image-off" width={isMobile ? 60 : 80} height={isMobile ? 60 : 80} color="text.disabled" />
+              </Box>
             </Box>
             <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
               <Typography variant={isMobile ? "h6" : "h6"} sx={{ mb: { xs: 1.5, sm: 2 }, fontWeight: 700, color: 'text.primary' }}>

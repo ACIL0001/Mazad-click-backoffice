@@ -114,21 +114,27 @@ function CategoryItem({
   // Helper function to construct proper image URLs
   const getImageUrl = (attachment: any): string => {
     if (!attachment) return "";
+    
+    // Handle string URLs
     if (typeof attachment === "string") {
-      return attachment;
+      // If it's already a full URL, return as-is
+      if (attachment.startsWith('http://') || attachment.startsWith('https://')) {
+        return attachment;
+      }
+      // If it's a filename or relative path, use the helper function
+      return app.getStaticUrl(attachment);
     }
+    
+    // Handle object with url property
     if (typeof attachment === "object" && attachment.url) {
-      // Check if the URL already contains the full path (starts with http/https)
+      // If it's already a full URL, return as-is
       if (attachment.url.startsWith('http://') || attachment.url.startsWith('https://')) {
         return attachment.url;
       }
-      // If it's a relative path, check if it already starts with /static/
-      if (attachment.url.startsWith('/static/')) {
-        return app.route + attachment.url;
-      }
-      // If it's just a filename, prepend /static/
-      return app.route + '/static/' + attachment.url;
+      // If it's a filename or relative path, use the helper function
+      return app.getStaticUrl(attachment.url);
     }
+    
     return "";
   };
 
