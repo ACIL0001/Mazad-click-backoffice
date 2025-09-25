@@ -97,7 +97,16 @@ const getImageUrl = (attachment: any, configApp: typeof app): string => {
     return attachment;
   }
   if (typeof attachment === "object" && attachment.url) {
-    return configApp.route + attachment.url;
+    // Check if the URL already contains the full path (starts with http/https)
+    if (attachment.url.startsWith('http://') || attachment.url.startsWith('https://')) {
+      return attachment.url;
+    }
+    // If it's a relative path, check if it already starts with /static/
+    if (attachment.url.startsWith('/static/')) {
+      return configApp.route + attachment.url;
+    }
+    // If it's just a filename, prepend /static/
+    return configApp.route + '/static/' + attachment.url;
   }
   return "";
 };
