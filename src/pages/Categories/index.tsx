@@ -121,7 +121,11 @@ function CategoryItem({
       if (attachment.startsWith('http://') || attachment.startsWith('https://')) {
         return attachment;
       }
-      // If it's a filename or relative path, use the helper function
+      // If it already starts with /static/, prepend base URL
+      if (attachment.startsWith('/static/')) {
+        return app.route + attachment;
+      }
+      // If it's just a filename, use the helper function
       return app.getStaticUrl(attachment);
     }
     
@@ -131,7 +135,11 @@ function CategoryItem({
       if (attachment.url.startsWith('http://') || attachment.url.startsWith('https://')) {
         return attachment.url;
       }
-      // If it's a filename or relative path, use the helper function
+      // If it already starts with /static/, prepend base URL
+      if (attachment.url.startsWith('/static/')) {
+        return app.route + attachment.url;
+      }
+      // If it's just a filename, use the helper function
       return app.getStaticUrl(attachment.url);
     }
     
