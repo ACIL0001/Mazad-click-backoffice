@@ -34,6 +34,7 @@ import { useSnackbar } from "notistack"
 import { sentenceCase } from "change-case"
 import { CategoryAPI } from "@/api/category"
 import MuiTable from "../../components/Tables/MuiTable"
+import app from '@/config'
 
 // ----------------------------------------------------------------------
 // Interfaces
@@ -110,7 +111,28 @@ function CategoryItem({
     [selected, setSelected],
   )
 
-  const categoryThumbUrl = category.thumb?.url || ""
+  // Helper function to construct proper image URLs
+  const getImageUrl = (attachment: any): string => {
+    if (!attachment) return "";
+    if (typeof attachment === "string") {
+      return attachment;
+    }
+    if (typeof attachment === "object" && attachment.url) {
+      // Check if the URL already contains the full path (starts with http/https)
+      if (attachment.url.startsWith('http://') || attachment.url.startsWith('https://')) {
+        return attachment.url;
+      }
+      // If it's a relative path, check if it already starts with /static/
+      if (attachment.url.startsWith('/static/')) {
+        return app.route + attachment.url;
+      }
+      // If it's just a filename, prepend /static/
+      return app.route + '/static/' + attachment.url;
+    }
+    return "";
+  };
+
+  const categoryThumbUrl = getImageUrl(category.thumb)
   const isItemSelected = selected.indexOf(category._id) !== -1
   const subcategories = category.subcategories || category.children || []
   const hasSubcategories = subcategories && subcategories.length > 0
