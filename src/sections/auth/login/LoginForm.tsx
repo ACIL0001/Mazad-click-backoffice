@@ -53,9 +53,9 @@ export default function LoginForm() {
       try {
         console.log('Login form submitted with values:', values);
         
-        // FIXED: Use 'login' field as expected by the backend SignInDto
+        // CORRECT: Now using the proper Credentials type with 'login' field
         const data = await AuthAPI.login({
-          login: values.email, // Server expects 'login' field (can be email or phone)
+          login: values.email, // This now matches the Credentials interface
           password: values.password
         });
 
