@@ -9,6 +9,7 @@ import { AuthAPI } from '@/api/auth';
 import { useSnackbar } from 'notistack';
 import useAuth from '@/hooks/useAuth';
 import { hasAdminPrivileges, RoleCode } from '@/types/Role';
+import Credentials from '@/types/Credentials'; // Import Credentials directly
 
 export default function LoginForm() {
   const navigate = useNavigate();
@@ -39,13 +40,13 @@ export default function LoginForm() {
   }, [isReady, isLogged, auth?.user, navigate]);
 
   const LoginSchema = Yup.object().shape({
-    login: Yup.string().required('Identifiant est requis'), // Changed from email to login
+    login: Yup.string().required('Identifiant est requis'),
     password: Yup.string().required('Password est requis'),
   });
 
   const formik = useFormik({
     initialValues: {
-      login: '', // Changed from email to login
+      login: '',
       password: '',
     },
     validationSchema: LoginSchema,
@@ -53,11 +54,15 @@ export default function LoginForm() {
       try {
         console.log('Login form submitted with values:', values);
         
-        // FIXED: Now using the proper field name 'login' that matches Credentials interface
-        const data = await AuthAPI.login({
-          login: values.login, // This now matches the Credentials interface exactly
+        // Create credentials object that matches the Credentials interface
+        const credentials: Credentials = {
+          login: values.login,
           password: values.password
-        });
+        };
+
+        console.log('Sending credentials:', credentials);
+        
+        const data = await AuthAPI.login(credentials);
 
         console.log('Login API response received:', data);
         
@@ -150,9 +155,9 @@ export default function LoginForm() {
         <Stack spacing={3}>
           <TextField
             fullWidth
-            type="text" // Changed from email to text since it could be email or phone
-            label="Identifiant Admin" // Updated label
-            {...getFieldProps('login')} // Changed from email to login
+            type="text"
+            label="Identifiant Admin"
+            {...getFieldProps('login')}
             error={Boolean(touched.login && errors.login)}
             helperText={touched.login && errors.login}
           />
