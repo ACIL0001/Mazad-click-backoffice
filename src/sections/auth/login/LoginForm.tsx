@@ -54,7 +54,7 @@ export default function LoginForm() {
         console.log('Login form submitted with values:', values);
         
         const data = await AuthAPI.login({
-          login: values.email, // Server expects 'login' field, not 'email'
+          email: values.email, // Fixed: Use 'email' instead of 'login'
           password: values.password
         });
 
@@ -78,7 +78,7 @@ export default function LoginForm() {
           }
         }
 
-        // FIXED: Extract tokens and convert to consistent format
+        // Extract tokens and convert to consistent format
         let accessToken, refreshToken;
         
         if (data.tokens) {
@@ -95,7 +95,7 @@ export default function LoginForm() {
           throw new Error('Tokens manquants dans la réponse');
         }
 
-        // FIXED: Always use tokens structure for auth store
+        // Always use tokens structure for auth store
         const authData = {
           user: {
             _id: data.user._id,
