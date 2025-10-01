@@ -54,7 +54,7 @@ export default function LoginForm() {
         console.log('Login form submitted with values:', values);
         
         const data = await AuthAPI.login({
-          email: values.email,
+          login: values.email, // Server expects 'login' field, not 'email'
           password: values.password
         });
 
@@ -86,9 +86,9 @@ export default function LoginForm() {
           accessToken = data.tokens.accessToken;
           refreshToken = data.tokens.refreshToken;
         } else if (data.session) {
-          // Legacy structure with session - convert to tokens format
-          accessToken = data.session.access_token || data.session.accessToken;
-          refreshToken = data.session.refresh_token || data.session.refreshToken;
+          // Server returns session with accessToken and refreshToken
+          accessToken = data.session.accessToken || data.session.access_token;
+          refreshToken = data.session.refreshToken || data.session.refresh_token;
         }
 
         if (!accessToken || !refreshToken) {
