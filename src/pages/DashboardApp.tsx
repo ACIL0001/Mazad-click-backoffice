@@ -26,8 +26,6 @@ import {
   TableContainer,
   TableHead,
   TableRow,
-  IconButton,
-  Badge,
   Button,
 } from "@mui/material"
 import {
@@ -39,9 +37,7 @@ import {
   Category,
   Verified,
   AttachMoney,
-  Notifications,
   MoreVert,
-  Refresh,
   Analytics,
   Assignment,
 } from "@mui/icons-material"
@@ -120,47 +116,91 @@ export default function ComprehensiveDashboard() {
   const [error, setError] = useState<string | null>(null)
   const [tabValue, setTabValue] = useState(0)
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(null)
-  const [refreshing, setRefreshing] = useState(false)
 
   const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
     setTabValue(newValue)
   }
 
   const fetchAllData = async () => {
-    setRefreshing(true)
     setError(null)
     
     try {
-      // Fetch all data in parallel
-      const [
-        userStats,
-        auctionStats,
-        categoryStats,
-        dashboardStats,
-        userTimeSeries,
-        auctionTimeSeries,
-        allUsers,
-        allAuctions,
-        pendingIdentities,
-        subscriptionStats
-      ] = await Promise.all([
-        StatsAPI.getUserStats().catch(err => ({ total: 0, byType: { admin: 0, professional: 0, client: 0, reseller: 0 } })),
-        StatsAPI.getAuctionStats().catch(err => ({ 
+      // FIXED: Fetch data sequentially to prevent rate limiting
+      console.log('🔄 Dashboard: Starting sequential data fetch...');
+      
+      const userStats = await StatsAPI.getUserStats().catch(err => {
+        console.warn('User stats failed:', err);
+        return { total: 0, byType: { admin: 0, professional: 0, client: 0, reseller: 0 } };
+      });
+      
+      await new Promise(resolve => setTimeout(resolve, 100)); // Small delay
+      
+      const auctionStats = await StatsAPI.getAuctionStats().catch(err => {
+        console.warn('Auction stats failed:', err);
+        return { 
           total: 0, 
           byStatus: { active: 0, completed: 0, pending: 0, cancelled: 0 },
           byCategory: [],
           dailyAverage: 0,
           weeklyGrowth: 0
-        })),
-        StatsAPI.getCategoryStats().catch(err => []),
-        StatsAPI.getDashboardStats().catch(err => ({ widgets: [] })),
-        StatsAPI.getUserTimeSeries().catch(err => ({ labels: [], data: [] })),
-        StatsAPI.getAuctionTimeSeries().catch(err => ({ labels: [], data: [] })),
-        UserAPI.getAll().catch(err => []),
-        AuctionsAPI.getAuctions().catch(err => []),
-        IdentityAPI.getPendingIdentities().catch(err => []),
-        SubscriptionAPI.getStats().catch(err => ({ total: 0, subscriptions: 0, commissions: 0, growth: 0 }))
-      ])
+        };
+      });
+      
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      const categoryStats = await StatsAPI.getCategoryStats().catch(err => {
+        console.warn('Category stats failed:', err);
+        return [];
+      });
+      
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      const dashboardStats = await StatsAPI.getDashboardStats().catch(err => {
+        console.warn('Dashboard stats failed:', err);
+        return { widgets: [] };
+      });
+      
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      const userTimeSeries = await StatsAPI.getUserTimeSeries().catch(err => {
+        console.warn('User time series failed:', err);
+        return { labels: [], data: [] };
+      });
+      
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      const auctionTimeSeries = await StatsAPI.getAuctionTimeSeries().catch(err => {
+        console.warn('Auction time series failed:', err);
+        return { labels: [], data: [] };
+      });
+      
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      const allUsers = await UserAPI.getAll().catch(err => {
+        console.warn('All users failed:', err);
+        return [];
+      });
+      
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      const allAuctions = await AuctionsAPI.getAuctions().catch(err => {
+        console.warn('All auctions failed:', err);
+        return [];
+      });
+      
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      const pendingIdentities = await IdentityAPI.getPendingIdentities().catch(err => {
+        console.warn('Pending identities failed:', err);
+        return [];
+      });
+      
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      const subscriptionStats = await SubscriptionAPI.getStats().catch(err => {
+        console.warn('Subscription stats failed:', err);
+        return { total: 0, subscriptions: 0, commissions: 0, growth: 0 };
+      });
 
       // Process category distribution for pie chart
       const categoryDistribution = categoryStats.slice(0, 5).map((cat, index) => ({
@@ -242,17 +282,12 @@ export default function ComprehensiveDashboard() {
       })
     } finally {
       setLoading(false)
-      setRefreshing(false)
     }
   }
 
   useEffect(() => {
     fetchAllData()
   }, [])
-
-  const handleRefresh = () => {
-    fetchAllData()
-  }
 
   if (loading) {
     return (
@@ -294,14 +329,6 @@ export default function ComprehensiveDashboard() {
               Analyse complète de la plateforme d'enchères
             </Typography>
           </Box>
-        </Box>
-        <Box display="flex" gap={2}>
-          <IconButton onClick={handleRefresh} disabled={refreshing}>
-            <Refresh sx={{ animation: refreshing ? "spin 1s linear infinite" : "none" }} />
-          </IconButton>
-          <Badge badgeContent={dashboardData.stats.pendingIdentities} color="error">
-            <Notifications />
-          </Badge>
         </Box>
       </Box>
 

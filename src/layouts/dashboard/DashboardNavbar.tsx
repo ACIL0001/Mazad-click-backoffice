@@ -122,12 +122,6 @@ function DashboardNavbar({ onOpenSidebar, onOpenRightSidebar }) {
   };
 
 
-  const InitNotifications = () => {
-    const lastSeenAt = localStorage.getItem('NotificationSeenAt');
-    if (!lastSeenAt) {
-      localStorage.setItem('NotificationSeenAt', new Date().toString());
-    }
-  };
 
   const handleRefreshNotifications = () => {
     getNotifications();

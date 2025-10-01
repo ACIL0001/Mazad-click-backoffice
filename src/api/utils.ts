@@ -275,7 +275,15 @@ const AxiosInterceptor = ({ children }: any) => {
     }
 
     // Handle different types of errors
-    if (error.response?.status !== 401 && error.response?.status !== 304) {
+    if (error.code === 'ECONNABORTED' || error.message?.includes('timeout')) {
+      // Timeout errors - don't show snackbar, just log
+      console.log('Request timeout:', error.message);
+      // No snackbar for timeout errors
+    } else if (error.code === 'ERR_NETWORK' || error.message?.includes('ERR_CONNECTION_REFUSED')) {
+      // Network/connection errors
+      console.log('Network Error:', error.message);
+      enqueueSnackbar('Impossible de se connecter au serveur. Vérifiez votre connexion.', { variant: 'error' });
+    } else if (error.response?.status !== 401 && error.response?.status !== 304) {
       console.log('API Error:', error.response);
 
       // Show user-friendly error message
@@ -283,10 +291,6 @@ const AxiosInterceptor = ({ children }: any) => {
                           error.message ||
                           'un problème est survenu';
       enqueueSnackbar(errorMessage, { variant: 'error' });
-    } else if (error.code === 'ERR_NETWORK' || error.message?.includes('ERR_CONNECTION_REFUSED')) {
-      // Network/connection errors
-      console.log('Network Error:', error.message);
-      enqueueSnackbar('Impossible de se connecter au serveur. Vérifiez votre connexion.', { variant: 'error' });
     }
 
     // Log error details safely

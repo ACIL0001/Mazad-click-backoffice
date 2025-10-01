@@ -35,7 +35,7 @@ import Page from "../../components/Page";
 import Label from "../../components/Label";
 import { CategoryAPI } from "@/api/category";
 import type { ICategory } from "@/types/Category";
-import app, { getStaticUrl } from '@/config'; // Import the helper function
+import app from '@/config';
 
 // Keyframe for subtle floating animation
 const floatAnimation = `
@@ -90,38 +90,15 @@ const getCategoryIcon = (categoryName: string): string => {
   return "material-symbols:category";
 };
 
-// Fixed function to get image URL from attachment object
-const getImageUrl = (attachment: any): string => {
+// Function to get image URL from attachment object
+const getImageUrl = (attachment: any, configApp: typeof app): string => {
   if (!attachment) return "";
-  
-  // Handle string URLs
   if (typeof attachment === "string") {
-    // If it's already a full URL, return as-is
-    if (attachment.startsWith('http://') || attachment.startsWith('https://')) {
-      return attachment;
-    }
-    // If it already starts with /static/, prepend base URL
-    if (attachment.startsWith('/static/')) {
-      return app.route + attachment;
-    }
-    // If it's just a filename, use the helper function
-    return getStaticUrl(attachment);
+    return attachment;
   }
-  
-  // Handle object with url property
   if (typeof attachment === "object" && attachment.url) {
-    // If it's already a full URL, return as-is
-    if (attachment.url.startsWith('http://') || attachment.url.startsWith('https://')) {
-      return attachment.url;
-    }
-    // If it already starts with /static/, prepend base URL
-    if (attachment.url.startsWith('/static/')) {
-      return app.route + attachment.url;
-    }
-    // If it's just a filename, use the helper function
-    return getStaticUrl(attachment.url);
+    return configApp.route + attachment.url;
   }
-  
   return "";
 };
 
@@ -359,31 +336,13 @@ export default function CategoryDetailsPage() {
             >
               {categoryDetails.thumb ? (
                 <img
-                  src={getImageUrl(categoryDetails.thumb)}
+                  src={getImageUrl(categoryDetails.thumb, app)}
                   alt={categoryDetails.name}
                   style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                  onError={(e: any) => {
-                    console.error('Image failed to load:', getImageUrl(categoryDetails.thumb));
-                    // Hide the img element and show the fallback icon
-                    e.target.style.display = 'none';
-                    const fallbackIcon = e.target.nextElementSibling;
-                    if (fallbackIcon) {
-                      fallbackIcon.style.display = 'flex';
-                    }
-                  }}
                 />
-              ) : null}
-              <Box
-                sx={{
-                  display: categoryDetails.thumb ? 'none' : 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  width: '100%',
-                  height: '100%',
-                }}
-              >
-                <Iconify icon="mdi:image-off" width={isMobile ? 60 : 80} height={isMobile ? 60 : 80} color="text.disabled" />
-              </Box>
+              ) : (
+                <Iconify icon="mdi:image-off" width={isMobile ? 60 : 80} height={isMobile ? 60 : 80} color="text.disabled" /> 
+              )}
             </Box>
             <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
               <Typography variant={isMobile ? "h6" : "h6"} sx={{ mb: { xs: 1.5, sm: 2 }, fontWeight: 700, color: 'text.primary' }}>

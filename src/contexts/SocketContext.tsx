@@ -59,12 +59,12 @@ export default function SocketProvider({ children }: any) {
   useEffect(() => {
     if (!auth?.user) return;
     
-    const so: Socket = io(config.socket, {
+    const so: Socket = io('https://mazadclick-server.onrender.com', {
       query: { userId: auth.user._id }
     });
 
     // Create notification socket (you can use same socket or create separate one)
-    const notificationSo: Socket = io(`${config.socket}notifications`, {
+    const notificationSo: Socket = io('https://mazadclick-server.onrender.com/notifications', {
       query: { userId: auth.user._id }
     });
 

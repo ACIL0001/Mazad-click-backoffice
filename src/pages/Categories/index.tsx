@@ -34,7 +34,7 @@ import { useSnackbar } from "notistack"
 import { sentenceCase } from "change-case"
 import { CategoryAPI } from "@/api/category"
 import MuiTable from "../../components/Tables/MuiTable"
-import app from '@/config'
+import app from "@/config"
 
 // ----------------------------------------------------------------------
 // Interfaces
@@ -111,42 +111,7 @@ function CategoryItem({
     [selected, setSelected],
   )
 
-  // Helper function to construct proper image URLs
-  const getImageUrl = (attachment: any): string => {
-    if (!attachment) return "";
-    
-    // Handle string URLs
-    if (typeof attachment === "string") {
-      // If it's already a full URL, return as-is
-      if (attachment.startsWith('http://') || attachment.startsWith('https://')) {
-        return attachment;
-      }
-      // If it already starts with /static/, prepend base URL
-      if (attachment.startsWith('/static/')) {
-        return app.route + attachment;
-      }
-      // If it's just a filename, use the helper function
-      return app.getStaticUrl(attachment);
-    }
-    
-    // Handle object with url property
-    if (typeof attachment === "object" && attachment.url) {
-      // If it's already a full URL, return as-is
-      if (attachment.url.startsWith('http://') || attachment.url.startsWith('https://')) {
-        return attachment.url;
-      }
-      // If it already starts with /static/, prepend base URL
-      if (attachment.url.startsWith('/static/')) {
-        return app.route + attachment.url;
-      }
-      // If it's just a filename, use the helper function
-      return app.getStaticUrl(attachment.url);
-    }
-    
-    return "";
-  };
-
-  const categoryThumbUrl = getImageUrl(category.thumb)
+  const categoryThumbUrl = category.thumb?.url ? `${app.baseURL.replace(/\/$/, '')}${category.thumb.url}` : ""
   const isItemSelected = selected.indexOf(category._id) !== -1
   const subcategories = category.subcategories || category.children || []
   const hasSubcategories = subcategories && subcategories.length > 0

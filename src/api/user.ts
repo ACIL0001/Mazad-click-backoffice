@@ -14,32 +14,8 @@ export const UserAPI = {
   changePassword: (credentials: any): Promise<any> => requests.post(`users/change-password`, credentials),
   identity: (form: FormData): Promise<any> => requests.post('identities', form),
   
-  // Admin role methods with retry logic
-  getAll: async (): Promise<any> => {
-    const maxRetries = 3;
-    let lastError;
-    
-    for (let attempt = 1; attempt <= maxRetries; attempt++) {
-      try {
-        console.log(`🔄 Fetching all users (attempt ${attempt}/${maxRetries})`);
-        const response = await requests.get(`users/all`);
-        console.log(`✅ All users fetched successfully on attempt ${attempt}`);
-        return response;
-      } catch (error) {
-        lastError = error;
-        console.error(`❌ Error fetching all users (attempt ${attempt}/${maxRetries}):`, error);
-        
-        if (attempt < maxRetries) {
-          const delay = attempt * 1000; // 1s, 2s, 3s
-          console.log(`⏳ Retrying in ${delay}ms...`);
-          await new Promise(resolve => setTimeout(resolve, delay));
-        }
-      }
-    }
-    
-    console.error('💥 All attempts failed to fetch all users');
-    throw lastError;
-  },
+  // Admin role methods
+  getAll: (): Promise<any> => requests.get(`users/all`),
   getAdmins: (): Promise<any> => requests.get(`users/admins`), 
   addSubscriptionPlan: (plan: string): Promise<any> => requests.post('users/subscription-plan', { plan }),
   updateSubscriptionPlan: (plan: string): Promise<any> => requests.put('users/subscription-plan', { plan }),

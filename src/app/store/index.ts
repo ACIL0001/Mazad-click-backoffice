@@ -2,7 +2,7 @@ import { combineReducers, configureStore } from '@reduxjs/toolkit'
 import cartReducer from '../slices/cart'
 import loaderReducer from '../slices/loader'
 import storage from 'redux-persist/lib/storage'
-import { persistReducer } from 'redux-persist';
+import { persistReducer, FLUSH, REHYDRATE, PAUSE, PERSIST, PURGE, REGISTER } from 'redux-persist';
 //import thunk from 'redux-thunk';
 
 const reducers = combineReducers({
@@ -12,7 +12,9 @@ const reducers = combineReducers({
  
  const persistConfig = {
      key: 'root',
-     storage
+     storage,
+     // FIXED: Add whitelist to only persist specific reducers
+     whitelist: ['cart', 'loader']
  };
  
  const persistedReducer = persistReducer(persistConfig, reducers);
@@ -20,7 +22,13 @@ const reducers = combineReducers({
  const store = configureStore({
      reducer: persistedReducer,
      devTools: process.env.NODE_ENV !== 'production',
-     //middleware: [thunk]
+     // FIXED: Add middleware configuration to ignore non-serializable values
+     middleware: (getDefaultMiddleware) =>
+       getDefaultMiddleware({
+         serializableCheck: {
+           ignoredActions: [FLUSH, REHYDRATE, PAUSE, PERSIST, PURGE, REGISTER],
+         },
+       }),
  });
  
 export default store;

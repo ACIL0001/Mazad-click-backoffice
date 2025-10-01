@@ -37,6 +37,7 @@ import { useLocation, useNavigate } from "react-router-dom"
 import { CATEGORY_TYPE } from "@/types/Category" // Assuming CATEGORY_TYPE is available
 import useMediaQuery from '@mui/material/useMediaQuery'; // Import useMediaQuery for responsiveness
 import { FormikErrors } from "formik" // Import FormikErrors type for better typing
+import app from "@/config"
 
 // Keyframe for subtle floating animation
 const floatAnimation = `
@@ -169,7 +170,7 @@ export default function UpdateCategory() {
         attributes: category.attributes || [], // Ensure attributes are initialized
         thumb: category.thumb ? undefined : null, // Set thumb state for ImageInput appropriately
       })
-      setDefaultImage(category?.thumb?.url || undefined)
+      setDefaultImage(category?.thumb?.url ? `${app.baseURL.replace(/\/$/, '')}${category.thumb.url}` : undefined)
     } else {
       navigate("/dashboard/categories")
       enqueueSnackbar("Catégorie non trouvée", { variant: "error" })

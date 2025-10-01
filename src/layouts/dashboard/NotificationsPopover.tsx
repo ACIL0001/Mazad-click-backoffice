@@ -25,6 +25,7 @@ import { fToNow } from '../../utils/formatTime';
 import Iconify from '../../components/Iconify';
 import Scrollbar from '../../components/Scrollbar';
 import MenuPopover from '../../components/MenuPopover';
+import { NotificationAPI } from '../../api/notification';
 
 // ----------------------------------------------------------------------
 
@@ -68,11 +69,11 @@ export enum NotificationAction {
 
 export default function NotificationsPopover({ notifications, onRefresh, loading = false }: any) {
 
-  const lastSeenAt = localStorage.getItem("NotificationSeenAt") || new Date();
   const anchorRef = useRef(null);
 
-  const unread = notifications.filter((n) => new Date(n.createdAt).getTime() > new Date(lastSeenAt).getTime());
-  const before = notifications.filter((n) => new Date(n.createdAt).getTime() < new Date(lastSeenAt).getTime());
+  // Use the 'read' property from the notification instead of localStorage
+  const unread = notifications.filter((n) => !n.read);
+  const before = notifications.filter((n) => n.read);
 
   const totalUnRead = unread.length;
   const [open, setOpen] = useState(null);
@@ -96,12 +97,22 @@ export default function NotificationsPopover({ notifications, onRefresh, loading
 
   const handleClose = () => {
     setOpen(null);
-    localStorage.setItem("NotificationSeenAt", new Date().toString());
   };
 
   const handleRefresh = () => {
     if (onRefresh) {
       onRefresh();
+    }
+  };
+
+  const handleMarkAllAsRead = async () => {
+    try {
+      await NotificationAPI.markAllAsRead();
+      if (onRefresh) {
+        onRefresh();
+      }
+    } catch (error) {
+      console.error('Error marking all notifications as read:', error);
     }
   };
 
@@ -140,8 +151,8 @@ export default function NotificationsPopover({ notifications, onRefresh, loading
           </Box>
 
           {totalUnRead > 0 && (
-            <Tooltip title=" Mark all as read">
-              <IconButton color="primary">
+            <Tooltip title="Mark all as read">
+              <IconButton color="primary" onClick={handleMarkAllAsRead}>
                 <Iconify icon="eva:done-all-fill" width={20} height={20} />
               </IconButton>
             </Tooltip>
@@ -188,7 +199,7 @@ export default function NotificationsPopover({ notifications, onRefresh, loading
                 }
               >
                 {unread.map((notification) => (
-                  <NotificationItem key={notification._id} notification={notification} />
+                  <NotificationItem key={notification._id} notification={notification} onMarkAsRead={onRefresh} />
                 ))}
               </List>
 
@@ -201,7 +212,7 @@ export default function NotificationsPopover({ notifications, onRefresh, loading
                 }
               >
                 {before.map((notification) => (
-                  <NotificationItem key={notification._id} notification={notification} />
+                  <NotificationItem key={notification._id} notification={notification} onMarkAsRead={onRefresh} />
                 ))}
               </List>
             </>
@@ -234,9 +245,24 @@ NotificationItem.propTypes = {
   }),
 };
 
-function NotificationItem({ notification }) {
+function NotificationItem({ notification, onMarkAsRead }) {
   const navigate = useNavigate();
   const { avatar, title, description, createdAt, url } = renderContent(notification);
+
+  const handleClick = async () => {
+    // Mark notification as read if it's not already read
+    if (!notification.read && onMarkAsRead) {
+      try {
+        await NotificationAPI.markAsRead(notification._id);
+        onMarkAsRead();
+      } catch (error) {
+        console.error('Error marking notification as read:', error);
+      }
+    }
+    
+    // Navigate to the appropriate page
+    navigate(`/dashboard/${url}`);
+  };
 
   const body = (
     <Typography variant="subtitle2">
@@ -249,12 +275,12 @@ function NotificationItem({ notification }) {
 
   return (
     <ListItemButton
-      onClick={() => navigate(`/dashboard/${url}`)}
+      onClick={handleClick}
       sx={{
         py: 1.5,
         px: 2.5,
         mt: '1px',
-        ...(notification.isUnRead && {
+        ...(!notification.read && {
           bgcolor: 'action.selected',
         }),
       }}
@@ -288,6 +314,17 @@ function NotificationItem({ notification }) {
 function renderContent(notification) {
   const { type, action } = notification;
 
+  // Handle identity verification notifications
+  if (type === 'IDENTITY_VERIFICATION') {
+    return {
+      ...notification,
+      title: notification.title || 'Nouvelle demande de vérification d\'identité',
+      description: notification.message || 'Une nouvelle demande de vérification d\'identité a été soumise',
+      avatar: <Iconify icon="mdi:account-check" sx={{ fontSize: 24, color: 'primary.main' }} />,
+      url: "identities"
+    };
+  }
+
   switch (type + action) {
     case NotificationType.ORDER + NotificationAction.CREATED:
       return {
@@ -296,16 +333,14 @@ function renderContent(notification) {
         description: 'en attente de livraison',
         avatar: <img alt="new order" src="/static/icons/ic_notification_package.svg" />,
         url: "orders"
-        //avatar: <img alt={notification.title} src="/static/icons/ic_notification_shipping.svg" />,
-        //avatar: <img alt={notification.title} src="/static/icons/ic_notification_chat.svg" />,
       }
     default:
       return {
-        title: "",
-        description: '',
+        ...notification,
+        title: notification.title || "",
+        description: notification.message || '',
         url: "app",
-        createdAt: new Date()
+        createdAt: notification.createdAt || new Date()
       }
   }
-
 }

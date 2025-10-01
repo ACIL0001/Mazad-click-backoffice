@@ -45,7 +45,7 @@ export const useAdminNotifications = () => {
       console.error('Error calculating total unread count:', error);
       return 0;
     }
-  }, [auth?.user]);
+  }, [auth?.user?._id]);
 
   // Combined function to get both notifications and unread messages - optimized
   const getAllAdminNotifications = useCallback(async () => {
@@ -60,40 +60,42 @@ export const useAdminNotifications = () => {
       
       const allNotifications = notificationsResponse?.data || [];
       
-      // Filter for ONLY MESSAGE_ADMIN notifications (user messages to admin)
-      const adminMessageNotifications = allNotifications.filter((notification: any) => {
-        // Only include MESSAGE_ADMIN type (user sending to admin)
+      // Filter for MESSAGE_ADMIN and IDENTITY_VERIFICATION notifications
+      const adminNotifications = allNotifications.filter((notification: any) => {
         const isMessageAdmin = notification.type === 'MESSAGE_ADMIN';
+        const isIdentityVerification = notification.type === 'IDENTITY_VERIFICATION';
         
         // Check if notification belongs to current admin
         const belongsToCurrentAdmin = 
           notification.userId === auth?.user?._id || 
-          notification.receiverId === auth?.user?._id;
+          notification.receiverId === auth?.user?._id
         
-        // Check if sender is a user (not admin)
+        // For MESSAGE_ADMIN: check if sender is a user (not admin)
         const isFromUser = 
           notification.data?.senderId !== 'admin' &&
           notification.data?.sender?._id !== 'admin' &&
           notification.title === 'Nouveau message de support';
         
-        return isMessageAdmin && belongsToCurrentAdmin && isFromUser;
+        // For IDENTITY_VERIFICATION: always include if it's for admin
+        const isIdentityForAdmin = isIdentityVerification && belongsToCurrentAdmin;
+        
+        return (isMessageAdmin && belongsToCurrentAdmin && isFromUser) || isIdentityForAdmin;
       });
       
       // Count only unread notifications
-      const unreadNotificationCount = adminMessageNotifications.filter(n => !n.read).length;
+      const unreadNotificationCount = adminNotifications.filter(n => !n.read).length;
       
-      // Total count = unread notifications + unread messages + new notifications
-      const totalCount = unreadNotificationCount + unreadMessageCount + newNotifications.length;
+      // Total count = unread notifications + unread messages
+      const totalCount = unreadNotificationCount + unreadMessageCount;
       
-      setNotifications(adminMessageNotifications);
+      setNotifications(adminNotifications);
       setAdminNotificationCount(totalCount);
       
       console.log('📊 Admin notification counts:', {
         totalNotifications: allNotifications.length,
-        adminMessageNotifications: adminMessageNotifications.length,
+        adminNotifications: adminNotifications.length,
         unreadNotifications: unreadNotificationCount,
         unreadMessages: unreadMessageCount,
-        newNotifications: newNotifications.length,
         total: totalCount
       });
       
@@ -104,7 +106,7 @@ export const useAdminNotifications = () => {
     } finally {
       setLoading(false);
     }
-  }, [getUnreadMessageCount, auth?.user, newNotifications]);
+  }, [getUnreadMessageCount, auth?.user?._id]);
 
   // Listen for real-time notifications via socket - optimized
   useEffect(() => {
@@ -113,18 +115,19 @@ export const useAdminNotifications = () => {
     const handleNewNotification = (notification: any) => {
       console.log('🔔 Admin received real-time notification via hook:', notification);
       
-      // Only handle MESSAGE_ADMIN notifications (user → admin)
       const isMessageAdmin = notification.type === 'MESSAGE_ADMIN';
+      const isIdentityVerification = notification.type === 'IDENTITY_VERIFICATION';
       const belongsToCurrentAdmin = 
         notification.userId === auth?.user?._id || 
-        notification.receiverId === auth?.user?._id;
+        notification.receiverId === auth?.user?._id
       const isFromUser = 
         notification.data?.senderId !== 'admin' &&
         notification.data?.sender?._id !== 'admin' &&
         notification.title === 'Nouveau message de support';
+      const isIdentityForAdmin = isIdentityVerification && belongsToCurrentAdmin;
       
-      if (isMessageAdmin && belongsToCurrentAdmin && isFromUser) {
-        console.log('✅ Adding new admin message notification');
+      if ((isMessageAdmin && belongsToCurrentAdmin && isFromUser) || isIdentityForAdmin) {
+        console.log('✅ Adding new admin notification:', notification.type);
         setNewNotifications(prev => {
           // Check if notification already exists
           const exists = prev.some(n => 
@@ -142,7 +145,7 @@ export const useAdminNotifications = () => {
         setNotifications(prev => [notification, ...prev]);
         setAdminNotificationCount(prev => prev + 1);
       } else {
-        console.log('🚫 Ignoring notification - not MESSAGE_ADMIN or not from user to admin');
+        console.log('🚫 Ignoring notification - not MESSAGE_ADMIN or IDENTITY_VERIFICATION for admin');
       }
     };
 
@@ -186,14 +189,14 @@ export const useAdminNotifications = () => {
       // Load immediately
       getAllAdminNotifications();
       
-      // Refresh every 10 seconds instead of 30 for faster updates
+      // Refresh every 30 seconds to reduce server load
       const interval = setInterval(() => {
         getAllAdminNotifications();
-      }, 10000);
+      }, 30000);
       
       return () => clearInterval(interval);
     }
-  }, [auth?.user, getAllAdminNotifications]);
+  }, [auth?.user?._id, getAllAdminNotifications]);
 
   // Expose a function to force immediate refresh
   const forceRefresh = useCallback(() => {

@@ -415,6 +415,25 @@ export default function IdentityVerificationDetailsPage() {
 
     // Check if there are any documents to show
     const hasDocuments = commercialRegister || nif || nis || last3YearsBalanceSheet || certificates || identityCard || registreCommerceCarteAuto || nifRequired || numeroArticle || c20 || misesAJourCnas;
+    
+    
+    // Debug logging
+    console.log('🔍 Identity details debug:', {
+      identityDetails: identityDetails,
+      allDocumentFields: {
+        commercialRegister: !!commercialRegister,
+        nif: !!nif,
+        nis: !!nis,
+        last3YearsBalanceSheet: !!last3YearsBalanceSheet,
+        certificates: !!certificates,
+        identityCard: !!identityCard,
+        registreCommerceCarteAuto: !!registreCommerceCarteAuto,
+        nifRequired: !!nifRequired,
+        numeroArticle: !!numeroArticle,
+        c20: !!c20,
+        misesAJourCnas: !!misesAJourCnas
+      }
+    });
 
     return (
         <Box sx={{
@@ -820,6 +839,7 @@ export default function IdentityVerificationDetailsPage() {
                                     </CardContent>
                                 </Card>
                             </Grid>
+
                         </Grid>
                     </Box>
                 </Fade>

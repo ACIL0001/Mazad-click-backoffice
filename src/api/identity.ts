@@ -84,36 +84,27 @@ export interface IdentityDocument {
     url?: string;
   };
   
+  // Payment proof field
+  paymentProof?: {
+    _id: string;
+    filename?: string;
+    url?: string;
+  };
+  
   createdAt: Date;
   updatedAt: Date;
 }
 
 export class IdentityAPI {
-  // Get all identities with retry logic
+  // Get all identities
   static async getAllIdentities(): Promise<IdentityDocument[]> {
-    const maxRetries = 3;
-    let lastError;
-    
-    for (let attempt = 1; attempt <= maxRetries; attempt++) {
-      try {
-        console.log(`🔄 Fetching identities (attempt ${attempt}/${maxRetries})`);
-        const response = await requests.get('/identities');
-        console.log(`✅ Identities fetched successfully on attempt ${attempt}`);
-        return response;
-      } catch (error) {
-        lastError = error;
-        console.error(`❌ Error fetching identities (attempt ${attempt}/${maxRetries}):`, error);
-        
-        if (attempt < maxRetries) {
-          const delay = attempt * 1000; // 1s, 2s, 3s
-          console.log(`⏳ Retrying in ${delay}ms...`);
-          await new Promise(resolve => setTimeout(resolve, delay));
-        }
-      }
+    try {
+      const response = await requests.get('/identities');
+      return response;
+    } catch (error) {
+      console.error('Error fetching all identities:', error);
+      throw error;
     }
-    
-    console.error('💥 All attempts failed to fetch identities');
-    throw lastError;
   }
 
   // Get only pending identities (status = WAITING)
@@ -185,7 +176,9 @@ export class IdentityAPI {
   // Delete multiple identities - UPDATED to use query parameters
   static async deleteIdentities(ids: string[]) {
     try {
-      const response = await requests.delete(`/identities?ids=${ids.join(',')}`);
+      // Send IDs as query parameters, not in request body
+      const queryParams = ids.map(id => `ids=${id}`).join('&');
+      const response = await requests.delete(`/identities?${queryParams}`);
       return response;
     } catch (error) {
       console.error('Error deleting identities:', error);

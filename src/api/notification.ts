@@ -32,4 +32,6 @@ export const NotificationAPI = {
     restaurant: boolean;
   }) => requests.post('notification/a/submit/emailnotification', notificationData),
   markAllChatNotificationsAsRead: (chatId: string): Promise<any> => requests.put(`notification/chat/${chatId}/read`, {}),
+  markAsRead: (notificationId: string): Promise<any> => requests.put(`notification/${notificationId}/read`, {}),
+  markAllAsRead: (): Promise<any> => requests.put(`notification/read-all`, {}),
 };
