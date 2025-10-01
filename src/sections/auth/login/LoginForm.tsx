@@ -39,13 +39,13 @@ export default function LoginForm() {
   }, [isReady, isLogged, auth?.user, navigate]);
 
   const LoginSchema = Yup.object().shape({
-    email: Yup.string().email('Email invalide').required('Email est requis'),
+    login: Yup.string().required('Identifiant est requis'), // Changed from email to login
     password: Yup.string().required('Password est requis'),
   });
 
   const formik = useFormik({
     initialValues: {
-      email: '',
+      login: '', // Changed from email to login
       password: '',
     },
     validationSchema: LoginSchema,
@@ -53,9 +53,9 @@ export default function LoginForm() {
       try {
         console.log('Login form submitted with values:', values);
         
-        // CORRECT: Now using the proper Credentials type with 'login' field
+        // FIXED: Now using the proper field name 'login' that matches Credentials interface
         const data = await AuthAPI.login({
-          login: values.email, // This now matches the Credentials interface
+          login: values.login, // This now matches the Credentials interface exactly
           password: values.password
         });
 
@@ -150,11 +150,11 @@ export default function LoginForm() {
         <Stack spacing={3}>
           <TextField
             fullWidth
-            type="email"
-            label="Email Admin"
-            {...getFieldProps('email')}
-            error={Boolean(touched.email && errors.email)}
-            helperText={touched.email && errors.email}
+            type="text" // Changed from email to text since it could be email or phone
+            label="Identifiant Admin" // Updated label
+            {...getFieldProps('login')} // Changed from email to login
+            error={Boolean(touched.login && errors.login)}
+            helperText={touched.login && errors.login}
           />
 
           <TextField
