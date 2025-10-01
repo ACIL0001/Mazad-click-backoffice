@@ -1,6 +1,6 @@
 
 export default interface Credentials {
-    email: string,
+    login: string,
     password: string,
     tel?: string,
 }
