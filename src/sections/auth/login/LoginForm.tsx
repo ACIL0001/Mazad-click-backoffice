@@ -53,8 +53,9 @@ export default function LoginForm() {
       try {
         console.log('Login form submitted with values:', values);
         
+        // FIXED: Use 'login' field as expected by the backend SignInDto
         const data = await AuthAPI.login({
-          email: values.email, // Fixed: Use 'email' instead of 'login'
+          login: values.email, // Server expects 'login' field (can be email or phone)
           password: values.password
         });
 
@@ -125,7 +126,16 @@ export default function LoginForm() {
         
       } catch (error: any) {
         console.error('Login error:', error);
-        enqueueSnackbar(error.message || 'Erreur de connexion', { variant: 'error' });
+        
+        // Enhanced error handling
+        let errorMessage = 'Erreur de connexion';
+        if (error.response?.data?.message) {
+          errorMessage = error.response.data.message;
+        } else if (error.message) {
+          errorMessage = error.message;
+        }
+        
+        enqueueSnackbar(errorMessage, { variant: 'error' });
       } finally {
         setSubmitting(false);
       }
