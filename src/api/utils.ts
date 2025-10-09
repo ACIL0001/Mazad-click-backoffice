@@ -4,8 +4,7 @@ import { useEffect } from 'react';
 import app from '@/config';
 import useAuth from '@/hooks/useAuth';
 import useRequest from '@/hooks/useRequest';
-// Import the correct type definition instead of redefining it locally
-import { LoginResponseData } from '@/types/Auth'; // <-- *** FIX 1: IMPORT THE TYPE ***
+import { LoginResponseData } from '@/types/Auth';
 import { AuthAPI } from './auth';
 
 const instance = axios.create({
@@ -175,21 +174,29 @@ const AxiosInterceptor = ({ children }: any) => {
           try {
             const { data: tokens } = await AuthAPI.refresh(refreshToken);
 
-            // <-- *** FIX 2: ADD THE MISSING 'session' PROPERTY ***
-            // You need to define what the session object contains based on your application's logic.
+            // FIXED: Properly typed tokens object with required properties
+            const tokensData = {
+              accessToken: tokens.accessToken || tokens.access_token || '',
+              refreshToken: tokens.refreshToken || tokens.refresh_token || '',
+            };
+
+            // FIXED: Properly structured authUpdate object matching LoginResponseData
             const authUpdate: LoginResponseData = {
-              session: { 
-                // Add required session properties here, for example:
-                // sessionId: 'some-session-id',
-                // expiresAt: 'some-expiry-date',
-              },
-              tokens: {
-                accessToken: tokens.accessToken || tokens.access_token,
-                refreshToken: tokens.refreshToken || tokens.refresh_token,
+              session: {
+                accessToken: tokensData.accessToken,
+                refreshToken: tokensData.refreshToken,
               },
               user: {
-                ...auth.user,
-              } as LoginResponseData['user'],
+                _id: auth.user._id || '',
+                firstName: auth.user.firstname || auth.user.firstName || '',
+                lastName: auth.user.lastname || auth.user.lastName || '',
+                email: auth.user.email || '',
+                type: auth.user.type || '',
+                accountType: auth.user.accountType || '',
+                phone: auth.user.phone || auth.user.tel?.toString() || '',
+                isPhoneVerified: auth.user.isPhoneVerified || false,
+                photoURL: auth.user.photoURL || auth.user.picture?.url || '',
+              },
             };
             
             console.log('✅ Token refresh successful');
@@ -197,7 +204,7 @@ const AxiosInterceptor = ({ children }: any) => {
 
             clearTimeout(refreshTimeout);
             isRefreshing = false;
-            const newAccessToken = tokens.accessToken || tokens.access_token;
+            const newAccessToken = tokensData.accessToken;
             onRefreshed(newAccessToken);
             originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
             return instance(originalRequest);

@@ -1,4 +1,4 @@
-import Credentials from '../types/Credentials';
+import { Credentials } from '../types/Credentials';
 import Sms from '../types/Sms';
 import User from '../types/User';
 import { requests } from './utils';
