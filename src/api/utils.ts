@@ -197,7 +197,8 @@ const AxiosInterceptor = ({ children }: any) => {
                 isPhoneVerified: auth.user.isPhoneVerified || false,
                 // WORKAROUND: Use 'as any' to bypass the incorrect type error.
                 // The root cause is likely a cached/stale type definition.
-                photoURL: auth.user.photoURL || (auth.user.picture as any)?.url || '',
+                photoURL: auth.user.photoURL || auth.user.picture?.url || '',
+
               },
             };
             
