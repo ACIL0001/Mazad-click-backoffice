@@ -4,29 +4,9 @@ import { useEffect } from 'react';
 import app from '@/config';
 import useAuth from '@/hooks/useAuth';
 import useRequest from '@/hooks/useRequest';
-import { hasAdminPrivileges } from '@/types/Role';
+// Import the correct type definition instead of redefining it locally
+import { LoginResponseData } from '@/types/Auth'; // <-- *** FIX 1: IMPORT THE TYPE ***
 import { AuthAPI } from './auth';
-
-// FIXED: Updated LoginResponseData interface to match authStore.ts
-interface LoginResponseData {
-  user: {
-    _id: string;
-    firstName: string;
-    lastName: string;
-    email: string;
-    type: string;
-    accountType: string;
-    photoURL?: string;
-    phone?: string;
-    isPhoneVerified?: boolean;
-    [key: string]: any;
-  };
-  tokens: {
-    accessToken: string;
-    refreshToken: string;
-    [key: string]: any;
-  };
-}
 
 const instance = axios.create({
   baseURL: app.baseURL,
@@ -37,11 +17,9 @@ const instance = axios.create({
 
 const response = (res: AxiosResponse) => res.data;
 
-// FIXED: Updated post method to properly handle FormData
 export const requests = {
   get: (url: string) => instance.get(url).then(response),
   post: (url: string, body: {}, returnFullResponse = false) => {
-    // Set proper headers for FormData
     const config: any = {};
     if (body instanceof FormData) {
       config.headers = {
@@ -61,7 +39,6 @@ export const requests = {
 let isRefreshing = false;
 let refreshSubscribers: ((token: string | null) => void)[] = [];
 
-// add a subscriber to the queue
 const subscribeTokenRefresh = (callback: (token: string | null) => void) => {
   refreshSubscribers.push(callback);
 };
@@ -80,12 +57,9 @@ const AxiosInterceptor = ({ children }: any) => {
     console.log('🚀 Request interceptor - URL:', req.url);
     setLoading(true);
 
-    // client preferred language
     req.headers['accept-language'] = auth?.user?.preference?.language || 'FR';
 
-    // FIXED: Get access token only from tokens property
     const getAccessToken = () => {
-      // Only try auth.tokens (the correct structure)
       if (auth?.tokens?.accessToken) {
         console.log('🔑 Found token in auth.tokens');
         return auth.tokens.accessToken;
@@ -103,7 +77,6 @@ const AxiosInterceptor = ({ children }: any) => {
       '/otp/resend/confirm-phone',
     ];
 
-    // FIXED: Check if this is a public endpoint first
     const isPublicEndpoint = publicEndpoints.some(endpoint => req.url.includes(endpoint));
     
     console.log('📋 Request details:', {
@@ -114,7 +87,6 @@ const AxiosInterceptor = ({ children }: any) => {
       hasTokens: !!auth?.tokens
     });
 
-    // FIXED: Remove admin portal restriction - add auth for all authenticated requests
     if (isLogged && !isPublicEndpoint) {
       const accessToken = getAccessToken();
       
@@ -131,7 +103,6 @@ const AxiosInterceptor = ({ children }: any) => {
       });
     }
 
-    // FIXED: Don't override Content-Type if it's already set (for FormData)
     if (req.data instanceof FormData && !req.headers['Content-Type']) {
       req.headers['Content-Type'] = 'multipart/form-data';
     }
@@ -145,13 +116,11 @@ const AxiosInterceptor = ({ children }: any) => {
     return req;
   };
 
-  // @response interceptor
   const onReponse = (res: any) => {
     setLoading(false);
     return res;
   };
 
-  // @error interceptor - FIXED: Prevent infinite loop
   const onError = async (error: any) => {
     setLoading(false);
     const originalRequest = error.config;
@@ -163,15 +132,12 @@ const AxiosInterceptor = ({ children }: any) => {
       code: error.code
     });
 
-    // FIXED: Don't handle 304 (Not Modified) as errors
     if (error.response?.status === 304) {
       console.log('ℹ️ 304 Not Modified - not an actual error');
       return Promise.reject(error);
     }
 
-    // FIXED: Only handle 401 errors for actual authentication failures
     if (error.response?.status === 401 && !originalRequest._retry) {
-      // Check if this is a token-related 401 (not other types of 401)
       const isTokenError = error.response?.data?.error === 'Unauthorized' || 
                           error.response?.data?.message?.includes('Token');
       
@@ -186,7 +152,6 @@ const AxiosInterceptor = ({ children }: any) => {
         isRefreshing = true;
 
         try {
-          // FIXED: Get refresh token only from tokens property
           const getRefreshToken = () => {
             if (auth?.tokens?.refreshToken) return auth.tokens.refreshToken;
             return null;
@@ -203,7 +168,6 @@ const AxiosInterceptor = ({ children }: any) => {
 
           console.log('🔄 Attempting token refresh...');
           
-          // FIXED: Add timeout to prevent hanging
           const refreshTimeout = setTimeout(() => {
             throw new Error('Token refresh timeout');
           }, 5000);
@@ -211,8 +175,14 @@ const AxiosInterceptor = ({ children }: any) => {
           try {
             const { data: tokens } = await AuthAPI.refresh(refreshToken);
 
-            // FIXED: Create proper LoginResponseData structure
+            // <-- *** FIX 2: ADD THE MISSING 'session' PROPERTY ***
+            // You need to define what the session object contains based on your application's logic.
             const authUpdate: LoginResponseData = {
+              session: { 
+                // Add required session properties here, for example:
+                // sessionId: 'some-session-id',
+                // expiresAt: 'some-expiry-date',
+              },
               tokens: {
                 accessToken: tokens.accessToken || tokens.access_token,
                 refreshToken: tokens.refreshToken || tokens.refresh_token,
@@ -230,7 +200,7 @@ const AxiosInterceptor = ({ children }: any) => {
             const newAccessToken = tokens.accessToken || tokens.access_token;
             onRefreshed(newAccessToken);
             originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
-            return instance(originalRequest); // Retry the original request
+            return instance(originalRequest);
           } catch (refreshError) {
             clearTimeout(refreshTimeout);
             throw refreshError;
@@ -239,9 +209,8 @@ const AxiosInterceptor = ({ children }: any) => {
           console.error('💥 Token refresh failed:', refreshError);
 
           isRefreshing = false;
-          onRefreshed(null); // Notify waiting requests of failure
+          onRefreshed(null);
 
-          // Don't clear auth if we're on auth pages to prevent disrupting login flow
           const isOnAuthPage = typeof window !== 'undefined' && (
             window.location.pathname.includes('/login') ||
             window.location.pathname.includes('/register') ||
@@ -252,15 +221,14 @@ const AxiosInterceptor = ({ children }: any) => {
           );
 
           if (!isOnAuthPage) {
-            clear(); // Log out the user only if not on auth pages
+            clear();
           } else {
             console.log('Token refresh failed during auth flow, not clearing auth to prevent disrupting login');
           }
 
-          throw refreshError; // Reject the original request with the error
+          throw refreshError;
         }
       } else {
-        // If a token refresh is already in progress, queue the original request
         return new Promise((resolve, reject) => {
           subscribeTokenRefresh((token) => {
             if (token) {
@@ -274,26 +242,20 @@ const AxiosInterceptor = ({ children }: any) => {
       }
     }
 
-    // Handle different types of errors
     if (error.code === 'ECONNABORTED' || error.message?.includes('timeout')) {
-      // Timeout errors - don't show snackbar, just log
       console.log('Request timeout:', error.message);
-      // No snackbar for timeout errors
     } else if (error.code === 'ERR_NETWORK' || error.message?.includes('ERR_CONNECTION_REFUSED')) {
-      // Network/connection errors
       console.log('Network Error:', error.message);
       enqueueSnackbar('Impossible de se connecter au serveur. Vérifiez votre connexion.', { variant: 'error' });
     } else if (error.response?.status !== 401 && error.response?.status !== 304) {
       console.log('API Error:', error.response);
 
-      // Show user-friendly error message
       const errorMessage = error.response?.data?.message ||
                           error.message ||
                           'un problème est survenu';
       enqueueSnackbar(errorMessage, { variant: 'error' });
     }
 
-    // Log error details safely
     if (error.response) {
       console.log('\nStatus : ' + error.response.status + '\n Body : ');
       console.log(error.response.data);
