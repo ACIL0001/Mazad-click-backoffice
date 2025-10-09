@@ -23,7 +23,7 @@ export default function Logo({ disabledLink = false, sx }) {
 
     // OR
 
-    const logo = <Box style={{ borderRadius: 5, marginLeft: 5 }} component="img" src="/static/logo/Logo.png" sx={{ height: 70, width:150, ...sx }} />
+    const logo = <Box style={{ borderRadius: 5, marginLeft: 5 }} component="img" src="/static/logo/Logo.png" sx={{ height: 70, width:180, ...sx }} />
 
 
     /*
