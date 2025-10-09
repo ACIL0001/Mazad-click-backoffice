@@ -398,10 +398,8 @@ export default function SubscriptionPage() {
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "DZD",
       minimumFractionDigits: 0,
-    }).format(price)
+    }).format(price) + " DA"
   }
 
   const getRoleIcon = (role: string) => {
@@ -903,14 +901,14 @@ export default function SubscriptionPage() {
                 </Grid>
                 <Grid item xs={6}>
                   <TextField
-                    label="Price (DZD)"
+                    label="Price (DA)"
                     type="number"
                     value={newPlan.price}
                     onChange={(e) => setNewPlan({ ...newPlan, price: Number(e.target.value) })}
                     fullWidth
                     variant="outlined"
                     InputProps={{
-                      startAdornment: <MoneyIcon sx={{ mr: 1, color: 'text.secondary' }} />
+                      endAdornment: <Typography sx={{ color: 'text.secondary', ml: 1 }}>DA</Typography>
                     }}
                     sx={{
                       '& .MuiOutlinedInput-root': {
@@ -1056,14 +1054,14 @@ export default function SubscriptionPage() {
                 </Grid>
                 <Grid item xs={6}>
                   <TextField
-                    label="Price (DZD)"
+                    label="Price (DA)"
                     type="number"
                     value={currentPlan?.price || 0}
                     onChange={(e) => setCurrentPlan({ ...currentPlan!, price: Number(e.target.value) })}
                     fullWidth
                     variant="outlined"
                     InputProps={{
-                      startAdornment: <MoneyIcon sx={{ mr: 1, color: 'text.secondary' }} />
+                      endAdornment: <Typography sx={{ color: 'text.secondary', ml: 1 }}>DA</Typography>
                     }}
                     sx={{
                       '& .MuiOutlinedInput-root': {
