@@ -339,16 +339,7 @@ export default function IdentityVerificationDetailsPage() {
     const DocumentCard = ({ title, document, icon }: any) => {
   // Construct the correct document URL
   const getDocumentUrl = () => {
-    if (!document?.url) {
-      console.warn('No document URL found:', document);
-      return '';
-    }
-    
-    // Check for suspicious URLs
-    if (document.url.includes('index.html') || document.url.includes('undefined') || document.url === '') {
-      console.warn('Suspicious document URL detected:', document.url);
-      return '';
-    }
+    if (!document?.url) return '';
     
     // If the URL is already a full URL, use it directly
     if (document.url.startsWith('http')) {
@@ -356,33 +347,12 @@ export default function IdentityVerificationDetailsPage() {
     }
     
     // For relative paths, construct the full URL
-    // The server serves static files from /static/ prefix
+    // Use your app's baseURL (which should be your backend API URL)
     const baseUrl = app.baseURL.replace('/v1/', '').replace(/\/$/, ''); // Remove API version and trailing slash
-    
-    // If the document.url already starts with /static/, use it as is
-    if (document.url.startsWith('/static/')) {
-      return `${baseUrl}${document.url}`;
-    }
-    
-    // If it's just a filename, prepend /static/
-    return `${baseUrl}/static/${document.url}`;
+    return `${baseUrl}${document.url}`;
   };
 
   const documentUrl = getDocumentUrl();
-
-  // Debug logging
-  console.log('🔍 Document URL Debug:', {
-    document,
-    originalUrl: document?.url,
-    constructedUrl: documentUrl,
-    baseUrl: app.baseURL
-  });
-
-  // Don't render if no valid URL or if URL looks suspicious
-  if (!documentUrl || documentUrl.includes('index.html') || documentUrl.includes('undefined')) {
-    console.warn('Invalid document URL detected:', { document, documentUrl });
-    return null;
-  }
 
   return (
     <Card

@@ -9,7 +9,6 @@ import { AuthAPI } from '@/api/auth';
 import { useSnackbar } from 'notistack';
 import useAuth from '@/hooks/useAuth';
 import { hasAdminPrivileges, RoleCode } from '@/types/Role';
-import Credentials from '@/types/Credentials'; // Import Credentials directly
 
 export default function LoginForm() {
   const navigate = useNavigate();
@@ -40,8 +39,17 @@ export default function LoginForm() {
   }, [isReady, isLogged, auth?.user, navigate]);
 
   const LoginSchema = Yup.object().shape({
-    login: Yup.string().required('Identifiant est requis'),
-    password: Yup.string().required('Password est requis'),
+    login: Yup.string()
+      .required('Email ou téléphone est requis')
+      .test('email-or-phone', 'Email ou numéro de téléphone invalide', function(value) {
+        if (!value) return false;
+        // Check if it's a valid email
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        // Check if it's a valid Algerian phone number
+        const phoneRegex = /^(\+213|0)(5|6|7)[0-9]{8}$/;
+        return emailRegex.test(value) || phoneRegex.test(value);
+      }),
+    password: Yup.string().required('Mot de passe est requis'),
   });
 
   const formik = useFormik({
@@ -54,20 +62,28 @@ export default function LoginForm() {
       try {
         console.log('Login form submitted with values:', values);
         
-        // Create credentials object that matches the Credentials interface
-        const credentials: Credentials = {
-          login: values.login,
+        // Send request with 'login' field (not 'email')
+        const data = await AuthAPI.login({
+          login: values.login.toLowerCase(), // Backend transforms to lowercase
           password: values.password
-        };
-
-        console.log('Sending credentials:', credentials);
-        
-        const data = await AuthAPI.login(credentials);
+        });
 
         console.log('Login API response received:', data);
+        console.log('Response structure:', {
+          hasSession: !!data.session,
+          hasUser: !!data.user,
+          sessionKeys: data.session ? Object.keys(data.session) : [],
+          userKeys: data.user ? Object.keys(data.user) : []
+        });
         
-        if (!data || !data.user || (!data.tokens && !data.session)) {
+        // Backend returns: { session: { accessToken, refreshToken }, user: {...} }
+        if (!data || !data.user || !data.session) {
           throw new Error('Réponse invalide du serveur');
+        }
+
+        // Check if phone is verified (backend prevents login if not - but just in case)
+        if (!data.user.isPhoneVerified) {
+          throw new Error('Votre numéro de téléphone n\'est pas vérifié. Veuillez vérifier votre téléphone avec le code OTP qui vous a été envoyé.');
         }
 
         // Check if user has admin privileges for this portal
@@ -84,45 +100,17 @@ export default function LoginForm() {
           }
         }
 
-        // Extract tokens and convert to consistent format
-        let accessToken, refreshToken;
-        
-        if (data.tokens) {
-          // New structure with tokens
-          accessToken = data.tokens.accessToken;
-          refreshToken = data.tokens.refreshToken;
-        } else if (data.session) {
-          // Server returns session with accessToken and refreshToken
-          accessToken = data.session.accessToken || data.session.access_token;
-          refreshToken = data.session.refreshToken || data.session.refresh_token;
-        }
-
-        if (!accessToken || !refreshToken) {
+        // Verify tokens exist in session
+        if (!data.session?.accessToken || !data.session?.refreshToken) {
+          console.error('Missing tokens in session:', data.session);
           throw new Error('Tokens manquants dans la réponse');
         }
 
-        // Always use tokens structure for auth store
-        const authData = {
-          user: {
-            _id: data.user._id,
-            firstName: data.user.firstName,
-            lastName: data.user.lastName,
-            email: data.user.email,
-            type: data.user.type,
-            accountType: data.user.accountType,
-            phone: data.user.phone,
-            isPhoneVerified: data.user.isPhoneVerified,
-            photoURL: data.user.photoURL
-          },
-          tokens: {
-            accessToken: accessToken,
-            refreshToken: refreshToken
-          }
-        };
-
-        console.log('Setting auth data via auth store:', authData);
-
-        set(authData);
+        console.log('Setting auth data via auth store (raw backend format)');
+        
+        // Pass the raw backend response directly to the store
+        // authStore will handle the transformation
+        set(data);
         
         enqueueSnackbar('Connexion réussie!', { variant: 'success' });
         
@@ -131,11 +119,19 @@ export default function LoginForm() {
         
       } catch (error: any) {
         console.error('Login error:', error);
+        console.error('Error response:', error.response?.data);
         
-        // Enhanced error handling
+        // Handle specific error messages from backend
         let errorMessage = 'Erreur de connexion';
+        
         if (error.response?.data?.message) {
-          errorMessage = error.response.data.message;
+          const backendMessage = error.response.data.message;
+          // If it's an array of validation errors
+          if (Array.isArray(backendMessage)) {
+            errorMessage = backendMessage.join(', ');
+          } else if (typeof backendMessage === 'string') {
+            errorMessage = backendMessage;
+          }
         } else if (error.message) {
           errorMessage = error.message;
         }
@@ -156,7 +152,8 @@ export default function LoginForm() {
           <TextField
             fullWidth
             type="text"
-            label="Identifiant Admin"
+            label="Email ou Téléphone"
+            placeholder="admin@example.com ou 0555123456"
             {...getFieldProps('login')}
             error={Boolean(touched.login && errors.login)}
             helperText={touched.login && errors.login}

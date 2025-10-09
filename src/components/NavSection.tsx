@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from 'react'; // Added React import
+import React, { useEffect, useState, useMemo } from 'react';
 import * as PropTypes from 'prop-types';
 
 import { NavLink as RouterLink, matchPath, useLocation } from 'react-router-dom';
@@ -366,10 +366,16 @@ export default function NavSection({ ...other }) {
           },
         ],
       },
-    {
-      title: 'Enchères',
-      path: '/dashboard/auctions',
-      icon: getIcon('mdi:gavel'),
+      {
+        title: 'Enchères',
+        path: '/dashboard/auctions',
+        icon: getIcon('mdi:gavel'),
+        requiresAdmin: true,
+      },
+      {
+        title: 'Soumissions',
+        path: '/dashboard/tenders',
+        icon: getIcon('mdi:file-document-outline'),
         requiresAdmin: true,
       },
       {
@@ -378,28 +384,16 @@ export default function NavSection({ ...other }) {
         icon: getIcon('material-symbols:category'),
         requiresAdmin: true,
       },
-    //   {
-    //     title: 'Sous Categories',
-    //     path: '/dashboard/sous-categories',
-    //     icon: getIcon('material-symbols:format_list_bulleted'),
-    //     requiresAdmin: true,
-    //   },
-    //   {
-    // title: 'Sous-Sous Categories',
-    // path: '/dashboard/sous-sous-categories',
-    // icon: getIcon('material-symbols:layers'),
-    //     requiresAdmin: true,
-    //   },
       {
         title: 'Abonnements',
         path: '/dashboard/subscription',
         icon: getIcon('mdi:credit-card-multiple'),
         requiresAdmin: true,
       },
-    {
-    title: 'Conditions Générales',
-    path: '/dashboard/terms',
-    icon: getIcon('mdi:file-document-outline'),
+      {
+        title: 'Conditions Générales',
+        path: '/dashboard/terms',
+        icon: getIcon('mdi:file-document-outline'),
         requiresAdmin: true,
       },
       {
@@ -414,40 +408,6 @@ export default function NavSection({ ...other }) {
         icon: getIcon('ph:user-focus-bold'),
         requiresAdmin: true,
       },
-      // {
-      //   title: 'Communication',
-      //   path: '/dashboard/communication',
-      //   icon: getIcon('mdi:message'),
-      //   requiresAdmin: true,
-      //   children: [
-      //     {
-      //       title: 'Notification',
-      //       path: '/dashboard/communication/notification',
-      //       icon: getIcon('mdi:bell'),
-      //       requiresAdmin: true,
-      //     },
-      //     {
-      //       title: 'Sms',
-      //       path: '/dashboard/communication/sms',
-      //       icon: getIcon('mdi:message'),
-      //       description: 'Comming Soon',
-      //       disabled: true,
-      //       requiresAdmin: true,
-      //     },
-      //     {
-      //       title: 'Email',
-      //       path: '/dashboard/communication/email',
-      //       icon: getIcon('mdi:email'),
-      //       requiresAdmin: true,
-      //     },
-      //   ],
-      // },
-      // {
-      //   title: 'Configuration',
-      //   path: '/dashboard/configuration',
-      //   icon: getIcon('eva:settings-fill'),
-      //   adminOnly: true,
-      // },
     ];
 
     // Filter navigation items based on user permissions

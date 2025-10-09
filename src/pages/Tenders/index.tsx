@@ -40,32 +40,29 @@ import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
 // types
 import { Auction, AUCTION_TYPE, BID_STATUS } from '../../types/Auction';
 import Breadcrumb from '@/components/Breadcrumbs';
-import { AuctionsAPI } from '@/api/auctions';
-import { OffersAPI } from '@/api/offers';
+import { TendersAPI } from '@/api/tenders';
 import { format } from 'date-fns';
 
 // ----------------------------------------------------------------------
 
+
 const COLUMNS = [
   { id: 'expand', label: '', alignRight: false, searchable: false },
   { id: 'title', label: 'Titre', alignRight: false, searchable: true, sortable: true },
-  { id: 'bidType', label: 'Type', alignRight: false, searchable: false },
-  { id: 'auctionType', label: 'Mode', alignRight: false, searchable: false },
-  { id: 'startingPrice', label: 'Prix Initial', alignRight: false, searchable: false, sortable: true },
-  { id: 'currentPrice', label: 'Prix Actuel', alignRight: false, searchable: false, sortable: true },
+  { id: 'tenderType', label: 'Type', alignRight: false, searchable: false },
   { id: 'participants', label: 'Participants', alignRight: false, searchable: false },
   { id: 'endingAt', label: 'Se Termine Le', alignRight: false, searchable: false, sortable: true },
   { id: 'status', label: 'Statut', alignRight: false, searchable: false },
   { id: 'actions', label: '', alignRight: true, searchable: false }
 ];
 
-export default function Auctions() {
+export default function Tenders() {
   const theme = useTheme();
   const { enqueueSnackbar } = useSnackbar();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const isTablet = useMediaQuery(theme.breakpoints.down('md'));
 
-  const [auctions, setAuctions] = useState<Auction[]>([]);
+  const [tenders, setTenders] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [page, setPage] = useState(0);
   const [order, setOrder] = useState<'asc' | 'desc'>('asc');
@@ -73,79 +70,81 @@ export default function Auctions() {
   const [orderBy, setOrderBy] = useState('title');
   const [filterName, setFilterName] = useState('');
   const [rowsPerPage, setRowsPerPage] = useState(5);
-  const [totalAuctions, setTotalAuctions] = useState(0);
+  const [totalTenders, setTotalTenders] = useState(0);
   const [expandedRows, setExpandedRows] = useState<{ [key: string]: boolean }>({});
-  const [auctionOffers, setAuctionOffers] = useState<{ [key: string]: any[] }>({});
-  const [loadingOffers, setLoadingOffers] = useState<{ [key: string]: boolean }>({});
+  const [tenderBids, setTenderBids] = useState<{ [key: string]: any[] }>({});
+  const [loadingBids, setLoadingBids] = useState<{ [key: string]: boolean }>({});
 
   const get = () => {
     setLoading(true);
-    AuctionsAPI.getAuctions()
+    TendersAPI.getAllTenders()
       .then((response) => {
         if (response && Array.isArray(response)) {
-          setAuctions(response);
-          setTotalAuctions(response.length);
-          console.log("Auctions state (direct response):", response);
+          setTenders(response);
+          setTotalTenders(response.length);
+          console.log("Tenders state (direct response):", response);
         } else if (response && response.data && Array.isArray(response.data)) {
-          setAuctions(response.data);
-          setTotalAuctions(response.data.length);
-          console.log("Auctions state (response.data):", response.data);
+          setTenders(response.data);
+          setTotalTenders(response.data.length);
+          console.log("Tenders state (response.data):", response.data);
         } else {
           console.error("Unexpected response format:", response);
           enqueueSnackbar('Format de réponse inattendu.', { variant: 'error' });
-          setAuctions([]);
-          setTotalAuctions(0);
+          setTenders([]);
+          setTotalTenders(0);
         }
       })
       .catch((e) => {
-        console.error("Error fetching auctions:", e);
-        enqueueSnackbar('Erreur lors du chargement des enchères.', { variant: 'error' });
-        setAuctions([]);
-        setTotalAuctions(0);
+        console.error("Error fetching tenders:", e);
+        enqueueSnackbar('Erreur lors du chargement des appels d\'offres.', { variant: 'error' });
+        setTenders([]);
+        setTotalTenders(0);
       })
       .finally(() => setLoading(false));
   };
 
-  const fetchOffersForAuction = async (auctionId: string) => {
-    if (auctionOffers[auctionId]) return; // Already loaded
+  const fetchBidsForTender = async (tenderId: string) => {
+    if (tenderBids[tenderId]) return; // Already loaded
 
-    setLoadingOffers(prev => ({ ...prev, [auctionId]: true }));
+    setLoadingBids(prev => ({ ...prev, [tenderId]: true }));
     try {
-      const offers = await OffersAPI.getOffersByBidId(auctionId);
-      console.log('Offers for auction', auctionId, ':', offers);
+      const bids = await TendersAPI.getTenderBids(tenderId);
+      console.log('Bids for tender', tenderId, ':', bids);
 
-      if (Array.isArray(offers)) {
-        const formattedOffers = offers
-          .map((offer: any) => ({
-            id: offer._id,
-            name: offer.user?.firstName && offer.user?.lastName
-              ? `${offer.user.firstName} ${offer.user.lastName}`
-              : offer.user?.email || 'Utilisateur Inconnu',
-            avatar: offer.user?.avatar?.path || '',
-            price: offer.price,
-            createdAt: offer.createdAt,
-            user: offer.user
+      if (Array.isArray(bids)) {
+        const formattedBids = bids
+          .map((bid: any) => ({
+            id: bid._id,
+            name: bid.bidder?.firstName && bid.bidder?.lastName
+              ? `${bid.bidder.firstName} ${bid.bidder.lastName}`
+              : bid.bidder?.email || 'Utilisateur Inconnu',
+            avatar: bid.bidder?.avatar?.path || '',
+            amount: bid.amount,
+            proposal: bid.proposal,
+            createdAt: bid.createdAt,
+            status: bid.status,
+            bidder: bid.bidder
           }))
           .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
-        setAuctionOffers(prev => ({ ...prev, [auctionId]: formattedOffers }));
+        setTenderBids(prev => ({ ...prev, [tenderId]: formattedBids }));
       } else {
-        setAuctionOffers(prev => ({ ...prev, [auctionId]: [] }));
+        setTenderBids(prev => ({ ...prev, [tenderId]: [] }));
       }
     } catch (error) {
-      console.error('Error fetching offers for auction:', auctionId, error);
-      setAuctionOffers(prev => ({ ...prev, [auctionId]: [] }));
+      console.error('Error fetching bids for tender:', tenderId, error);
+      setTenderBids(prev => ({ ...prev, [tenderId]: [] }));
     } finally {
-      setLoadingOffers(prev => ({ ...prev, [auctionId]: false }));
+      setLoadingBids(prev => ({ ...prev, [tenderId]: false }));
     }
   };
 
-  const handleExpandRow = async (auctionId: string) => {
-    const isExpanded = expandedRows[auctionId];
-    setExpandedRows(prev => ({ ...prev, [auctionId]: !isExpanded }));
+  const handleExpandRow = async (tenderId: string) => {
+    const isExpanded = expandedRows[tenderId];
+    setExpandedRows(prev => ({ ...prev, [tenderId]: !isExpanded }));
 
     if (!isExpanded) {
-      await fetchOffersForAuction(auctionId);
+      await fetchBidsForTender(tenderId);
     }
   };
 
@@ -169,18 +168,44 @@ export default function Auctions() {
 
   const handleDeleteSelected = async (selectedIds: string[]) => {
     try {
-      await Promise.all(selectedIds.map(id => AuctionsAPI.remove(id)));
-      enqueueSnackbar('Enchères sélectionnées supprimées avec succès!', { variant: 'success' });
+      await Promise.all(selectedIds.map(id => TendersAPI.deleteTender(id)));
+      enqueueSnackbar('Appels d\'offres sélectionnés supprimés avec succès!', { variant: 'success' });
       get();
       setSelected([]);
     } catch (error) {
-      console.error("Error deleting selected auctions:", error);
-      enqueueSnackbar('Échec de la suppression des enchères sélectionnées.', { variant: 'error' });
+      console.error("Error deleting selected tenders:", error);
+      enqueueSnackbar('Échec de la suppression des appels d\'offres sélectionnés.', { variant: 'error' });
+    }
+  };
+
+  const getStatusLabel = (status: string) => {
+    switch (status) {
+      case 'open':
+        return 'Ouvert';
+      case 'closed':
+        return 'Fermé';
+      case 'in_progress':
+        return 'En Cours';
+      default:
+        return status;
+    }
+  };
+
+  const getStatusColor = (status: string): "default" | "primary" | "secondary" | "error" | "info" | "success" | "warning" => {
+    switch (status) {
+      case 'open':
+        return 'success';
+      case 'closed':
+        return 'error';
+      case 'in_progress':
+        return 'warning';
+      default:
+        return 'default';
     }
   };
 
   // Custom TableBodyComponent to render rows
-  const TableBodyComponent = ({ data = [] }: { data: Auction[]; selected: string[]; setSelected: (selected: string[]) => void; }) => {
+  const TableBodyComponent = ({ data = [] }: { data: any[]; selected: string[]; setSelected: (selected: string[]) => void; }) => {
     console.log('TableBodyComponent - received data for rendering:', data);
 
     const emptyRows = page > 0 ? Math.max(0, (1 + page) * rowsPerPage - data.length) : 0;
@@ -193,15 +218,15 @@ export default function Auctions() {
             return null;
           }
 
-          const { _id, title, bidType, auctionType, startingPrice, currentPrice, endingAt, status } = row;
+          const { _id, title, description, budget, createdAt, status } = row;
           const isExpanded = expandedRows[_id];
-          const offers = auctionOffers[_id] || [];
-          const isLoadingOffers = loadingOffers[_id];
+          const bids = tenderBids[_id] || [];
+          const isLoadingBids = loadingBids[_id];
 
           const formatPrice = (price: number | undefined) =>
             price != null ? `${price.toLocaleString()} DA` : 'N/A';
 
-          const formattedEndingAt = endingAt ? format(new Date(endingAt), 'dd MMM yyyy, HH:mm') : 'N/A';
+          const formattedCreatedAt = createdAt ? format(new Date(createdAt), 'dd MMM yyyy, HH:mm') : 'N/A';
 
           return (
             <>
@@ -255,48 +280,33 @@ export default function Auctions() {
                     </Typography>
                   </Stack>
                 </TableCell>
-                <TableCell align="left">{bidType || 'N/A'}</TableCell>
                 <TableCell align="left">
-                  <Label
-                    variant={theme.palette.mode === 'light' ? 'ghost' : 'filled'}
-                    color={(auctionType === AUCTION_TYPE.CLASSIC && 'info') || 'success'}
-                  >
-                    {auctionType === AUCTION_TYPE.AUTO_SUB_BID
-                      ? 'Enchère Automatique'
-                      : 'Classique'}
-                  </Label>
+                  <Typography variant="body2" sx={{ maxWidth: 200 }} noWrap>
+                    {description || 'N/A'}
+                  </Typography>
                 </TableCell>
-                <TableCell align="left">{formatPrice(startingPrice)}</TableCell>
-                <TableCell align="left">{formatPrice(currentPrice)}</TableCell>
+                <TableCell align="left">{formatPrice(budget)}</TableCell>
                 <TableCell align="left">
                   <Chip
-                    label={offers.length}
+                    label={bids.length}
                     color="primary"
                     size="small"
                     sx={{ fontWeight: 600 }}
                   />
                 </TableCell>
-                <TableCell align="left">{formattedEndingAt}</TableCell>
+                <TableCell align="left">{formattedCreatedAt}</TableCell>
                 <TableCell align="left">
                   <Label
                     variant={theme.palette.mode === 'light' ? 'ghost' : 'filled'}
-                    color={
-                      (status === BID_STATUS.CLOSED && 'error') ||
-                      (status === BID_STATUS.ON_AUCTION && 'success') ||
-                      'warning'
-                    }
+                    color={getStatusColor(status)}
                   >
-                    {status === BID_STATUS.CLOSED
-                      ? 'Cloturée'
-                      : status === BID_STATUS.ON_AUCTION
-                      ? 'Enchère Activer'
-                      : 'Ouverte'}
+                    {getStatusLabel(status)}
                   </Label>
                 </TableCell>
                 <TableCell align="right">
                   <Button
                     component={RouterLink}
-                    to={`/dashboard/auctions/${_id}`}
+                    to={`/dashboard/tenders/${_id}`}
                     size={isMobile ? 'small' : 'medium'}
                     variant="outlined"
                     startIcon={<Iconify icon="eva:eye-outline" />}
@@ -311,55 +321,70 @@ export default function Auctions() {
                   <Collapse in={isExpanded} timeout="auto" unmountOnExit>
                     <Box sx={{ margin: 2 }}>
                       <Typography variant="h6" gutterBottom component="div" sx={{ mb: 2 }}>
-                        Participants et Offres
+                        Soumissions
                       </Typography>
-                      {isLoadingOffers ? (
+                      {isLoadingBids ? (
                         <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
                           <CircularProgress size={24} />
                         </Box>
-                      ) : offers.length > 0 ? (
+                      ) : bids.length > 0 ? (
                         <List sx={{ width: '100%', bgcolor: 'background.paper' }}>
-                          {offers.map((offer, index) => (
-                            <Box key={offer.id}>
+                          {bids.map((bid, index) => (
+                            <Box key={bid.id}>
                               <ListItem alignItems="flex-start">
                                 <ListItemAvatar>
-                                  <Avatar src={offer.avatar} alt={offer.name}>
-                                    {offer.name.charAt(0)}
+                                  <Avatar src={bid.avatar} alt={bid.name}>
+                                    {bid.name.charAt(0)}
                                   </Avatar>
                                 </ListItemAvatar>
                                 <ListItemText
                                   primary={
                                     <Stack direction="row" spacing={2} alignItems="center">
                                       <Typography variant="subtitle2">
-                                        {offer.name}
+                                        {bid.name}
                                       </Typography>
                                       <Chip
-                                        label={`${offer.price?.toLocaleString()} DA`}
+                                        label={`${bid.amount?.toLocaleString()} DA`}
                                         color="success"
                                         size="small"
                                         sx={{ fontWeight: 600 }}
                                       />
+                                      <Chip
+                                        label={bid.status === 'pending' ? 'En Attente' : bid.status === 'accepted' ? 'Acceptée' : 'Rejetée'}
+                                        color={bid.status === 'pending' ? 'warning' : bid.status === 'accepted' ? 'success' : 'error'}
+                                        size="small"
+                                      />
                                     </Stack>
                                   }
                                   secondary={
-                                    <Typography
-                                      sx={{ display: 'inline' }}
-                                      component="span"
-                                      variant="body2"
-                                      color="text.secondary"
-                                    >
-                                      Offre soumise le {format(new Date(offer.createdAt), 'dd MMM yyyy à HH:mm')}
-                                    </Typography>
+                                    <>
+                                      <Typography
+                                        sx={{ display: 'block', mb: 0.5 }}
+                                        component="span"
+                                        variant="body2"
+                                        color="text.secondary"
+                                      >
+                                        Soumise le {format(new Date(bid.createdAt), 'dd MMM yyyy à HH:mm')}
+                                      </Typography>
+                                      <Typography
+                                        sx={{ display: 'block' }}
+                                        component="span"
+                                        variant="body2"
+                                        color="text.primary"
+                                      >
+                                        Proposition: {bid.proposal}
+                                      </Typography>
+                                    </>
                                   }
                                 />
                               </ListItem>
-                              {index < offers.length - 1 && <Divider variant="inset" component="li" />}
+                              {index < bids.length - 1 && <Divider variant="inset" component="li" />}
                             </Box>
                           ))}
                         </List>
                       ) : (
                         <Typography variant="body2" color="text.secondary" align="center" sx={{ py: 3 }}>
-                          Aucun participant pour cette enchère
+                          Aucune soumission pour cet appel d'offres
                         </Typography>
                       )}
                     </Box>
@@ -379,11 +404,11 @@ export default function Auctions() {
   };
 
   return (
-    <Page title="Enchères">
+    <Page title="Appels d'Offres">
       <Container maxWidth="xl" sx={{ py: { xs: 2, sm: 4 } }}>
         <Stack direction={{ xs: 'column', sm: 'row' }} alignItems={{ xs: 'flex-start', sm: 'center' }} justifyContent="space-between" mb={{ xs: 3, sm: 5 }} spacing={isMobile ? 2 : 0}>
           <Typography variant={isMobile ? "h5" : "h4"} gutterBottom={isMobile} sx={{ fontWeight: 'bold' }}>
-            Enchères
+            Appels d'Offres (Soumissions)
           </Typography>
         </Stack>
         <Breadcrumb />
@@ -395,18 +420,18 @@ export default function Auctions() {
             </Box>
           )}
 
-          {!loading && auctions.length === 0 && filterName === '' && (
+          {!loading && tenders.length === 0 && filterName === '' && (
             <Box sx={{ textAlign: 'center', py: { xs: 3, sm: 5 } }}>
               <Typography variant={isMobile ? "h6" : "h6"} color="text.secondary">
-                Aucune enchère trouvée.
+                Aucun appel d'offres trouvé.
               </Typography>
             </Box>
           )}
 
-          {!loading && (auctions.length > 0 || filterName !== '') && (
+          {!loading && (tenders.length > 0 || filterName !== '') && (
             <TableContainer component={Paper} sx={{ borderRadius: 2, overflowX: 'auto' }}>
               <MuiTable
-                data={auctions}
+                data={tenders}
                 columns={COLUMNS}
                 page={page}
                 setPage={setPage}
@@ -419,7 +444,7 @@ export default function Auctions() {
                 rowsPerPage={rowsPerPage}
                 setRowsPerPage={setRowsPerPage}
                 TableBodyComponent={TableBodyComponent}
-                searchFields={['title']}
+                searchFields={['title', 'description']}
                 loading={loading}
                 selected={selected}
                 setSelected={setSelected}

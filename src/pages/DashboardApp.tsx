@@ -61,6 +61,7 @@ import {
 import { StatsAPI } from '../api/stats'
 import { UserAPI } from '../api/user'
 import { AuctionsAPI } from '../api/auctions'
+import { TendersAPI } from '../api/tenders'
 import { OffersAPI } from '../api/offers'
 import { CategoryAPI } from '../api/category'
 import { SubscriptionAPI } from '../api/subscription'
@@ -92,6 +93,8 @@ interface DashboardData {
   stats: {
     totalUsers: number
     totalAuctions: number
+    totalTenders: number
+    activeTenders: number
     totalRevenue: number
     activeAuctions: number
     totalOffers: number
@@ -100,6 +103,7 @@ interface DashboardData {
   }
   userStats: any
   auctionStats: any
+  tenderStats: any
   categoryStats: any
   identityStats: any
   subscriptionStats: any
@@ -126,7 +130,7 @@ export default function ComprehensiveDashboard() {
     
     try {
       // FIXED: Fetch data sequentially to prevent rate limiting
-      console.log('🔄 Dashboard: Starting sequential data fetch...');
+      console.log('📄 Dashboard: Starting sequential data fetch...');
       
       const userStats = await StatsAPI.getUserStats().catch(err => {
         console.warn('User stats failed:', err);
@@ -141,6 +145,19 @@ export default function ComprehensiveDashboard() {
           total: 0, 
           byStatus: { active: 0, completed: 0, pending: 0, cancelled: 0 },
           byCategory: [],
+          dailyAverage: 0,
+          weeklyGrowth: 0
+        };
+      });
+      
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      const tenderStats = await StatsAPI.getTenderStats().catch(err => {
+        console.warn('Tender stats failed:', err);
+        return { 
+          total: 0, 
+          byStatus: { open: 0, awarded: 0, closed: 0, archived: 0 },
+          byType: { product: 0, service: 0 },
           dailyAverage: 0,
           weeklyGrowth: 0
         };
@@ -225,6 +242,7 @@ export default function ComprehensiveDashboard() {
       // Generate recent activities
       const recentActivities = [
         { type: 'auction', message: `${auctionStats.byStatus.active} enchères actives en cours`, time: 'Maintenant' },
+        { type: 'tender', message: `${tenderStats.byStatus.open} soumissions ouvertes`, time: '2 min' },
         { type: 'user', message: `${userStats.total} utilisateurs au total`, time: '5 min' },
         { type: 'identity', message: `${pendingIdentities.length} vérifications en attente`, time: '23 min' },
         { type: 'subscription', message: 'Revenus d\'abonnements mis à jour', time: '1 h' }
@@ -234,6 +252,8 @@ export default function ComprehensiveDashboard() {
         stats: {
           totalUsers: userStats.total || 0,
           totalAuctions: auctionStats.total || 0,
+          totalTenders: tenderStats.total || 0,
+          activeTenders: tenderStats.byStatus?.open || 0,
           totalRevenue: subscriptionStats.total || 0,
           activeAuctions: auctionStats.byStatus?.active || 0,
           totalOffers: 0, // Will be updated when offers API is called
@@ -242,6 +262,7 @@ export default function ComprehensiveDashboard() {
         },
         userStats,
         auctionStats,
+        tenderStats,
         categoryStats,
         identityStats: {
           pending: pendingIdentities.length || 0,
@@ -264,6 +285,8 @@ export default function ComprehensiveDashboard() {
         stats: {
           totalUsers: 0,
           totalAuctions: 0,
+          totalTenders: 0,
+          activeTenders: 0,
           totalRevenue: 0,
           activeAuctions: 0,
           totalOffers: 0,
@@ -272,6 +295,7 @@ export default function ComprehensiveDashboard() {
         },
         userStats: { total: 0, byType: { admin: 0, professional: 0, client: 0, reseller: 0 } },
         auctionStats: { total: 0, byStatus: { active: 0, completed: 0, pending: 0, cancelled: 0 }, byCategory: [], dailyAverage: 0, weeklyGrowth: 0 },
+        tenderStats: { total: 0, byStatus: { open: 0, awarded: 0, closed: 0, archived: 0 }, byType: { product: 0, service: 0 }, dailyAverage: 0, weeklyGrowth: 0 },
         categoryStats: [],
         identityStats: { pending: 0, verified: 0 },
         subscriptionStats: { total: 0, subscriptions: 0, commissions: 0, growth: 0 },
@@ -377,6 +401,24 @@ export default function ComprehensiveDashboard() {
         </Grid>
 
         <Grid item xs={12} sm={6} md={2}>
+          <Card sx={{ background: "linear-gradient(135deg, #30cfd0 0%, #330867 100%)", color: "white" }}>
+            <CardContent>
+              <Box display="flex" alignItems="center" justifyContent="space-between">
+                <Box>
+                  <Typography variant="h4" fontWeight="bold">
+                    {dashboardData.stats.totalTenders.toLocaleString()}
+                  </Typography>
+                  <Typography variant="body2" sx={{ opacity: 0.8 }}>
+                    Soumissions Total
+                  </Typography>
+                </Box>
+                <Assignment sx={{ fontSize: 40, opacity: 0.8 }} />
+              </Box>
+            </CardContent>
+          </Card>
+        </Grid>
+
+        <Grid item xs={12} sm={6} md={2}>
           <Card sx={{ background: "linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)", color: "white" }}>
             <CardContent>
               <Box display="flex" alignItems="center" justifyContent="space-between">
@@ -413,6 +455,27 @@ export default function ComprehensiveDashboard() {
         </Grid>
 
         <Grid item xs={12} sm={6} md={2}>
+          <Card sx={{ background: "linear-gradient(135deg, #89f7fe 0%, #66a6ff 100%)", color: "white" }}>
+            <CardContent>
+              <Box display="flex" alignItems="center" justifyContent="space-between">
+                <Box>
+                  <Typography variant="h4" fontWeight="bold">
+                    {dashboardData.stats.activeTenders}
+                  </Typography>
+                  <Typography variant="body2" sx={{ opacity: 0.8 }}>
+                    Soumissions Actives
+                  </Typography>
+                </Box>
+                <Assignment sx={{ fontSize: 40, opacity: 0.8 }} />
+              </Box>
+            </CardContent>
+          </Card>
+        </Grid>
+      </Grid>
+
+      {/* Second Row of Metrics */}
+      <Grid container spacing={3} mb={4}>
+        <Grid item xs={12} sm={6} md={4}>
           <Card sx={{ background: "linear-gradient(135deg, #a8edea 0%, #fed6e3 100%)", color: "#333" }}>
             <CardContent>
               <Box display="flex" alignItems="center" justifyContent="space-between">
@@ -430,7 +493,7 @@ export default function ComprehensiveDashboard() {
           </Card>
         </Grid>
 
-        <Grid item xs={12} sm={6} md={2}>
+        <Grid item xs={12} sm={6} md={4}>
           <Card sx={{ background: "linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%)", color: "#333" }}>
             <CardContent>
               <Box display="flex" alignItems="center" justifyContent="space-between">
@@ -447,6 +510,24 @@ export default function ComprehensiveDashboard() {
             </CardContent>
           </Card>
         </Grid>
+
+        <Grid item xs={12} sm={6} md={4}>
+          <Card sx={{ background: "linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%)", color: "#333" }}>
+            <CardContent>
+              <Box display="flex" alignItems="center" justifyContent="space-between">
+                <Box>
+                  <Typography variant="h4" fontWeight="bold">
+                    {dashboardData.stats.totalOffers}
+                  </Typography>
+                  <Typography variant="body2" sx={{ opacity: 0.7 }}>
+                    Offres Total
+                  </Typography>
+                </Box>
+                <LocalOffer sx={{ fontSize: 40, opacity: 0.7 }} />
+              </Box>
+            </CardContent>
+          </Card>
+        </Grid>
       </Grid>
 
       {/* Tabs Navigation */}
@@ -455,8 +536,9 @@ export default function ComprehensiveDashboard() {
           <Tab icon={<Analytics />} label="Analytics" />
           <Tab icon={<People />} label="Utilisateurs" />
           <Tab icon={<Gavel />} label="Enchères" />
+          <Tab icon={<Assignment />} label="Soumissions" />
           <Tab icon={<Category />} label="Catégories" />
-          <Tab icon={<Assignment />} label="Abonnements" />
+          <Tab icon={<AttachMoney />} label="Abonnements" />
           <Tab icon={<Verified />} label="Identités" />
         </Tabs>
       </Paper>
@@ -663,8 +745,93 @@ export default function ComprehensiveDashboard() {
         </Grid>
       </TabPanel>
 
-      {/* Categories Tab */}
+      {/* Tenders/Soumissions Tab */}
       <TabPanel value={tabValue} index={3}>
+        <Grid container spacing={3}>
+          <Grid item xs={12} md={6}>
+            <Card>
+              <CardContent>
+                <Typography variant="h6" gutterBottom>
+                  Statut des Soumissions
+                </Typography>
+                <Box display="flex" flexDirection="column" gap={2}>
+                  <Box display="flex" justifyContent="space-between" alignItems="center">
+                    <Typography>Soumissions Ouvertes</Typography>
+                    <Chip label={dashboardData.tenderStats.byStatus.open} color="success" />
+                  </Box>
+                  <Box display="flex" justifyContent="space-between" alignItems="center">
+                    <Typography>Attribuées</Typography>
+                    <Chip label={dashboardData.tenderStats.byStatus.awarded} color="info" />
+                  </Box>
+                  <Box display="flex" justifyContent="space-between" alignItems="center">
+                    <Typography>Fermées</Typography>
+                    <Chip label={dashboardData.tenderStats.byStatus.closed} color="warning" />
+                  </Box>
+                  <Box display="flex" justifyContent="space-between" alignItems="center">
+                    <Typography>Archivées</Typography>
+                    <Chip label={dashboardData.tenderStats.byStatus.archived} color="default" />
+                  </Box>
+                </Box>
+              </CardContent>
+            </Card>
+          </Grid>
+
+          <Grid item xs={12} md={6}>
+            <Card>
+              <CardContent>
+                <Typography variant="h6" gutterBottom>
+                  Types de Soumissions
+                </Typography>
+                <Box display="flex" flexDirection="column" gap={2}>
+                  <Box display="flex" justifyContent="space-between" alignItems="center">
+                    <Typography>Produits</Typography>
+                    <Chip label={dashboardData.tenderStats.byType.product} color="primary" />
+                  </Box>
+                  <Box display="flex" justifyContent="space-between" alignItems="center">
+                    <Typography>Services</Typography>
+                    <Chip label={dashboardData.tenderStats.byType.service} color="secondary" />
+                  </Box>
+                </Box>
+              </CardContent>
+            </Card>
+          </Grid>
+
+          <Grid item xs={12}>
+            <Card>
+              <CardContent>
+                <Typography variant="h6" gutterBottom>
+                  Métriques des Soumissions
+                </Typography>
+                <Grid container spacing={3}>
+                  <Grid item xs={12} md={6}>
+                    <Box textAlign="center" p={3} bgcolor="#f5f5f5" borderRadius={2}>
+                      <Typography variant="h3" color="primary">
+                        {dashboardData.tenderStats.dailyAverage}
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        Soumissions par jour en moyenne
+                      </Typography>
+                    </Box>
+                  </Grid>
+                  <Grid item xs={12} md={6}>
+                    <Box textAlign="center" p={3} bgcolor="#f5f5f5" borderRadius={2}>
+                      <Typography variant="h3" color={dashboardData.tenderStats.weeklyGrowth >= 0 ? "success.main" : "error.main"}>
+                        {dashboardData.tenderStats.weeklyGrowth >= 0 ? '+' : ''}{dashboardData.tenderStats.weeklyGrowth}%
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        Croissance hebdomadaire
+                      </Typography>
+                    </Box>
+                  </Grid>
+                </Grid>
+              </CardContent>
+            </Card>
+          </Grid>
+        </Grid>
+      </TabPanel>
+
+      {/* Categories Tab */}
+      <TabPanel value={tabValue} index={4}>
         <Grid container spacing={3}>
           <Grid item xs={12}>
             <Card>
@@ -710,7 +877,7 @@ export default function ComprehensiveDashboard() {
       </TabPanel>
 
       {/* Subscriptions Tab */}
-      <TabPanel value={tabValue} index={4}>
+      <TabPanel value={tabValue} index={5}>
         <Grid container spacing={3}>
           <Grid item xs={12} md={6}>
             <Card sx={{ background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)", color: "white" }}>
@@ -758,7 +925,7 @@ export default function ComprehensiveDashboard() {
       </TabPanel>
 
       {/* Identity Tab */}
-      <TabPanel value={tabValue} index={5}>
+      <TabPanel value={tabValue} index={6}>
         <Grid container spacing={3}>
           <Grid item xs={12} md={8}>
             <Card>
@@ -814,10 +981,12 @@ export default function ComprehensiveDashboard() {
                 <ListItemAvatar>
                   <Avatar sx={{ 
                     bgcolor: activity.type === 'auction' ? 'primary.main' : 
+                             activity.type === 'tender' ? 'secondary.main' :
                              activity.type === 'user' ? 'success.main' : 
                              activity.type === 'identity' ? 'warning.main' : 'info.main'
                   }}>
                     {activity.type === 'auction' ? <Gavel /> :
+                     activity.type === 'tender' ? <Assignment /> :
                      activity.type === 'user' ? <People /> :
                      activity.type === 'identity' ? <Verified /> : <Assignment />}
                   </Avatar>

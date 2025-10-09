@@ -31,11 +31,9 @@ import { useTranslation } from 'react-i18next';
 import Page from '../../components/Page';
 import Label from '../../components/Label';
 import { useSnackbar } from 'notistack';
-// types
-import { Auction, AUCTION_TYPE, BID_STATUS, BID_TYPE } from '../../types/Auction';
-import { AuctionsAPI } from '@/api/auctions';
-import { OffersAPI } from '@/api/offers';
+import { TendersAPI } from '@/api/tenders';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import CancelIcon from '@mui/icons-material/Cancel';
 import ChatIcon from '@mui/icons-material/Chat';
 import useAuth from '@/hooks/useAuth';
 import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
@@ -45,8 +43,9 @@ import { ChatAPI } from '@/api/Chat';
 import PersonIcon from '@mui/icons-material/Person';
 import LocalOfferIcon from '@mui/icons-material/LocalOffer';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
+import DescriptionIcon from '@mui/icons-material/Description';
 
-interface AuctionOwner {
+interface TenderOwner {
   _id: string;
   firstName?: string;
   lastName?: string;
@@ -55,25 +54,48 @@ interface AuctionOwner {
   phone?: string;
 }
 
-interface AuctionWithOwner extends Omit<Auction, 'owner'> {
-  owner?: AuctionOwner;
-  user?: {
+interface TenderBid {
+  _id: string;
+  amount: number;
+  proposal: string;
+  status: string;
+  createdAt: string;
+  bidder: {
+    _id: string;
     firstName?: string;
     lastName?: string;
+    email?: string;
     phone?: string;
+    avatar?: {
+      path?: string;
+    };
   };
 }
 
-export default function AuctionDetail() {
+interface Tender {
+  _id: string;
+  title: string;
+  description: string;
+  budget?: number;
+  deadline?: string;
+  requirements?: string[];
+  status: string;
+  createdAt: string;
+  owner?: TenderOwner;
+  acceptedBid?: TenderBid;
+}
+
+export default function TenderDetail() {
   const theme = useTheme();
   const { t, i18n } = useTranslation();
   const { id } = useParams();
   const { enqueueSnackbar } = useSnackbar();
-  const [auction, setAuction] = useState<AuctionWithOwner | null>(null);
+  const [tender, setTender] = useState<Tender | null>(null);
   const [loading, setLoading] = useState(true);
-  const [participants, setParticipants] = useState<any[]>([]);
-  const [participantsLoading, setParticipantsLoading] = useState(true);
-  const [acceptLoading, setAcceptLoading] = useState(false);
+  const [bids, setBids] = useState<TenderBid[]>([]);
+  const [bidsLoading, setBidsLoading] = useState(true);
+  const [acceptLoading, setAcceptLoading] = useState<string | null>(null);
+  const [rejectLoading, setRejectLoading] = useState<string | null>(null);
   const [chatLoading, setChatLoading] = useState(false);
   const navigate = useNavigate();
   const { notificationSocket } = useCreateSocket();
@@ -83,60 +105,80 @@ export default function AuctionDetail() {
 
   useEffect(() => {
     if (id) {
-      getAuctionDetails(id);
-      getAuctionParticipants(id);
+      getTenderDetails(id);
+      getTenderBids(id);
     }
   }, [id, notificationSocket]);
 
-  const getAuctionDetails = async (auctionId: string) => {
+  const getTenderDetails = async (tenderId: string) => {
     try {
-      const response = await AuctionsAPI.getAuctionById(auctionId);
+      const response = await TendersAPI.getTenderById(tenderId);
       if (response) {
-        console.log("response auction details:", response);
-        setAuction(response);
+        console.log("response tender details:", response);
+        setTender(response);
       }
     } catch (error) {
-      console.error('Error fetching auction details:', error);
-      enqueueSnackbar(t('errors.loadingDetails'), { variant: 'error' });
+      console.error('Error fetching tender details:', error);
+      enqueueSnackbar(t('errors.loadingDetails') || 'Erreur lors du chargement des détails', { variant: 'error' });
     } finally {
       setLoading(false);
     }
   };
 
-  const getAuctionParticipants = async (auctionId: string) => {
-    setParticipantsLoading(true);
+  const getTenderBids = async (tenderId: string) => {
+    setBidsLoading(true);
     try {
-      const offers = await OffersAPI.getOffersByBidId(auctionId);
-      console.log('Offers data:', offers);
+      const bidsData = await TendersAPI.getTenderBids(tenderId);
+      console.log('Bids data:', bidsData);
       
-      if (Array.isArray(offers)) {
-        console.log("Processing offers:", offers);
-        
-        setParticipants(
-          offers
-            .map((offer: any) => ({
-              id: offer._id,
-              name: offer.user?.firstName && offer.user?.lastName 
-                ? `${offer.user.firstName} ${offer.user.lastName}` 
-                : offer.user?.email || t('unknownUser'),
-              email: offer.user?.email || 'N/A',
-              phone: offer.user?.phone || 'N/A',
-              avatar: offer.user?.avatar?.path || '',
-              bidAmount: offer.price,
-              bidDate: offer.createdAt,
-              user: offer.user
-            }))
-            .sort((a, b) => new Date(b.bidDate).getTime() - new Date(a.bidDate).getTime())
-        );
+      if (Array.isArray(bidsData)) {
+        console.log("Processing bids:", bidsData);
+        setBids(bidsData.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
       } else {
-        setParticipants([]);
+        setBids([]);
       }
     } catch (error) {
-      console.error('Error fetching participants:', error);
-      enqueueSnackbar(t('errors.loadingParticipants'), { variant: 'error' });
-      setParticipants([]);
+      console.error('Error fetching bids:', error);
+      enqueueSnackbar(t('errors.loadingParticipants') || 'Erreur lors du chargement des soumissions', { variant: 'error' });
+      setBids([]);
     } finally {
-      setParticipantsLoading(false);
+      setBidsLoading(false);
+    }
+  };
+
+  const handleAcceptBid = async (bidId: string) => {
+    setAcceptLoading(bidId);
+    try {
+      await TendersAPI.acceptTenderBid(bidId);
+      enqueueSnackbar('Soumission acceptée avec succès!', { variant: 'success' });
+      // Refresh data
+      if (id) {
+        getTenderDetails(id);
+        getTenderBids(id);
+      }
+    } catch (error) {
+      console.error('Error accepting bid:', error);
+      enqueueSnackbar('Erreur lors de l\'acceptation de la soumission', { variant: 'error' });
+    } finally {
+      setAcceptLoading(null);
+    }
+  };
+
+  const handleRejectBid = async (bidId: string) => {
+    setRejectLoading(bidId);
+    try {
+      await TendersAPI.rejectTenderBid(bidId);
+      enqueueSnackbar('Soumission rejetée avec succès!', { variant: 'success' });
+      // Refresh data
+      if (id) {
+        getTenderDetails(id);
+        getTenderBids(id);
+      }
+    } catch (error) {
+      console.error('Error rejecting bid:', error);
+      enqueueSnackbar('Erreur lors du rejet de la soumission', { variant: 'error' });
+    } finally {
+      setRejectLoading(null);
     }
   };
 
@@ -176,24 +218,35 @@ export default function AuctionDetail() {
     }
   };
 
-  const getStatusColor = (status: BID_STATUS) => {
+  const getStatusColor = (status: string): "default" | "primary" | "secondary" | "error" | "info" | "success" | "warning" => {
     switch (status) {
-      case BID_STATUS.OPEN:
-        return 'info';
-      case BID_STATUS.ON_AUCTION:
+      case 'open':
         return 'success';
-      case BID_STATUS.CLOSED:
+      case 'closed':
         return 'error';
-      case BID_STATUS.ARCHIVED:
-        return 'default';
+      case 'in_progress':
+        return 'warning';
       default:
         return 'default';
     }
   };
 
-  const CreateChat = async () => {
-    if (!participants.length || !participants[0] || !participants[0].user) {
-      enqueueSnackbar(t('errors.noValidParticipant'), { variant: 'error' });
+  const getBidStatusColor = (status: string): "default" | "primary" | "secondary" | "error" | "info" | "success" | "warning" => {
+    switch (status) {
+      case 'pending':
+        return 'warning';
+      case 'accepted':
+        return 'success';
+      case 'rejected':
+        return 'error';
+      default:
+        return 'default';
+    }
+  };
+
+  const CreateChat = async (bidder: any) => {
+    if (!bidder) {
+      enqueueSnackbar(t('errors.noValidParticipant') || 'Aucun participant valide', { variant: 'error' });
       return;
     }
 
@@ -201,7 +254,7 @@ export default function AuctionDetail() {
     
     let data = {
       createdAt: new Date().toISOString(),
-      users: [auth.user, participants[0].user]
+      users: [auth.user, bidder]
     };
 
     console.log('Creating chat:', data);
@@ -215,13 +268,13 @@ export default function AuctionDetail() {
       }
     } catch (err) {
       console.error('Error creating chat:', err);
-      enqueueSnackbar(t('errors.failedToCreateChat'), { variant: 'error' });
+      enqueueSnackbar(t('errors.failedToCreateChat') || 'Échec de la création du chat', { variant: 'error' });
     } finally {
       setChatLoading(false);
     }
   };
 
-  const WinnerBanner = ({ winner }: { winner: any }) => (
+  const AcceptedBidBanner = ({ bid }: { bid: TenderBid }) => (
     <Slide in direction="down" timeout={600}>
       <Paper
         elevation={6}
@@ -241,21 +294,21 @@ export default function AuctionDetail() {
       >
         <EmojiEventsIcon sx={{ fontSize: 40, color: '#fff', mr: 2, animation: 'trophy-bounce 1.2s infinite alternate' }} />
         <Avatar
-          src={winner.avatar?.path || ''}
-          alt={winner.firstName}
+          src={bid.bidder.avatar?.path || ''}
+          alt={bid.bidder.firstName}
           sx={{ width: 56, height: 56, border: '2px solid #fff', boxShadow: 2 }}
         >
-          {winner?.firstName?.charAt(0) || 'W'}
+          {bid.bidder?.firstName?.charAt(0) || 'W'}
         </Avatar>
         <Box>
           <Typography variant="h6" sx={{ fontWeight: 700, letterSpacing: 1 }}>
-            {t('winnerBanner')}
+            Soumission Acceptée
           </Typography>
           <Typography variant="subtitle1" sx={{ fontWeight: 500 }}>
-            <b>{winner?.firstName || ''} {winner?.lastName || ''}</b>
+            <b>{bid.bidder?.firstName || ''} {bid.bidder?.lastName || ''}</b>
           </Typography>
           <Typography variant="body2" sx={{ fontWeight: 400, opacity: 0.9 }}>
-            <b>{t('phone')}: {winner?.phone || 'N/A'}</b>
+            <b>{t('phone')}: {bid.bidder?.phone || 'N/A'}</b>
           </Typography>
         </Box>
         <style>{`
@@ -269,19 +322,19 @@ export default function AuctionDetail() {
   );
 
   const getHighestBid = () => {
-    if (participants.length === 0) return null;
-    return participants.reduce((max, p) => p.bidAmount > max.bidAmount ? p : max, participants[0]);
+    if (bids.length === 0) return null;
+    return bids.reduce((max, b) => b.amount > max.amount ? b : max, bids[0]);
   };
 
   const getLowestBid = () => {
-    if (participants.length === 0) return null;
-    return participants.reduce((min, p) => p.bidAmount < min.bidAmount ? p : min, participants[0]);
+    if (bids.length === 0) return null;
+    return bids.reduce((min, b) => b.amount < min.amount ? b : min, bids[0]);
   };
 
   const getAverageBid = () => {
-    if (participants.length === 0) return 0;
-    const total = participants.reduce((sum, p) => sum + p.bidAmount, 0);
-    return total / participants.length;
+    if (bids.length === 0) return 0;
+    const total = bids.reduce((sum, b) => sum + b.amount, 0);
+    return total / bids.length;
   };
 
   if (loading) {
@@ -292,15 +345,15 @@ export default function AuctionDetail() {
     );
   }
 
-  if (!auction) {
+  if (!tender) {
     return (
       <Box display="flex" justifyContent="center" alignItems="center" minHeight="60vh">
-        <Typography variant="h6">{t('notFound')}</Typography>
+        <Typography variant="h6">{t('notFound') || 'Non trouvé'}</Typography>
       </Box>
     );
   }
 
-  const isAuctionOwner = auth.user && auction.owner && typeof auction.owner === 'object' && auction.owner._id === auth.user._id;
+  const isTenderOwner = auth.user && tender.owner && typeof tender.owner === 'object' && tender.owner._id === auth.user._id;
   const highestBid = getHighestBid();
   const lowestBid = getLowestBid();
   const averageBid = getAverageBid();
@@ -308,21 +361,21 @@ export default function AuctionDetail() {
   console.log('Notification socket data:', notificationSocket);
 
   return (
-    <Page title={`${t('details')} - ${auction.title}`}>
+    <Page title={`${t('details') || 'Détails'} - ${tender.title}`}>
       <Container>
-        {/* Winner Banner */}
-        {auction.winner && <WinnerBanner winner={auction.winner} />}
+        {/* Accepted Bid Banner */}
+        {tender.acceptedBid && <AcceptedBidBanner bid={tender.acceptedBid} />}
         
         <Stack direction="row" alignItems="center" justifyContent="space-between" mb={5}>
           <Typography variant="h4" gutterBottom>
-            {t('details')}
+            {t('details') || 'Détails de l\'Appel d\'Offres'}
           </Typography>
           <Box display="flex" alignItems="center" gap={2}>
-            {auction.status === BID_STATUS.OPEN && participants.length > 0 && (
+            {tender.acceptedBid && (
               <Button
                 variant="contained"
                 startIcon={<ChatIcon />}
-                onClick={CreateChat}
+                onClick={() => CreateChat(tender.acceptedBid!.bidder)}
                 disabled={chatLoading}
                 sx={{
                   background: 'linear-gradient(90deg, #43e97b 0%, #38f9d7 100%)',
@@ -340,7 +393,7 @@ export default function AuctionDetail() {
                 }}
                 size="large"
               >
-                {chatLoading ? <CircularProgress size={22} color="inherit" /> : t('contactWinner')}
+                {chatLoading ? <CircularProgress size={22} color="inherit" /> : 'Contacter le Soumissionnaire'}
               </Button>
             )}
             <Paper
@@ -363,12 +416,12 @@ export default function AuctionDetail() {
                     height: 8,
                     borderRadius: '50%',
                     bgcolor: (theme) => {
-                      const color = getStatusColor(auction.status);
-                      return theme.palette[color]?.[theme.palette.mode === 'dark' ? 400 : 500] || theme.palette.primary[500];
+                      const color = getStatusColor(tender.status);
+                      return theme.palette[color]?.main || theme.palette.primary.main;
                     },
                     boxShadow: (theme) => {
-                      const color = getStatusColor(auction.status);
-                      return `0 0 8px ${theme.palette[color]?.[theme.palette.mode === 'dark' ? 400 : 500] || theme.palette.primary[500]}`;
+                      const color = getStatusColor(tender.status);
+                      return `0 0 8px ${theme.palette[color]?.main || theme.palette.primary.main}`;
                     },
                     animation: 'pulse 2s infinite',
                     '@keyframes pulse': {
@@ -394,12 +447,12 @@ export default function AuctionDetail() {
                     fontWeight: 600,
                   }}
                 >
-                  {t('')}
+                  Statut
                 </Typography>
               </Box>
               <Chip
-                label={auction.status === BID_STATUS.OPEN ? t('status.open') : t(`status.${auction.status.toLowerCase()}`)}
-                color={getStatusColor(auction.status)}
+                label={tender.status === 'open' ? 'Ouvert' : tender.status === 'closed' ? 'Fermé' : 'En Cours'}
+                color={getStatusColor(tender.status)}
                 variant="filled"
                 size="small"
                 sx={{
@@ -414,68 +467,81 @@ export default function AuctionDetail() {
         </Stack>
 
         <Grid container spacing={3}>
-          {/* Main Auction Info */}
+          {/* Main Tender Info */}
           <Grid item xs={12} md={8}>
-            <Card sx={{ p: 2, mb: 3, minHeight: '200px', maxHeight: '250px', display: 'flex', flexDirection: 'column' }}>
-              <Typography variant="h6" sx={{ mb: 1 }}>
-                {auction.title}
+            <Card sx={{ p: 3, mb: 3 }}>
+              <Typography variant="h6" sx={{ mb: 2 }}>
+                {tender.title}
               </Typography>
-              <Stack spacing={1} sx={{ flex: 1 }}>
-                <Box sx={{ flex: 1, overflow: 'auto' }}>
-                  <Typography variant="body2" color="text.secondary">
-                    {t('description')}
+              <Stack spacing={2}>
+                <Box>
+                  <Typography variant="body2" color="text.secondary" gutterBottom>
+                    Description
                   </Typography>
-                  <Typography variant="body1" sx={{ maxHeight: '80px', overflow: 'auto' }}>
-                    {auction.description}
+                  <Typography variant="body1">
+                    {tender.description}
                   </Typography>
                 </Box>
-                <Grid container spacing={2}>
-                  <Grid item xs={6}>
+                {tender.budget && (
+                  <Box>
                     <Typography variant="body2" color="text.secondary">
-                      {t('initialPrice')}
-                    </Typography>
-                    <Typography variant="h6">{auction.startingPrice.toFixed(2)} {t('DZD')}</Typography>
-                  </Grid>
-                  <Grid item xs={6}>
-                    <Typography variant="body2" color="text.secondary">
-                      {t('currentPrice')}
+                      Budget
                     </Typography>
                     <Typography variant="h6" color="primary.main">
-                      {auction.currentPrice.toFixed(2)} {t('DZD')}
+                      {tender.budget.toFixed(2)} DZD
                     </Typography>
-                  </Grid>
-                </Grid>
+                  </Box>
+                )}
+                {tender.requirements && tender.requirements.length > 0 && (
+                  <Box>
+                    <Typography variant="body2" color="text.secondary" gutterBottom>
+                      Exigences
+                    </Typography>
+                    <List dense>
+                      {tender.requirements.map((req, index) => (
+                        <ListItem key={index} sx={{ pl: 0 }}>
+                          <Typography variant="body2">• {req}</Typography>
+                        </ListItem>
+                      ))}
+                    </List>
+                  </Box>
+                )}
               </Stack>
             </Card>
 
-            {auction.owner && typeof auction.owner === 'object' && (
+            {tender.owner && typeof tender.owner === 'object' && (
               <Card sx={{ p: 3, mb: 3 }}>
                 <Typography variant="h6" sx={{ mb: 2 }}>
-                  {t('auctionOwner')}
+                  Propriétaire de l'Appel d'Offres
                 </Typography>
                 <Stack direction="row" alignItems="center" spacing={2}>
                   <Avatar sx={{ width: 56, height: 56 }}>
-                    {(auction.owner.firstName || auction.owner.username || 'U').charAt(0).toUpperCase()}
+                    {(tender.owner.firstName || tender.owner.username || 'U').charAt(0).toUpperCase()}
                   </Avatar>
                   <Box>
                     <Typography variant="subtitle1">
-                      {auction.owner.firstName && auction.owner.lastName 
-                        ? `${auction.owner.firstName} ${auction.owner.lastName}`
-                        : auction.owner.username || 'Unknown User'}
+                      {tender.owner.firstName && tender.owner.lastName 
+                        ? `${tender.owner.firstName} ${tender.owner.lastName}`
+                        : tender.owner.username || 'Utilisateur Inconnu'}
                     </Typography>
                     <Typography variant="body2" color="text.secondary">
-                      {auction.owner.email || 'N/A'}
+                      {tender.owner.email || 'N/A'}
                     </Typography>
+                    {tender.owner.phone && (
+                      <Typography variant="body2" color="text.secondary">
+                        {tender.owner.phone}
+                      </Typography>
+                    )}
                   </Box>
                 </Stack>
               </Card>
             )}
 
             {/* Bid Statistics */}
-            {participants.length > 0 && (
+            {bids.length > 0 && (
               <Card sx={{ p: 3, mb: 3 }}>
                 <Typography variant="h6" sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <TrendingUpIcon /> Statistiques des Offres
+                  <TrendingUpIcon /> Statistiques des Soumissions
                 </Typography>
                 <Grid container spacing={2}>
                   <Grid item xs={12} sm={4}>
@@ -494,10 +560,10 @@ export default function AuctionDetail() {
                         Offre la Plus Haute
                       </Typography>
                       <Typography variant="h5" color="success.dark" fontWeight={700}>
-                        {highestBid?.bidAmount.toFixed(2)} DA
+                        {highestBid?.amount.toFixed(2)} DA
                       </Typography>
                       <Typography variant="caption" color="text.secondary">
-                        par {highestBid?.name}
+                        par {highestBid?.bidder.firstName} {highestBid?.bidder.lastName}
                       </Typography>
                     </Paper>
                   </Grid>
@@ -520,7 +586,7 @@ export default function AuctionDetail() {
                         {averageBid.toFixed(2)} DA
                       </Typography>
                       <Typography variant="caption" color="text.secondary">
-                        sur {participants.length} offres
+                        sur {bids.length} soumissions
                       </Typography>
                     </Paper>
                   </Grid>
@@ -540,10 +606,10 @@ export default function AuctionDetail() {
                         Offre la Plus Basse
                       </Typography>
                       <Typography variant="h5" color="error.dark" fontWeight={700}>
-                        {lowestBid?.bidAmount.toFixed(2)} DA
+                        {lowestBid?.amount.toFixed(2)} DA
                       </Typography>
                       <Typography variant="caption" color="text.secondary">
-                        par {lowestBid?.name}
+                        par {lowestBid?.bidder.firstName} {lowestBid?.bidder.lastName}
                       </Typography>
                     </Paper>
                   </Grid>
@@ -551,41 +617,44 @@ export default function AuctionDetail() {
               </Card>
             )}
 
-            {/* Participants Section - Enhanced Table View */}
+            {/* Bids Section - Enhanced Table View */}
             <Card sx={{ p: 3 }}>
               <Typography variant="h6" sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
-                <PersonIcon /> {t('participants')} ({participants.length})
+                <DescriptionIcon /> Soumissions ({bids.length})
               </Typography>
-              {participantsLoading ? (
+              {bidsLoading ? (
                 <Box display="flex" justifyContent="center" alignItems="center" minHeight="60px">
                   <CircularProgress size={24} />
                 </Box>
-              ) : participants && participants.length > 0 ? (
+              ) : bids && bids.length > 0 ? (
                 <TableContainer component={Paper} variant="outlined" sx={{ borderRadius: 2 }}>
                   <Table>
                     <TableHead>
                       <TableRow sx={{ bgcolor: 'background.neutral' }}>
                         <TableCell>#</TableCell>
-                        <TableCell>Participant</TableCell>
+                        <TableCell>Soumissionnaire</TableCell>
                         <TableCell>Contact</TableCell>
-                        <TableCell align="right">Montant de l'Offre</TableCell>
-                        <TableCell align="right">Date de Soumission</TableCell>
+                        <TableCell>Proposition</TableCell>
+                        <TableCell align="right">Montant</TableCell>
+                        <TableCell align="center">Statut</TableCell>
+                        <TableCell align="right">Date</TableCell>
+                        {isTenderOwner && <TableCell align="center">Actions</TableCell>}
                       </TableRow>
                     </TableHead>
                     <TableBody>
-                      {participants.map((participant, index) => (
+                      {bids.map((bid, index) => (
                         <TableRow
-                          key={participant.id}
+                          key={bid._id}
                           sx={{
                             '&:hover': { bgcolor: 'action.hover' },
-                            bgcolor: index === 0 ? 'success.lighter' : 'inherit'
+                            bgcolor: bid.status === 'accepted' ? 'success.lighter' : 'inherit'
                           }}
                         >
                           <TableCell>
-                            {index === 0 ? (
+                            {bid.status === 'accepted' ? (
                               <Chip
                                 icon={<EmojiEventsIcon />}
-                                label="1"
+                                label={index + 1}
                                 color="success"
                                 size="small"
                                 sx={{ fontWeight: 700 }}
@@ -598,38 +667,81 @@ export default function AuctionDetail() {
                           </TableCell>
                           <TableCell>
                             <Stack direction="row" alignItems="center" spacing={2}>
-                              <Avatar src={participant.avatar} alt={participant.name}>
-                                {participant.name.charAt(0)}
+                              <Avatar src={bid.bidder.avatar?.path || ''} alt={`${bid.bidder.firstName} ${bid.bidder.lastName}`}>
+                                {bid.bidder.firstName?.charAt(0) || 'U'}
                               </Avatar>
                               <Box>
-                                <Typography variant="subtitle2" fontWeight={index === 0 ? 700 : 500}>
-                                  {participant.name}
+                                <Typography variant="subtitle2" fontWeight={bid.status === 'accepted' ? 700 : 500}>
+                                  {bid.bidder.firstName} {bid.bidder.lastName}
                                 </Typography>
                                 <Typography variant="caption" color="text.secondary">
-                                  {participant.email}
+                                  {bid.bidder.email}
                                 </Typography>
                               </Box>
                             </Stack>
                           </TableCell>
                           <TableCell>
                             <Typography variant="body2" color="text.secondary">
-                              {participant.phone}
+                              {bid.bidder.phone || 'N/A'}
+                            </Typography>
+                          </TableCell>
+                          <TableCell>
+                            <Typography variant="body2" sx={{ maxWidth: 200 }} noWrap>
+                              {bid.proposal}
                             </Typography>
                           </TableCell>
                           <TableCell align="right">
                             <Chip
                               icon={<LocalOfferIcon sx={{ fontSize: 16 }} />}
-                              label={`${participant.bidAmount?.toFixed(2)} DA`}
-                              color={index === 0 ? 'success' : 'default'}
-                              variant={index === 0 ? 'filled' : 'outlined'}
-                              sx={{ fontWeight: index === 0 ? 700 : 500 }}
+                              label={`${bid.amount?.toFixed(2)} DA`}
+                              color={bid.status === 'accepted' ? 'success' : 'default'}
+                              variant={bid.status === 'accepted' ? 'filled' : 'outlined'}
+                              sx={{ fontWeight: bid.status === 'accepted' ? 700 : 500 }}
+                            />
+                          </TableCell>
+                          <TableCell align="center">
+                            <Chip
+                              label={bid.status === 'pending' ? 'En Attente' : bid.status === 'accepted' ? 'Acceptée' : 'Rejetée'}
+                              color={getBidStatusColor(bid.status)}
+                              size="small"
+                              sx={{ fontWeight: 600 }}
                             />
                           </TableCell>
                           <TableCell align="right">
                             <Typography variant="body2" color="text.secondary">
-                              {formatDate(participant.bidDate)}
+                              {formatDate(bid.createdAt)}
                             </Typography>
                           </TableCell>
+                          {isTenderOwner && (
+                            <TableCell align="center">
+                              {bid.status === 'pending' && (
+                                <Stack direction="row" spacing={1} justifyContent="center">
+                                  <Button
+                                    size="small"
+                                    variant="contained"
+                                    color="success"
+                                    startIcon={<CheckCircleIcon />}
+                                    onClick={() => handleAcceptBid(bid._id)}
+                                    disabled={!!acceptLoading}
+                                    sx={{ minWidth: 90 }}
+                                  >
+                                    {acceptLoading === bid._id ? <CircularProgress size={20} /> : 'Accepter'}
+                                  </Button>
+                                  <Button
+                                    size="small"
+                                    variant="outlined"
+                                    color="error"
+                                    startIcon={<CancelIcon />}
+                                    onClick={() => handleRejectBid(bid._id)}
+                                    disabled={!!rejectLoading}
+                                    sx={{ minWidth: 90 }}
+                                  >
+                                    {rejectLoading === bid._id ? <CircularProgress size={20} /> : 'Rejeter'}
+                                  </Button>
+                                </Stack>
+                              )}
+                            </TableCell>
+                          )}
                         </TableRow>
                       ))}
                     </TableBody>
@@ -647,10 +759,10 @@ export default function AuctionDetail() {
                 >
                   <PersonIcon sx={{ fontSize: 48, color: 'text.disabled', mb: 2 }} />
                   <Typography variant="body1" color="text.secondary">
-                    {t('noParticipants')}
+                    Aucune soumission
                   </Typography>
                   <Typography variant="body2" color="text.disabled" sx={{ mt: 1 }}>
-                    Aucune offre n'a encore été soumise pour cette enchère
+                    Aucune soumission n'a encore été faite pour cet appel d'offres
                   </Typography>
                 </Paper>
               )}
@@ -659,54 +771,32 @@ export default function AuctionDetail() {
 
           {/* Sidebar Info */}
           <Grid item xs={12} md={4}>
-            <Card sx={{ p: 2, mb: 3, minHeight: '200px', maxHeight: '250px', display: 'flex', flexDirection: 'column' }}>
-              <Typography variant="h6" sx={{ mb: 1 }}>
-                {t('information')}
-              </Typography>
-              <Stack spacing={2} sx={{ flex: 1, justifyContent: 'space-around' }}>
-                <Box>
-                  <Typography variant="body2" color="text.secondary">
-                    {t('type')}
-                  </Typography>
-                  <Label variant="ghost" color="default">
-                    {auction.bidType === BID_TYPE.PRODUCT ? t('typeProduct') : t('typeService')}
-                  </Label>
-                </Box>
-                <Box>
-                  <Typography variant="body2" color="text.secondary">
-                    {t('mode')}
-                  </Typography>
-                  <Label
-                    variant="ghost"
-                    color={auction.auctionType === AUCTION_TYPE.EXPRESS ? 'warning' : 'default'}
-                  >
-                    {auction.auctionType === AUCTION_TYPE.EXPRESS
-                      ? `${t('modeExpress')} (MEZROUB)`
-                      : auction.auctionType === AUCTION_TYPE.AUTO_SUB_BID
-                      ? t('modeAutomatic')
-                      : t('modeClassic')}
-                  </Label>
-                </Box>
-              </Stack>
-            </Card>
-
-            {/* Auction Timeline */}
-            <Card sx={{ p: 3 }}>
+            <Card sx={{ p: 3, mb: 3 }}>
               <Typography variant="h6" sx={{ mb: 2 }}>
-                {t('timeline')}
+                Informations
               </Typography>
               <Stack spacing={2}>
                 <Box>
                   <Typography variant="body2" color="text.secondary">
-                    {t('startDate')}
+                    Date de Création
                   </Typography>
-                  <Typography variant="body1">{formatDate(auction.startingAt)}</Typography>
+                  <Typography variant="body1">{formatDate(tender.createdAt)}</Typography>
                 </Box>
+                {tender.deadline && (
+                  <Box>
+                    <Typography variant="body2" color="text.secondary">
+                      Date Limite
+                    </Typography>
+                    <Typography variant="body1">{formatDate(tender.deadline)}</Typography>
+                  </Box>
+                )}
                 <Box>
                   <Typography variant="body2" color="text.secondary">
-                    {t('endDate')}
+                    Nombre de Soumissions
                   </Typography>
-                  <Typography variant="body1">{formatDate(auction.endingAt)}</Typography>
+                  <Typography variant="h6" color="primary.main">
+                    {bids.length}
+                  </Typography>
                 </Box>
               </Stack>
             </Card>

@@ -7,6 +7,11 @@ import Users from './pages/Users';
 
 import Auctions from './pages/Auctions/index';
 import AuctionDetail from './pages/Auctions/AuctionDetail';
+
+// Tenders imports
+import Tenders from './pages/Tenders/index';
+import TenderDetail from './pages/Tenders/TendersDetail';
+
 import Login from './pages/Login';
 import NotFound from './pages/Page404';
 import Register from './pages/Register';
@@ -21,10 +26,6 @@ import Categories from './pages/Categories';
 import AddCategory from './pages/Categories/AddCategory';
 import UpdateCategory from './pages/Categories/UpdateCategory';
 import CategoryDetailsPage from './pages/Categories/CategoryDetailsPage';
-
-
-// SubSubCategories imports
-
 
 // Subscription imports
 import Subscription from './pages/Subscription';
@@ -88,6 +89,11 @@ export default function Router() {
                 },
                 { path: 'auctions', element: <RequirePhoneVerification><Auctions /></RequirePhoneVerification> },
                 { path: 'auctions/:id', element: <RequirePhoneVerification><AuctionDetail /></RequirePhoneVerification> },
+                
+                // Tenders routes
+                { path: 'tenders', element: <RequirePhoneVerification><Tenders /></RequirePhoneVerification> },
+                { path: 'tenders/:id', element: <RequirePhoneVerification><TenderDetail /></RequirePhoneVerification> },
+                
                 { path: 'identities', element: <RequirePhoneVerification><Identity /></RequirePhoneVerification> },
                 { path: 'identities/:id', element: <RequirePhoneVerification><IdentityVerificationDetailsPage /></RequirePhoneVerification> },
                 { path: 'categories/new', element: <RequirePhoneVerification><AddCategory /></RequirePhoneVerification> }, 
@@ -95,7 +101,6 @@ export default function Router() {
                 { path: 'categories/:id', element: <RequirePhoneVerification><CategoryDetailsPage /></RequirePhoneVerification> }, 
                 { path: 'categories', element: <RequirePhoneVerification><Categories /></RequirePhoneVerification> }, 
                 
-               
                 { path: 'subscription', element: <RequirePhoneVerification><Subscription /></RequirePhoneVerification> },
 
                 // Terms & Conditions route
