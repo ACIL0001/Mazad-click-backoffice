@@ -1,14 +1,12 @@
 import User from "./User";
 
-
 export const enum AttachmentAs {
     PROFILE = 'PROFILE',
-    REQUEST = 'REQUEST',
+    REQUEST = 'REQUEST', 
     MESSAGE = 'MESSAGE',
     SUPPORT = 'SUPPORT',
     NOTE = 'NOTE'
 }
-
 
 export default interface Attachment {
     _id?: string;
@@ -21,6 +19,7 @@ export default interface Attachment {
     destination?: string,
     filename?: string,
     path?: string,
+    url?: string,
     createdAt: Date,
     as: AttachmentAs
 }
