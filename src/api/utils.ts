@@ -12,6 +12,8 @@ const instance = axios.create({
   timeout: app.timeout,
   headers: { 'x-access-key': app.apiKey },
   withCredentials: true,
+  // Treat 304 Not Modified as a success to prevent retry/error loops
+  validateStatus: (status) => (status >= 200 && status < 300) || status === 304,
 });
 
 const response = (res: AxiosResponse) => res.data;
@@ -132,8 +134,9 @@ const AxiosInterceptor = ({ children }: any) => {
     });
 
     if (error.response?.status === 304) {
-      console.log('ℹ️ 304 Not Modified - not an actual error');
-      return Promise.reject(error);
+      console.log('ℹ️ 304 Not Modified - treating as success');
+      // Resolve with the response so callers receive it as a successful result
+      return Promise.resolve(error.response);
     }
 
     if (error.response?.status === 401 && !originalRequest._retry) {
