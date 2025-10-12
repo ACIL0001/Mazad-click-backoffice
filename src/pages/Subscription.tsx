@@ -311,7 +311,7 @@ export default function SubscriptionPage() {
 
   const handleCreatePlan = async () => {
     try {
-      if (!newPlan.name.trim() || !newPlan.description.trim() || newPlan.price <= 0 || newPlan.duration <= 0) {
+      if (!newPlan.name.trim() || !newPlan.description.trim() || newPlan.price < 0 || newPlan.duration <= 0) {
         return
       }
 
@@ -341,7 +341,7 @@ export default function SubscriptionPage() {
     if (!currentPlan || !currentPlan._id) return
     
     try {
-      if (!currentPlan.name.trim() || !currentPlan.description.trim() || currentPlan.price <= 0 || currentPlan.duration <= 0) {
+      if (!currentPlan.name.trim() || !currentPlan.description.trim() || currentPlan.price < 0 || currentPlan.duration <= 0) {
         return
       }
 
@@ -398,8 +398,10 @@ export default function SubscriptionPage() {
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: "DZD",
       minimumFractionDigits: 0,
-    }).format(price) + " DA"
+    }).format(price)
   }
 
   const getRoleIcon = (role: string) => {
@@ -860,159 +862,6 @@ export default function SubscriptionPage() {
                 </IconButton>
               </Box>
               <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                Fill in the details to create a new subscription plan
-              </Typography>
-            </DialogTitle>
-            <DialogContent sx={{ pt: 3 }}>
-              <Grid container spacing={3}>
-                <Grid item xs={12}>
-                  <TextField
-                    label="Plan Name"
-                    value={newPlan.name}
-                    onChange={(e) => setNewPlan({ ...newPlan, name: e.target.value })}
-                    fullWidth
-                    variant="outlined"
-                    sx={{
-                      '& .MuiOutlinedInput-root': {
-                        borderRadius: 2,
-                        background: 'rgba(255, 255, 255, 0.8)',
-                        backdropFilter: 'blur(10px)',
-                      }
-                    }}
-                  />
-                </Grid>
-                <Grid item xs={12}>
-                  <TextField
-                    label="Description"
-                    value={newPlan.description}
-                    onChange={(e) => setNewPlan({ ...newPlan, description: e.target.value })}
-                    multiline
-                    rows={3}
-                    fullWidth
-                    variant="outlined"
-                    sx={{
-                      '& .MuiOutlinedInput-root': {
-                        borderRadius: 2,
-                        background: 'rgba(255, 255, 255, 0.8)',
-                        backdropFilter: 'blur(10px)',
-                      }
-                    }}
-                  />
-                </Grid>
-                <Grid item xs={6}>
-                  <TextField
-                    label="Price (DA)"
-                    type="number"
-                    value={newPlan.price}
-                    onChange={(e) => setNewPlan({ ...newPlan, price: Number(e.target.value) })}
-                    fullWidth
-                    variant="outlined"
-                    InputProps={{
-                      endAdornment: <Typography sx={{ color: 'text.secondary', ml: 1 }}>DA</Typography>
-                    }}
-                    sx={{
-                      '& .MuiOutlinedInput-root': {
-                        borderRadius: 2,
-                        background: 'rgba(255, 255, 255, 0.8)',
-                        backdropFilter: 'blur(10px)',
-                      }
-                    }}
-                  />
-                </Grid>
-                <Grid item xs={6}>
-                  <TextField
-                    label="Duration (months)"
-                    type="number"
-                    value={newPlan.duration}
-                    onChange={(e) => setNewPlan({ ...newPlan, duration: Number(e.target.value) })}
-                    fullWidth
-                    variant="outlined"
-                    InputProps={{
-                      startAdornment: <CalendarIcon sx={{ mr: 1, color: 'text.secondary' }} />
-                    }}
-                    sx={{
-                      '& .MuiOutlinedInput-root': {
-                        borderRadius: 2,
-                        background: 'rgba(255, 255, 255, 0.8)',
-                        backdropFilter: 'blur(10px)',
-                      }
-                    }}
-                  />
-                </Grid>
-                <Grid item xs={6}>
-                  <FormControl fullWidth variant="outlined" sx={{
-                    '& .MuiOutlinedInput-root': {
-                      borderRadius: 2,
-                      background: 'rgba(255, 255, 255, 0.8)',
-                      backdropFilter: 'blur(10px)',
-                    }
-                  }}>
-                    <InputLabel>Role</InputLabel>
-                    <Select
-                      value={newPlan.role}
-                      onChange={(e) => setNewPlan({ ...newPlan, role: e.target.value })}
-                      label="Role"
-                    >
-                      <MenuItem value="PROFESSIONAL">
-                        <Box display="flex" alignItems="center" gap={1}>
-                          <WorkIcon fontSize="small" />
-                          Professional
-                        </Box>
-                      </MenuItem>
-                      <MenuItem value="RESELLER">
-                        <Box display="flex" alignItems="center" gap={1}>
-                          <BusinessIcon fontSize="small" />
-                          Reseller
-                        </Box>
-                      </MenuItem>
-                    </Select>
-                  </FormControl>
-                </Grid>
-                <Grid item xs={6}>
-                  <FormControlLabel
-                    control={
-                      <Switch
-                        checked={newPlan.isActive}
-                        onChange={(e) => setNewPlan({ ...newPlan, isActive: e.target.checked })}
-                        color="primary"
-                      />
-                    }
-                    label="Active Plan"
-                    sx={{ mt: 2 }}
-                  />
-                </Grid>
-              </Grid>
-            </DialogContent>
-            <DialogActions sx={{ p: 3, gap: 2 }}>
-              <Button 
-                onClick={() => setCreateDialogOpen(false)}
-                variant="outlined"
-                startIcon={<CancelIcon />}
-              >
-                Cancel
-              </Button>
-              <Button 
-                variant="contained" 
-                onClick={handleCreatePlan}
-                startIcon={<SaveIcon />}
-              >
-                Create Plan
-              </Button>
-            </DialogActions>
-          </Dialog>
-
-          {/* Edit Plan Dialog */}
-          <Dialog open={editDialogOpen} onClose={() => setEditDialogOpen(false)} maxWidth="md" fullWidth>
-            <DialogTitle sx={{ pb: 1 }}>
-              <Box display="flex" alignItems="center" justifyContent="space-between">
-                <Typography variant="h5" fontWeight="600">
-                  Edit Subscription Plan
-                </Typography>
-                <IconButton onClick={() => setEditDialogOpen(false)} size="small">
-                  <CloseIcon />
-                </IconButton>
-              </Box>
-              <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
                 Modify the details of the selected subscription plan
               </Typography>
             </DialogTitle>
@@ -1054,14 +903,14 @@ export default function SubscriptionPage() {
                 </Grid>
                 <Grid item xs={6}>
                   <TextField
-                    label="Price (DA)"
+                    label="Price (DZD)"
                     type="number"
                     value={currentPlan?.price || 0}
                     onChange={(e) => setCurrentPlan({ ...currentPlan!, price: Number(e.target.value) })}
                     fullWidth
                     variant="outlined"
                     InputProps={{
-                      endAdornment: <Typography sx={{ color: 'text.secondary', ml: 1 }}>DA</Typography>
+                      startAdornment: <MoneyIcon sx={{ mr: 1, color: 'text.secondary' }} />
                     }}
                     sx={{
                       '& .MuiOutlinedInput-root': {
@@ -1138,10 +987,7 @@ export default function SubscriptionPage() {
             </DialogContent>
             <DialogActions sx={{ p: 3, gap: 2 }}>
               <Button 
-                onClick={() => {
-                  setEditDialogOpen(false)
-                  setCurrentPlan(null)
-                }}
+                onClick={() => setEditDialogOpen(false)}
                 variant="outlined"
                 startIcon={<CancelIcon />}
               >
