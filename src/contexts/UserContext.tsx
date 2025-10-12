@@ -37,7 +37,7 @@ const UserProvider = ({ children }: any) => {
         } catch (error) {
             console.error('Error fetching admins:', error);
         }
-    }, [isLogged, isReady, tokens]);
+    }, []); // Remove dependencies to prevent infinite loop
 
     const updateClients = useCallback(async () => {
         try {
@@ -47,7 +47,7 @@ const UserProvider = ({ children }: any) => {
         } catch (error) {
             console.error('Error fetching clients:', error);
         }
-    }, [isLogged, isReady, tokens]);
+    }, []); // Remove dependencies to prevent infinite loop
 
     const updateAllUsers = useCallback(async () => {
         try {
@@ -57,7 +57,7 @@ const UserProvider = ({ children }: any) => {
         } catch (error) {
             console.error('Error fetching all users:', error);
         }
-    }, [isLogged, isReady, tokens]);
+    }, []); // Remove dependencies to prevent infinite loop
 
     useEffect(() => {
         // FIXED: Ensure we have tokens before making API calls
@@ -75,7 +75,7 @@ const UserProvider = ({ children }: any) => {
         }, 100); // 100ms delay to ensure tokens are ready
 
         return () => clearTimeout(timer);
-    }, [isLogged, isReady, tokens?.accessToken, updateAllUsers, updateAdmins, updateClients]);
+    }, [isLogged, isReady, tokens?.accessToken]); // Only depend on primitive values, not functions
 
     return (
         <UserContext.Provider

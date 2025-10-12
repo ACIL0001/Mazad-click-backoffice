@@ -135,11 +135,11 @@ export default function Identity() {
         } finally {
             setLoading(false);
         }
-    }, [isLogged, enqueueSnackbar]);
+    }, [isLogged]); // Remove enqueueSnackbar from dependencies
 
     useEffect(() => {
         fetchAllData();
-    }, [fetchAllData]);
+    }, [isLogged]); // Only depend on isLogged, not fetchAllData
 
     // Handle verification using the API
     const handleVerifyIdentity = useCallback(async (identity: IdentityDocument, action: 'accept' | 'reject') => {

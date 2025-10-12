@@ -8,6 +8,7 @@ export interface SubscriptionPlan {
   duration: number; // in months (stored as number, not Date)
   isActive: boolean;
   role: string; // PROFESSIONAL or RESELLER
+  benefits?: string[]; // Array of plan benefits
   createdAt?: string;
   updatedAt?: string;
 }
@@ -19,6 +20,7 @@ export interface CreatePlanDto {
   duration: number;
   isActive?: boolean;
   role: string;
+  benefits?: string[];
 }
 
 export interface UpdatePlanDto extends Partial<CreatePlanDto> {

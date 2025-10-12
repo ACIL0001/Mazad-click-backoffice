@@ -140,25 +140,25 @@ export default function NotificationsPopover({ notifications, onRefresh, loading
         open={Boolean(open)}
         anchorEl={open}
         onClose={handleClose}
-        sx={{ width: 360, p: 0, mt: 1.5, ml: 0.75 }}
+        sx={{ width: 380, p: 0, mt: 1.5, ml: 0.75 }}
       >
         <Box sx={{ display: 'flex', alignItems: 'center', py: 2, px: 2.5 }}>
           <Box sx={{ flexGrow: 1 }}>
             <Typography variant="subtitle1">Notifications</Typography>
             <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-              Vous avez {totalUnRead} notifications non lu
+              Vous avez {totalUnRead} notification{totalUnRead !== 1 ? 's' : ''} non lue{totalUnRead !== 1 ? 's' : ''}
             </Typography>
           </Box>
 
           {totalUnRead > 0 && (
-            <Tooltip title="Mark all as read">
+            <Tooltip title="Marquer tout comme lu">
               <IconButton color="primary" onClick={handleMarkAllAsRead}>
                 <Iconify icon="eva:done-all-fill" width={20} height={20} />
               </IconButton>
             </Tooltip>
           )}
           
-          <Tooltip title="Refresh notifications">
+          <Tooltip title="Actualiser">
             <IconButton 
               color="default" 
               onClick={handleRefresh}
@@ -176,7 +176,11 @@ export default function NotificationsPopover({ notifications, onRefresh, loading
 
         <Divider sx={{ borderStyle: 'dashed' }} />
 
-        <Scrollbar sx={{ height: { xs: 340, sm: 'auto' } }}>
+        <Scrollbar sx={{ 
+          height: 'auto',
+          maxHeight: { xs: 340, sm: 450 },
+          minHeight: 150,
+        }}>
           {loading ? (
             <Box sx={{ display: 'flex', justifyContent: 'center', py: 3 }}>
               <Iconify icon="eva:loader-outline" width={24} height={24} sx={{ animation: `${spin} 1s linear infinite` }} />
@@ -190,31 +194,63 @@ export default function NotificationsPopover({ notifications, onRefresh, loading
             </Box>
           ) : (
             <>
-              <List
-                disablePadding
-                subheader={
-                  <ListSubheader disableSticky sx={{ py: 1, px: 2.5, typography: 'overline' }}>
-                    Nouveau
-                  </ListSubheader>
-                }
-              >
-                {unread.map((notification) => (
-                  <NotificationItem key={notification._id} notification={notification} onMarkAsRead={onRefresh} />
-                ))}
-              </List>
+              {unread.length > 0 && (
+                <List
+                  disablePadding
+                  subheader={
+                    <ListSubheader 
+                      disableSticky 
+                      sx={{ 
+                        py: 1, 
+                        px: 2.5, 
+                        typography: 'overline',
+                        bgcolor: 'background.paper',
+                        zIndex: 1
+                      }}
+                    >
+                      Nouveau
+                    </ListSubheader>
+                  }
+                >
+                  {unread.map((notification) => (
+                    <NotificationItem 
+                      key={notification._id} 
+                      notification={notification} 
+                      onMarkAsRead={onRefresh}
+                      onClose={handleClose}
+                    />
+                  ))}
+                </List>
+              )}
 
-              <List
-                disablePadding
-                subheader={
-                  <ListSubheader disableSticky sx={{ py: 1, px: 2.5, typography: 'overline' }}>
-                    Avant
-                  </ListSubheader>
-                }
-              >
-                {before.map((notification) => (
-                  <NotificationItem key={notification._id} notification={notification} onMarkAsRead={onRefresh} />
-                ))}
-              </List>
+              {before.length > 0 && (
+                <List
+                  disablePadding
+                  subheader={
+                    <ListSubheader 
+                      disableSticky 
+                      sx={{ 
+                        py: 1, 
+                        px: 2.5, 
+                        typography: 'overline',
+                        bgcolor: 'background.paper',
+                        zIndex: 1
+                      }}
+                    >
+                      Avant
+                    </ListSubheader>
+                  }
+                >
+                  {before.map((notification) => (
+                    <NotificationItem 
+                      key={notification._id} 
+                      notification={notification} 
+                      onMarkAsRead={onRefresh}
+                      onClose={handleClose}
+                    />
+                  ))}
+                </List>
+              )}
             </>
           )}
         </Scrollbar>
@@ -222,8 +258,14 @@ export default function NotificationsPopover({ notifications, onRefresh, loading
         <Divider sx={{ borderStyle: 'dashed' }} />
 
         <Box sx={{ p: 1 }}>
-          <Button fullWidth disableRipple>
-            View All
+          <Button 
+            fullWidth 
+            disableRipple
+            component={RouterLink}
+            to="/dashboard/app"
+            onClick={handleClose}
+          >
+            Voir Tout
           </Button>
         </Box>
       </MenuPopover>
@@ -245,7 +287,7 @@ NotificationItem.propTypes = {
   }),
 };
 
-function NotificationItem({ notification, onMarkAsRead }) {
+function NotificationItem({ notification, onMarkAsRead, onClose }) {
   const navigate = useNavigate();
   const { avatar, title, description, createdAt, url } = renderContent(notification);
 
@@ -260,15 +302,22 @@ function NotificationItem({ notification, onMarkAsRead }) {
       }
     }
     
+    // Close the popover
+    if (onClose) {
+      onClose();
+    }
+    
     // Navigate to the appropriate page
-    navigate(`/dashboard/${url}`);
+    if (url) {
+      navigate(`/dashboard/${url}`);
+    }
   };
 
   const body = (
-    <Typography variant="subtitle2">
+    <Typography variant="subtitle2" sx={{ lineHeight: 1.4 }}>
       {title}
-      <Typography component="span" variant="body2" sx={{ color: 'text.secondary' }}>
-        &nbsp; {description}
+      <Typography component="span" variant="body2" sx={{ color: 'text.secondary', display: 'block', mt: 0.5 }}>
+        {description}
       </Typography>
     </Typography>
   );
@@ -282,11 +331,23 @@ function NotificationItem({ notification, onMarkAsRead }) {
         mt: '1px',
         ...(!notification.read && {
           bgcolor: 'action.selected',
+          borderLeft: '3px solid',
+          borderColor: 'primary.main',
         }),
+        '&:hover': {
+          bgcolor: 'action.hover',
+        },
+        transition: 'all 0.2s ease-in-out',
       }}
     >
       <ListItemAvatar>
-        <Avatar sx={{ bgcolor: 'background.neutral' }}>{avatar}</Avatar>
+        <Avatar sx={{ 
+          bgcolor: notification.read ? 'background.neutral' : 'primary.lighter',
+          width: 48,
+          height: 48,
+        }}>
+          {avatar}
+        </Avatar>
       </ListItemAvatar>
       <ListItemText
         primary={body}

@@ -514,7 +514,7 @@ export default function DashboardCategoriesPage() {
       setError("Failed to load categories. Please try again.")
       enqueueSnackbar("Failed to load categories.", { variant: "error" })
     }
-  }, [enqueueSnackbar])
+  }, []) // Remove enqueueSnackbar from dependencies
 
   useEffect(() => {
     const loadAllData = async () => {
@@ -524,7 +524,7 @@ export default function DashboardCategoriesPage() {
       setLoading(false)
     }
     loadAllData()
-  }, [fetchCategories])
+  }, []) // Only run once on mount
 
   const handleAddCategory = () => {
     navigate("/dashboard/categories/new")
