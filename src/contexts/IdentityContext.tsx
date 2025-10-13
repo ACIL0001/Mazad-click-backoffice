@@ -17,11 +17,22 @@ export const IdentityContext = createContext<IIdentityContext>({
 const IdentityProvider = ({ children }: any) => {
 
     const [identities, setIdentities] = useState<IdentityDocument[]>([]) 
+    const [lastFetchTime, setLastFetchTime] = useState<number>(0);
     const { isReady, isLogged } = useAuth();
 
     const updateIdentity = async () => {
+        // Prevent fetching more than once every 5 seconds
+        const now = Date.now();
+        if (now - lastFetchTime < 5000) {
+            console.log('IdentityContext: Skipping fetch - too soon since last fetch');
+            return;
+        }
+        
+        setLastFetchTime(now);
         IdentityAPI.getAllIdentities().then((data: IdentityDocument[]) => {
             setIdentities(data)
+        }).catch((error) => {
+            console.error('IdentityContext: Failed to fetch identities:', error);
         });
     };
 

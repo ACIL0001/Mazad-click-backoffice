@@ -18,16 +18,24 @@ export const CategoryContext = createContext<ICategoryContext>({
 const CategoryProvider = ({ children }: any) => {
 
     const [categories, setCategories] = useState<ICategory[]>([]) 
+    const [lastFetchTime, setLastFetchTime] = useState<number>(0);
     const { isReady, isLogged } = useAuth();
 
     const updateCategory = async () => {
-
-    CategoryAPI.getCategories().then((data: ICategory[]) => {
-
-      setCategories(data)
-
-    });
-  };
+        // Prevent fetching more than once every 5 seconds
+        const now = Date.now();
+        if (now - lastFetchTime < 5000) {
+            console.log('CategoryContext: Skipping fetch - too soon since last fetch');
+            return;
+        }
+        
+        setLastFetchTime(now);
+        CategoryAPI.getCategories().then((data: ICategory[]) => {
+            setCategories(data)
+        }).catch((error) => {
+            console.error('CategoryContext: Failed to fetch categories:', error);
+        });
+    };
 
   useEffect(() => {
     if (!isReady || !isLogged) return;

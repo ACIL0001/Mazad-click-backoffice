@@ -248,6 +248,7 @@ export default function IdentityVerificationDetailsPage() {
         numeroArticle,
         c20,
         misesAJourCnas,
+        carteFellah,
         status,
         conversionType,
         createdAt
@@ -384,7 +385,7 @@ export default function IdentityVerificationDetailsPage() {
               {title}
             </Typography>
             <Typography variant={isMobile ? "caption" : "caption"} color="text.secondary">
-              {document.fileName}
+              {document.filename || document.fileName || 'Document'}
             </Typography>
           </Box>
         </Stack>
@@ -414,7 +415,7 @@ export default function IdentityVerificationDetailsPage() {
 };
 
     // Check if there are any documents to show
-    const hasDocuments = commercialRegister || nif || nis || last3YearsBalanceSheet || certificates || identityCard || registreCommerceCarteAuto || nifRequired || numeroArticle || c20 || misesAJourCnas;
+    const hasDocuments = commercialRegister || nif || nis || last3YearsBalanceSheet || certificates || identityCard || registreCommerceCarteAuto || nifRequired || numeroArticle || c20 || misesAJourCnas || carteFellah;
     
     
     // Debug logging
@@ -431,8 +432,15 @@ export default function IdentityVerificationDetailsPage() {
         nifRequired: !!nifRequired,
         numeroArticle: !!numeroArticle,
         c20: !!c20,
-        misesAJourCnas: !!misesAJourCnas
-      }
+        misesAJourCnas: !!misesAJourCnas,
+        carteFellah: !!carteFellah
+      },
+      documentDetails: {
+        carteFellah: carteFellah,
+        registreCommerceCarteAuto: registreCommerceCarteAuto,
+        nifRequired: nifRequired
+      },
+      hasDocuments: hasDocuments
     });
 
     return (
@@ -817,6 +825,16 @@ export default function IdentityVerificationDetailsPage() {
                                                         title="Mises à jour CNAS/CASNOS"
                                                         document={misesAJourCnas}
                                                         icon="eva:refresh-outline"
+                                                    />
+                                                </Grid>
+                                            )}
+
+                                            {carteFellah && (
+                                                <Grid item xs={12} sm={6} md={4}>
+                                                    <DocumentCard
+                                                        title="Carte Fellah"
+                                                        document={carteFellah}
+                                                        icon="eva:file-add-outline"
                                                     />
                                                 </Grid>
                                             )}

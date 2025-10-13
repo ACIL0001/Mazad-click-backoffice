@@ -102,6 +102,7 @@ function SellersTableBody({
     if (identity.numeroArticle) count++
     if (identity.c20) count++
     if (identity.misesAJourCnas) count++
+    if (identity.carteFellah) count++
     return count
   }
 

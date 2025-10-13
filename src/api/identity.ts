@@ -57,28 +57,33 @@ export interface IdentityDocument {
     url?: string;
   };
   
-  // New required fields
-  registreCommerceCarteAuto: {
+  // New required fields (made optional since validation is either RC+NIF OR carteFellah)
+  registreCommerceCarteAuto?: {
     _id: string;
     filename?: string;
     url?: string;
   };
-  nifRequired: {
+  nifRequired?: {
     _id: string;
     filename?: string;
     url?: string;
   };
-  numeroArticle: {
+  numeroArticle?: {
     _id: string;
     filename?: string;
     url?: string;
   };
-  c20: {
+  c20?: {
     _id: string;
     filename?: string;
     url?: string;
   };
-  misesAJourCnas: {
+  misesAJourCnas?: {
+    _id: string;
+    filename?: string;
+    url?: string;
+  };
+  carteFellah?: {
     _id: string;
     filename?: string;
     url?: string;

@@ -126,11 +126,12 @@ export default function Identity() {
             console.log('Client to Professional:', clientToProfessionalConversions.length);
             console.log('Accepted identities:', acceptedResponse.length);
 
-            enqueueSnackbar('Data loaded successfully.', { variant: 'success' });
+            // Don't show success snackbar on every load - only log to console
 
         } catch (err: any) {
             console.error("Failed to fetch data:", err);
             setError(err.message || "Failed to load data.");
+            // Only show error snackbar, not success
             enqueueSnackbar('Failed to load data.', { variant: 'error' });
         } finally {
             setLoading(false);

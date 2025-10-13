@@ -27,6 +27,7 @@ const UserProvider = ({ children }: any) => {
     const [users, setUsers] = useState<User[]>([]) 
     const [admins, setAdmins] = useState<User[]>([]);
     const [clients, setClients] = useState<User[]>([]);
+    const [lastFetchTime, setLastFetchTime] = useState<number>(0);
     const { isReady, isLogged, auth, tokens } = useAuth();
 
     const updateAdmins = useCallback(async () => {
@@ -65,6 +66,15 @@ const UserProvider = ({ children }: any) => {
             console.log('Not ready for API calls yet:', { isReady, isLogged, hasTokens: !!tokens?.accessToken });
             return;
         }
+
+        // Prevent fetching more than once every 5 seconds
+        const now = Date.now();
+        if (now - lastFetchTime < 5000) {
+            console.log('UserContext: Skipping fetch - too soon since last fetch');
+            return;
+        }
+        
+        setLastFetchTime(now);
 
         // Add a small delay to ensure auth interceptor has the latest tokens
         const timer = setTimeout(() => {
