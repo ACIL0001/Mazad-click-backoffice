@@ -480,7 +480,7 @@ export default function SubscriptionPage() {
 
   const handleCreatePlan = async () => {
     try {
-      if (!newPlan.name.trim() || !newPlan.description.trim() || newPlan.price < 0 || newPlan.duration <= 0) {
+      if (!newPlan.name.trim() || !newPlan.description.trim() || newPlan.duration <= 0) {
         return
       }
 
@@ -541,7 +541,7 @@ export default function SubscriptionPage() {
     if (!currentPlan || !currentPlan._id) return
     
     try {
-      if (!currentPlan.name.trim() || !currentPlan.description.trim() || currentPlan.price < 0 || currentPlan.duration <= 0) {
+      if (!currentPlan.name.trim() || !currentPlan.description.trim() || currentPlan.duration <= 0) {
         return
       }
 
@@ -1131,8 +1131,8 @@ export default function SubscriptionPage() {
                   <TextField
                     label="Price (DZD)"
                     type="number"
-                    value={newPlan.price === 0 ? '' : newPlan.price}
-                    onChange={(e) => setNewPlan({ ...newPlan, price: e.target.value === '' ? 0 : Math.max(0, Number(e.target.value)) })}
+                    value={newPlan.price}
+                    onChange={(e) => setNewPlan({ ...newPlan, price: Math.max(0, Number(e.target.value)) })}
                     fullWidth
                     variant="outlined"
                     inputProps={{ min: 0, step: 1 }}
@@ -1372,8 +1372,8 @@ export default function SubscriptionPage() {
                   <TextField
                     label="Price (DZD)"
                     type="number"
-                    value={(currentPlan?.price || 0) === 0 ? '' : currentPlan?.price}
-                    onChange={(e) => setCurrentPlan({ ...currentPlan!, price: e.target.value === '' ? 0 : Math.max(0, Number(e.target.value)) })}
+                    value={currentPlan?.price || 0}
+                    onChange={(e) => setCurrentPlan({ ...currentPlan!, price: Math.max(0, Number(e.target.value)) })}
                     fullWidth
                     variant="outlined"
                     inputProps={{ min: 0, step: 1 }}
