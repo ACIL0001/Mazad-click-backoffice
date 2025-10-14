@@ -112,22 +112,32 @@ export default function AuctionDetail() {
       if (Array.isArray(offers)) {
         console.log("Processing offers:", offers);
         
-        setParticipants(
-          offers
-            .map((offer: any) => ({
-              id: offer._id,
-              name: offer.user?.firstName && offer.user?.lastName 
-                ? `${offer.user.firstName} ${offer.user.lastName}` 
-                : offer.user?.email || t('unknownUser'),
-              email: offer.user?.email || 'N/A',
-              phone: offer.user?.phone || 'N/A',
-              avatar: offer.user?.avatar?.path || '',
-              bidAmount: offer.price,
-              bidDate: offer.createdAt,
-              user: offer.user
-            }))
-            .sort((a, b) => new Date(b.bidDate).getTime() - new Date(a.bidDate).getTime())
-        );
+        const processedParticipants = offers
+          .map((offer: any) => ({
+            id: offer._id,
+            name: offer.user?.firstName && offer.user?.lastName 
+              ? `${offer.user.firstName} ${offer.user.lastName}` 
+              : offer.user?.email || t('unknownUser'),
+            email: offer.user?.email || 'N/A',
+            phone: offer.user?.phone || 'N/A',
+            avatar: offer.user?.avatar?.path || '',
+            bidAmount: offer.price,
+            bidDate: offer.createdAt,
+            user: offer.user
+          }))
+          .sort((a, b) => new Date(b.bidDate).getTime() - new Date(a.bidDate).getTime());
+
+        // Debug the processed participants
+        console.log('Processed participants:', processedParticipants);
+        processedParticipants.forEach((participant, index) => {
+          console.log(`Participant ${index}:`, {
+            name: participant.name,
+            bidAmount: participant.bidAmount,
+            bidAmountType: typeof participant.bidAmount
+          });
+        });
+        
+        setParticipants(processedParticipants);
       } else {
         setParticipants([]);
       }
@@ -284,6 +294,23 @@ export default function AuctionDetail() {
     return total / participants.length;
   };
 
+  const getCurrentPrice = () => {
+    if (participants.length === 0) {
+      console.log('No participants, using starting price:', auction?.startingPrice);
+      return auction?.startingPrice || 0;
+    }
+    const highestBid = getHighestBid();
+    const currentPrice = highestBid ? highestBid.bidAmount : auction?.startingPrice || 0;
+    console.log('Current price calculation:', {
+      participantsCount: participants.length,
+      highestBid: highestBid,
+      highestBidAmount: highestBid?.bidAmount,
+      startingPrice: auction?.startingPrice,
+      calculatedCurrentPrice: currentPrice
+    });
+    return currentPrice;
+  };
+
   if (loading) {
     return (
       <Box display="flex" justifyContent="center" alignItems="center" minHeight="60vh">
@@ -304,6 +331,7 @@ export default function AuctionDetail() {
   const highestBid = getHighestBid();
   const lowestBid = getLowestBid();
   const averageBid = getAverageBid();
+  const currentPrice = getCurrentPrice();
 
   console.log('Notification socket data:', notificationSocket);
 
@@ -441,7 +469,7 @@ export default function AuctionDetail() {
                       {t('currentPrice')}
                     </Typography>
                     <Typography variant="h6" color="primary.main">
-                      {auction.currentPrice.toFixed(2)} {t('DZD')}
+                      {currentPrice.toFixed(2)} {t('DZD')}
                     </Typography>
                   </Grid>
                 </Grid>
@@ -478,7 +506,7 @@ export default function AuctionDetail() {
                   <TrendingUpIcon /> Statistiques des Offres
                 </Typography>
                 <Grid container spacing={2}>
-                  <Grid item xs={12} sm={4}>
+                  <Grid item xs={12} sm={6}>
                     <Paper
                       elevation={0}
                       sx={{
@@ -501,30 +529,7 @@ export default function AuctionDetail() {
                       </Typography>
                     </Paper>
                   </Grid>
-                  <Grid item xs={12} sm={4}>
-                    <Paper
-                      elevation={0}
-                      sx={{
-                        p: 2,
-                        textAlign: 'center',
-                        bgcolor: 'warning.lighter',
-                        border: '1px solid',
-                        borderColor: 'warning.light',
-                        borderRadius: 2
-                      }}
-                    >
-                      <Typography variant="body2" color="text.secondary" gutterBottom>
-                        Offre Moyenne
-                      </Typography>
-                      <Typography variant="h5" color="warning.dark" fontWeight={700}>
-                        {averageBid.toFixed(2)} DA
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        sur {participants.length} offres
-                      </Typography>
-                    </Paper>
-                  </Grid>
-                  <Grid item xs={12} sm={4}>
+                  <Grid item xs={12} sm={6}>
                     <Paper
                       elevation={0}
                       sx={{

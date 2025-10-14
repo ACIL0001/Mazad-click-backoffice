@@ -74,17 +74,20 @@ export default function Tenders() {
   const [expandedRows, setExpandedRows] = useState<{ [key: string]: boolean }>({});
   const [tenderBids, setTenderBids] = useState<{ [key: string]: any[] }>({});
   const [loadingBids, setLoadingBids] = useState<{ [key: string]: boolean }>({});
+  const [participantCounts, setParticipantCounts] = useState<{ [key: string]: number }>({});
+  const [loadingParticipantCounts, setLoadingParticipantCounts] = useState(true);
 
   const get = () => {
     setLoading(true);
     TendersAPI.getAllTenders()
       .then((response) => {
+        let tendersData = [];
         if (response && Array.isArray(response)) {
-          setTenders(response);
+          tendersData = response;
           setTotalTenders(response.length);
           console.log("Tenders state (direct response):", response);
         } else if (response && response.data && Array.isArray(response.data)) {
-          setTenders(response.data);
+          tendersData = response.data;
           setTotalTenders(response.data.length);
           console.log("Tenders state (response.data):", response.data);
         } else {
@@ -92,7 +95,12 @@ export default function Tenders() {
           enqueueSnackbar('Format de réponse inattendu.', { variant: 'error' });
           setTenders([]);
           setTotalTenders(0);
+          return;
         }
+        
+        setTenders(tendersData);
+        // Fetch participant counts for all tenders
+        fetchAllParticipantCounts(tendersData);
       })
       .catch((e) => {
         console.error("Error fetching tenders:", e);
@@ -101,6 +109,26 @@ export default function Tenders() {
         setTotalTenders(0);
       })
       .finally(() => setLoading(false));
+  };
+
+  const fetchAllParticipantCounts = async (tendersData: any[]) => {
+    setLoadingParticipantCounts(true);
+    const counts: { [key: string]: number } = {};
+    
+    // Fetch participant counts for all tenders in parallel
+    const promises = tendersData.map(async (tender) => {
+      try {
+        const bids = await TendersAPI.getTenderBids(tender._id);
+        counts[tender._id] = Array.isArray(bids) ? bids.length : 0;
+      } catch (error) {
+        console.error(`Error fetching bids for tender ${tender._id}:`, error);
+        counts[tender._id] = 0;
+      }
+    });
+    
+    await Promise.all(promises);
+    setParticipantCounts(counts);
+    setLoadingParticipantCounts(false);
   };
 
   const fetchBidsForTender = async (tenderId: string) => {
@@ -285,14 +313,17 @@ export default function Tenders() {
                     {description || 'N/A'}
                   </Typography>
                 </TableCell>
-                <TableCell align="left">{formatPrice(budget)}</TableCell>
                 <TableCell align="left">
-                  <Chip
-                    label={bids.length}
-                    color="primary"
-                    size="small"
-                    sx={{ fontWeight: 600 }}
-                  />
+                  {loadingParticipantCounts ? (
+                    <CircularProgress size={16} />
+                  ) : (
+                    <Chip
+                      label={participantCounts[_id] || 0}
+                      color="primary"
+                      size="small"
+                      sx={{ fontWeight: 600 }}
+                    />
+                  )}
                 </TableCell>
                 <TableCell align="left">{formattedCreatedAt}</TableCell>
                 <TableCell align="left">
@@ -344,7 +375,7 @@ export default function Tenders() {
                                         {bid.name}
                                       </Typography>
                                       <Chip
-                                        label={`${bid.amount?.toLocaleString()} DA`}
+                                        label={`${bid.amount && typeof bid.amount === 'number' ? bid.amount.toLocaleString() : '0'} DA`}
                                         color="success"
                                         size="small"
                                         sx={{ fontWeight: 600 }}

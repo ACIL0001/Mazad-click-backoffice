@@ -77,17 +77,20 @@ export default function Auctions() {
   const [expandedRows, setExpandedRows] = useState<{ [key: string]: boolean }>({});
   const [auctionOffers, setAuctionOffers] = useState<{ [key: string]: any[] }>({});
   const [loadingOffers, setLoadingOffers] = useState<{ [key: string]: boolean }>({});
+  const [participantCounts, setParticipantCounts] = useState<{ [key: string]: number }>({});
+  const [loadingParticipantCounts, setLoadingParticipantCounts] = useState(true);
 
   const get = () => {
     setLoading(true);
     AuctionsAPI.getAuctions()
       .then((response) => {
+        let auctionsData = [];
         if (response && Array.isArray(response)) {
-          setAuctions(response);
+          auctionsData = response;
           setTotalAuctions(response.length);
           console.log("Auctions state (direct response):", response);
         } else if (response && response.data && Array.isArray(response.data)) {
-          setAuctions(response.data);
+          auctionsData = response.data;
           setTotalAuctions(response.data.length);
           console.log("Auctions state (response.data):", response.data);
         } else {
@@ -95,7 +98,12 @@ export default function Auctions() {
           enqueueSnackbar('Format de réponse inattendu.', { variant: 'error' });
           setAuctions([]);
           setTotalAuctions(0);
+          return;
         }
+        
+        setAuctions(auctionsData);
+        // Fetch participant counts for all auctions
+        fetchAllParticipantCounts(auctionsData);
       })
       .catch((e) => {
         console.error("Error fetching auctions:", e);
@@ -104,6 +112,26 @@ export default function Auctions() {
         setTotalAuctions(0);
       })
       .finally(() => setLoading(false));
+  };
+
+  const fetchAllParticipantCounts = async (auctionsData: any[]) => {
+    setLoadingParticipantCounts(true);
+    const counts: { [key: string]: number } = {};
+    
+    // Fetch participant counts for all auctions in parallel
+    const promises = auctionsData.map(async (auction) => {
+      try {
+        const offers = await OffersAPI.getOffersByBidId(auction._id);
+        counts[auction._id] = Array.isArray(offers) ? offers.length : 0;
+      } catch (error) {
+        console.error(`Error fetching offers for auction ${auction._id}:`, error);
+        counts[auction._id] = 0;
+      }
+    });
+    
+    await Promise.all(promises);
+    setParticipantCounts(counts);
+    setLoadingParticipantCounts(false);
   };
 
   const fetchOffersForAuction = async (auctionId: string) => {
@@ -269,12 +297,16 @@ export default function Auctions() {
                 <TableCell align="left">{formatPrice(startingPrice)}</TableCell>
                 <TableCell align="left">{formatPrice(currentPrice)}</TableCell>
                 <TableCell align="left">
-                  <Chip
-                    label={offers.length}
-                    color="primary"
-                    size="small"
-                    sx={{ fontWeight: 600 }}
-                  />
+                  {loadingParticipantCounts ? (
+                    <CircularProgress size={16} />
+                  ) : (
+                    <Chip
+                      label={participantCounts[_id] || 0}
+                      color="primary"
+                      size="small"
+                      sx={{ fontWeight: 600 }}
+                    />
+                  )}
                 </TableCell>
                 <TableCell align="left">{formattedEndingAt}</TableCell>
                 <TableCell align="left">

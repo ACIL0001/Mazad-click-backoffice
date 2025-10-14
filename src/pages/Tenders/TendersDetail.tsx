@@ -56,7 +56,9 @@ interface TenderOwner {
 
 interface TenderBid {
   _id: string;
-  amount: number;
+  amount?: number;
+  price?: number;
+  bidAmount?: number;
   proposal: string;
   status: string;
   createdAt: string;
@@ -133,6 +135,22 @@ export default function TenderDetail() {
       
       if (Array.isArray(bidsData)) {
         console.log("Processing bids:", bidsData);
+        // Debug each bid to see the structure
+        bidsData.forEach((bid, index) => {
+          console.log(`Bid ${index}:`, {
+            id: bid._id,
+            amount: bid.amount,
+            price: bid.price,
+            bidAmount: bid.bidAmount,
+            amountType: typeof bid.amount,
+            priceType: typeof bid.price,
+            bidAmountType: typeof bid.bidAmount,
+            proposal: bid.proposal,
+            status: bid.status,
+            bidder: bid.bidder,
+            allKeys: Object.keys(bid)
+          });
+        });
         setBids(bidsData.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
       } else {
         setBids([]);
@@ -321,20 +339,39 @@ export default function TenderDetail() {
     </Slide>
   );
 
+  const getBidAmount = (bid: TenderBid): number => {
+    return bid.amount || bid.price || bid.bidAmount || 0;
+  };
+
   const getHighestBid = () => {
     if (bids.length === 0) return null;
-    return bids.reduce((max, b) => b.amount > max.amount ? b : max, bids[0]);
+    const validBids = bids.filter(b => {
+      const amount = getBidAmount(b);
+      return b && typeof amount === 'number' && !isNaN(amount) && amount > 0;
+    });
+    if (validBids.length === 0) return null;
+    return validBids.reduce((max, b) => getBidAmount(b) > getBidAmount(max) ? b : max, validBids[0]);
   };
 
   const getLowestBid = () => {
     if (bids.length === 0) return null;
-    return bids.reduce((min, b) => b.amount < min.amount ? b : min, bids[0]);
+    const validBids = bids.filter(b => {
+      const amount = getBidAmount(b);
+      return b && typeof amount === 'number' && !isNaN(amount) && amount > 0;
+    });
+    if (validBids.length === 0) return null;
+    return validBids.reduce((min, b) => getBidAmount(b) < getBidAmount(min) ? b : min, validBids[0]);
   };
 
   const getAverageBid = () => {
     if (bids.length === 0) return 0;
-    const total = bids.reduce((sum, b) => sum + b.amount, 0);
-    return total / bids.length;
+    const validBids = bids.filter(b => {
+      const amount = getBidAmount(b);
+      return b && typeof amount === 'number' && !isNaN(amount) && amount > 0;
+    });
+    if (validBids.length === 0) return 0;
+    const total = validBids.reduce((sum, b) => sum + getBidAmount(b), 0);
+    return total / validBids.length;
   };
 
   if (loading) {
@@ -488,7 +525,7 @@ export default function TenderDetail() {
                       Budget
                     </Typography>
                     <Typography variant="h6" color="primary.main">
-                      {tender.budget.toFixed(2)} DZD
+                      {tender.budget && typeof tender.budget === 'number' ? tender.budget.toFixed(2) : '0.00'} DZD
                     </Typography>
                   </Box>
                 )}
@@ -544,7 +581,7 @@ export default function TenderDetail() {
                   <TrendingUpIcon /> Statistiques des Soumissions
                 </Typography>
                 <Grid container spacing={2}>
-                  <Grid item xs={12} sm={4}>
+                  <Grid item xs={12} sm={6}>
                     <Paper
                       elevation={0}
                       sx={{
@@ -560,37 +597,14 @@ export default function TenderDetail() {
                         Offre la Plus Haute
                       </Typography>
                       <Typography variant="h5" color="success.dark" fontWeight={700}>
-                        {highestBid?.amount.toFixed(2)} DA
+                        {highestBid ? getBidAmount(highestBid).toFixed(2) : '0.00'} DA
                       </Typography>
                       <Typography variant="caption" color="text.secondary">
                         par {highestBid?.bidder.firstName} {highestBid?.bidder.lastName}
                       </Typography>
                     </Paper>
                   </Grid>
-                  <Grid item xs={12} sm={4}>
-                    <Paper
-                      elevation={0}
-                      sx={{
-                        p: 2,
-                        textAlign: 'center',
-                        bgcolor: 'warning.lighter',
-                        border: '1px solid',
-                        borderColor: 'warning.light',
-                        borderRadius: 2
-                      }}
-                    >
-                      <Typography variant="body2" color="text.secondary" gutterBottom>
-                        Offre Moyenne
-                      </Typography>
-                      <Typography variant="h5" color="warning.dark" fontWeight={700}>
-                        {averageBid.toFixed(2)} DA
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        sur {bids.length} soumissions
-                      </Typography>
-                    </Paper>
-                  </Grid>
-                  <Grid item xs={12} sm={4}>
+                  <Grid item xs={12} sm={6}>
                     <Paper
                       elevation={0}
                       sx={{
@@ -606,7 +620,7 @@ export default function TenderDetail() {
                         Offre la Plus Basse
                       </Typography>
                       <Typography variant="h5" color="error.dark" fontWeight={700}>
-                        {lowestBid?.amount.toFixed(2)} DA
+                        {lowestBid ? getBidAmount(lowestBid).toFixed(2) : '0.00'} DA
                       </Typography>
                       <Typography variant="caption" color="text.secondary">
                         par {lowestBid?.bidder.firstName} {lowestBid?.bidder.lastName}
@@ -693,7 +707,7 @@ export default function TenderDetail() {
                           <TableCell align="right">
                             <Chip
                               icon={<LocalOfferIcon sx={{ fontSize: 16 }} />}
-                              label={`${bid.amount?.toFixed(2)} DA`}
+                              label={`${getBidAmount(bid).toFixed(2)} DA`}
                               color={bid.status === 'accepted' ? 'success' : 'default'}
                               variant={bid.status === 'accepted' ? 'filled' : 'outlined'}
                               sx={{ fontWeight: bid.status === 'accepted' ? 700 : 500 }}
