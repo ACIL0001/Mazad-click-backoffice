@@ -138,7 +138,7 @@ function SellersTableBody({
     <TableBody>
       {data.map((seller) => {
         const isItemSelected = selected.indexOf(seller._id) !== -1
-        const user = seller.user
+        const user = seller.user as any
         const fullName = `${user?.firstName || ''} ${user?.lastName || ''}`.trim()
         const documentCount = getDocumentCount(seller)
         const conversionInfo = getConversionTypeDisplay(seller)
@@ -231,7 +231,7 @@ function SellersTableBody({
                       display: 'block'
                     }}
                   >
-                    → {seller.targetUserType || 'Non défini'}
+                    → {conversionInfo.label}
                   </Typography>
                 </Box>
               </Stack>
@@ -449,7 +449,9 @@ export default function PendingAndRejectedSellers({
 
     if (window.confirm(`Êtes-vous sûr de vouloir supprimer les ${selected.length} éléments sélectionnés ?`)) {
       try {
-        await IdentityAPI.deleteIdentities(selected)
+        for (const id of selected) {
+          await IdentityAPI.deleteIdentity(id)
+        }
         enqueueSnackbar(`${selected.length} éléments supprimés avec succès !`, { variant: "success" })
         onDeleteSellers(selected)
         setSelected([])

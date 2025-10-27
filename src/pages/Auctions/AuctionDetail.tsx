@@ -76,7 +76,7 @@ export default function AuctionDetail() {
   const [acceptLoading, setAcceptLoading] = useState(false);
   const [chatLoading, setChatLoading] = useState(false);
   const navigate = useNavigate();
-  const { notificationSocket } = useCreateSocket();
+  const { socket } = useCreateSocket();
   const { auth } = useAuth();
 
   console.log('Auth data:', auth);
@@ -86,7 +86,7 @@ export default function AuctionDetail() {
       getAuctionDetails(id);
       getAuctionParticipants(id);
     }
-  }, [id, notificationSocket]);
+  }, [id, socket]);
 
   const getAuctionDetails = async (auctionId: string) => {
     try {
@@ -333,7 +333,7 @@ export default function AuctionDetail() {
   const averageBid = getAverageBid();
   const currentPrice = getCurrentPrice();
 
-  console.log('Notification socket data:', notificationSocket);
+  console.log('Notification socket data:', socket);
 
   return (
     <Page title={`${t('details')} - ${auction.title}`}>

@@ -254,6 +254,9 @@ export default function IdentityVerificationDetailsPage() {
         createdAt
     } = identityDetails;
 
+    // Type cast user to any to access additional properties like secteur and entreprise
+    const userWithExtendedProps = user as any;
+
     // Determine user type and status information
     const getUserTypeInfo = () => {
         switch (conversionType) {
@@ -554,24 +557,24 @@ export default function IdentityVerificationDetailsPage() {
                                                 </Typography>
                                             </Box>
 
-                                            {user?.secteur && (
+                                            {userWithExtendedProps?.secteur && (
                                                 <Box>
                                                     <Typography variant={isMobile ? "caption" : "caption"} color="text.secondary" sx={{ fontWeight: 600, textTransform: 'uppercase', letterSpacing: 1, fontSize: isMobile ? '0.65rem' : 'inherit' }}>
                                                         Secteur d'activité
                                                     </Typography>
                                                     <Typography variant={isMobile ? "body2" : "body1"} sx={{ fontWeight: 500, mt: 0.5, fontSize: isMobile ? '0.8rem' : 'inherit' }}>
-                                                        {user.secteur}
+                                                        {userWithExtendedProps.secteur}
                                                     </Typography>
                                                 </Box>
                                             )}
 
-                                            {user?.entreprise && (
+                                            {userWithExtendedProps?.entreprise && (
                                                 <Box>
                                                     <Typography variant={isMobile ? "caption" : "caption"} color="text.secondary" sx={{ fontWeight: 600, textTransform: 'uppercase', letterSpacing: 1, fontSize: isMobile ? '0.65rem' : 'inherit' }}>
                                                         Nom de l'entreprise
                                                     </Typography>
                                                     <Typography variant={isMobile ? "body2" : "body1"} sx={{ fontWeight: 500, mt: 0.5, fontSize: isMobile ? '0.8rem' : 'inherit' }}>
-                                                        {user.entreprise}
+                                                        {userWithExtendedProps.entreprise}
                                                     </Typography>
                                                 </Box>
                                             )}

@@ -72,7 +72,7 @@ function SellerItem({ seller, selected, setSelected, onOpenVerificationModal, on
   )
 
   const isItemSelected = selected.indexOf(seller._id) !== -1
-  const user = seller.user
+  const user = seller.user as any
   const fullName = `${user?.firstName || ""} ${user?.lastName || ""}`.trim()
 
   const getStatusColor = () => {

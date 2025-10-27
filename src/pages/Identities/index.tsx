@@ -189,7 +189,9 @@ export default function Identity() {
     // Delete handlers using the API
     const handleDeletePendingProfessionals = useCallback(async (idsToDelete: string[]) => {
         try {
-            await IdentityAPI.deleteIdentities(idsToDelete);
+            for (const id of idsToDelete) {
+                await IdentityAPI.deleteIdentity(id);
+            }
             setPendingProfessionals(prev => prev.filter(item => !idsToDelete.includes(item._id)));
             enqueueSnackbar(`${idsToDelete.length} vérifications professionnelles supprimées.`, { variant: "success" });
         } catch (error: any) {
@@ -201,7 +203,9 @@ export default function Identity() {
 
     const handleDeletePendingResellers = useCallback(async (idsToDelete: string[]) => {
         try {
-            await IdentityAPI.deleteIdentities(idsToDelete);
+            for (const id of idsToDelete) {
+                await IdentityAPI.deleteIdentity(id);
+            }
             setPendingResellers(prev => prev.filter(item => !idsToDelete.includes(item._id)));
             enqueueSnackbar(`${idsToDelete.length} conversions vers revendeur supprimées.`, { variant: "success" });
         } catch (error: any) {
@@ -213,7 +217,9 @@ export default function Identity() {
 
     const handleDeletePendingClientToProfessional = useCallback(async (idsToDelete: string[]) => {
         try {
-            await IdentityAPI.deleteIdentities(idsToDelete);
+            for (const id of idsToDelete) {
+                await IdentityAPI.deleteIdentity(id);
+            }
             setPendingClientToProfessional(prev => prev.filter(item => !idsToDelete.includes(item._id)));
             enqueueSnackbar(`${idsToDelete.length} conversions vers professionnel supprimées.`, { variant: "success" });
         } catch (error: any) {
@@ -225,7 +231,9 @@ export default function Identity() {
 
     const handleDeleteAcceptedIdentities = useCallback(async (idsToDelete: string[]) => {
         try {
-            await IdentityAPI.deleteIdentities(idsToDelete);
+            for (const id of idsToDelete) {
+                await IdentityAPI.deleteIdentity(id);
+            }
             setAcceptedIdentities(prev => prev.filter(item => !idsToDelete.includes(item._id)));
             enqueueSnackbar(`${idsToDelete.length} identités acceptées supprimées.`, { variant: "success" });
         } catch (error: any) {
