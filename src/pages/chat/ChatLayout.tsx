@@ -29,6 +29,8 @@ import {
   CircularProgress,
   useMediaQuery,
   Container,
+  Dialog,
+  DialogContent,
 } from '@mui/material';
 import {
   Search as SearchIcon,
@@ -39,6 +41,13 @@ import {
   Circle as OnlineIcon,
   ArrowBack as ArrowBackIcon,
   Chat as ChatIcon,
+  AttachFile as AttachFileIcon,
+  Download as DownloadIcon,
+  Image as ImageIcon,
+  Close as CloseIcon,
+  Mic as MicIcon,
+  PlayArrow as PlayArrowIcon,
+  Pause as PauseIcon,
 } from '@mui/icons-material';
 import { SocketContext } from '../../contexts/SocketContext';
 import { ChatAPI } from '../../api/Chat';
@@ -55,6 +64,14 @@ interface Message {
   idChat: string;
   createdAt: string;
   isRead?: boolean;
+  attachment?: {
+    _id: string;
+    url: string;
+    name: string;
+    type: string;
+    size: number;
+    filename: string;
+  };
 }
 
 interface Chat {
@@ -106,6 +123,14 @@ const clientTypes: ClientType[] = [
     accountTypes: ['CLIENT', 'BUYER', 'OTHER'],
     color: '#f57c00',
     description: 'Clients normaux et autres utilisateurs'
+  },
+  {
+    id: 'guest',
+    title: 'Invités',
+    icon: PersonIcon,
+    accountTypes: ['guest', 'GUEST'],
+    color: '#9c27b0',
+    description: 'Utilisateurs non authentifiés'
   }
 ];
 
@@ -123,6 +148,22 @@ export function ChatLayout() {
   const [searchTerm, setSearchTerm] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [view, setView] = useState<'overview' | 'chat'>('overview');
+  const [selectedImage, setSelectedImage] = useState<{ url: string; name: string } | null>(null);
+  
+  // States for file attachments
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [filePreview, setFilePreview] = useState<string>('');
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  // States for voice messages
+  const [isRecording, setIsRecording] = useState(false);
+  const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
+  const [audioUrl, setAudioUrl] = useState<string>('');
+  const [playingAudioId, setPlayingAudioId] = useState<string | null>(null);
+  const [loadingAudioId, setLoadingAudioId] = useState<string | null>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -134,6 +175,7 @@ export function ChatLayout() {
   useEffect(() => {
     scrollToBottom();
   }, [messages, scrollToBottom]);
+
 
 
 
@@ -176,16 +218,75 @@ export function ChatLayout() {
       console.log('Number of chats:', allChats?.length || 0);
       console.groupEnd();
       
+      // Process chats to identify and enhance guest chats
+      const processedChats = await Promise.all((allChats || []).map(async (chat) => {
+        try {
+          // Get messages for this chat to check if it's a guest chat
+          const chatMessages = await MessageAPI.read(chat._id);
+          
+          // Check if this chat has any guest messages
+          const guestMessages = chatMessages.filter((msg: any) => 
+            msg.sender === 'guest' || msg.isGuestMessage
+          );
+          
+          if (guestMessages.length > 0) {
+            // This is a guest chat - enhance the chat structure
+            const enhancedChat = {
+              ...chat,
+              isGuestChat: true,
+              lastMessage: guestMessages[guestMessages.length - 1], // Last guest message
+              unreadCount: guestMessages.filter((msg: any) => 
+                msg.sender === 'guest' && !msg.isRead
+              ).length
+            };
+            
+            // Update the guest user info if available from messages
+            const guestMessage = guestMessages.find((msg: any) => msg.guestName);
+            if (guestMessage) {
+              enhancedChat.users = enhancedChat.users.map((user: any) => {
+                if (user._id === 'guest') {
+                  return {
+                    ...user,
+                    firstName: guestMessage.guestName || 'Guest',
+                    phone: guestMessage.guestPhone || ''
+                  };
+                }
+                return user;
+              });
+            }
+            
+            return enhancedChat;
+          } else {
+            // Regular chat - calculate unread count normally
+            const unreadCount = chatMessages.filter((msg: Message) => 
+              msg.sender !== auth.user._id && !msg.isRead
+            ).length;
+            
+            return {
+              ...chat,
+              unreadCount,
+              lastMessage: chatMessages[chatMessages.length - 1] || null
+            };
+          }
+        } catch (error) {
+          console.error('❌ Error processing chat:', chat._id, error);
+          return { ...chat, unreadCount: 0 };
+        }
+      }));
+      
+      console.log('🔍 Processed chats:', processedChats.length);
+      
       // Debug each chat's user structure in detail
-      if (Array.isArray(allChats)) {
+      if (Array.isArray(processedChats)) {
         console.group('🔎 DETAILED CHAT ANALYSIS');
-        allChats.forEach((chat, index) => {
+        processedChats.forEach((chat, index) => {
           console.group(`Chat ${index + 1} (${chat._id})`);
           console.log('Full chat object:', chat);
           console.log('Chat ID:', chat._id);
           console.log('Created at:', new Date(chat.createdAt).toLocaleString());
           console.log('User count:', chat.users?.length || 0);
           console.log('Has admin user:', chat.users?.some(u => u._id === 'admin') || false);
+          console.log('Is guest chat:', (chat as any).isGuestChat || false);
           
           // Log each user in the chat with complete details
           if (Array.isArray(chat.users)) {
@@ -215,28 +316,8 @@ export function ChatLayout() {
         console.groupEnd();
       }
 
-      // Calculate unread count for each chat
-      const chatsWithUnread = await Promise.all(
-        allChats.map(async (chat: Chat) => {
-          try {
-            const chatMessages = await MessageAPI.read(chat._id);
-            const unreadCount = chatMessages.filter((msg: Message) => 
-              msg.sender !== auth.user._id && !msg.isRead
-            ).length;
-            
-            return {
-              ...chat,
-              unreadCount,
-              lastMessage: chatMessages[chatMessages.length - 1] || null
-            };
-          } catch (error) {
-            return { ...chat, unreadCount: 0 };
-          }
-        })
-      );
-
-      console.log('📊 Final chats with unread counts:', chatsWithUnread.length);
-      setChats(chatsWithUnread);
+      console.log('📊 Final processed chats:', processedChats.length);
+      setChats(processedChats);
     } catch (error) {
       console.log("❌ Error loading chats");
       console.error('❌ Error loading chats:', error);
@@ -263,11 +344,46 @@ export function ChatLayout() {
         });
       }
 
-      // Calculate unread count for each chat
-      const chatsWithUnread = await Promise.all(
-        allChats.map(async (chat: Chat) => {
-          try {
-            const chatMessages = await MessageAPI.read(chat._id);
+      // Process chats to identify and enhance guest chats (same logic as loadChats)
+      const processedChats = await Promise.all((allChats || []).map(async (chat) => {
+        try {
+          // Get messages for this chat to check if it's a guest chat
+          const chatMessages = await MessageAPI.read(chat._id);
+          
+          // Check if this chat has any guest messages
+          const guestMessages = chatMessages.filter((msg: any) => 
+            msg.sender === 'guest' || msg.isGuestMessage
+          );
+          
+          if (guestMessages.length > 0) {
+            // This is a guest chat - enhance the chat structure
+            const enhancedChat = {
+              ...chat,
+              isGuestChat: true,
+              lastMessage: guestMessages[guestMessages.length - 1], // Last guest message
+              unreadCount: guestMessages.filter((msg: any) => 
+                msg.sender === 'guest' && !msg.isRead
+              ).length
+            };
+            
+            // Update the guest user info if available from messages
+            const guestMessage = guestMessages.find((msg: any) => msg.guestName);
+            if (guestMessage) {
+              enhancedChat.users = enhancedChat.users.map((user: any) => {
+                if (user._id === 'guest') {
+                  return {
+                    ...user,
+                    firstName: guestMessage.guestName || 'Guest',
+                    phone: guestMessage.guestPhone || ''
+                  };
+                }
+                return user;
+              });
+            }
+            
+            return enhancedChat;
+          } else {
+            // Regular chat - calculate unread count normally
             const unreadCount = chatMessages.filter((msg: Message) => 
               msg.sender !== auth.user._id && !msg.isRead
             ).length;
@@ -277,13 +393,14 @@ export function ChatLayout() {
               unreadCount,
               lastMessage: chatMessages[chatMessages.length - 1] || null
             };
-          } catch (error) {
-            return { ...chat, unreadCount: 0 };
           }
-        })
-      );
+        } catch (error) {
+          console.error('❌ Error processing chat:', chat._id, error);
+          return { ...chat, unreadCount: 0 };
+        }
+      }));
 
-      setChats(chatsWithUnread);
+      setChats(processedChats);
     } catch (error) {
       console.error('Error silently updating chats:', error);
     }
@@ -293,9 +410,20 @@ export function ChatLayout() {
   const loadMessages = useCallback(async (chatId: string) => {
     console.log('🔄 Loading messages for chatId:', chatId);
     try {
+      // All messages now come from the server API
       const chatMessages = await MessageAPI.read(chatId);
       console.log('📨 Messages received:', chatMessages);
       console.log('📨 Number of messages:', chatMessages?.length || 0);
+      
+      // Log messages with attachments
+      const messagesWithAttachments = chatMessages?.filter(msg => msg.attachment) || [];
+      if (messagesWithAttachments.length > 0) {
+        console.log('📎 ChatLayout found messages with attachments:', messagesWithAttachments.length);
+        messagesWithAttachments.forEach(msg => {
+          console.log('📎 ChatLayout attachment data:', msg.attachment);
+        });
+      }
+      
       setMessages(chatMessages || []);
     } catch (error) {
       console.error('❌ Error loading messages:', error);
@@ -306,6 +434,7 @@ export function ChatLayout() {
   // This function loads messages without showing loading states to the user
   const silentlyLoadMessages = useCallback(async (chatId: string) => {
     try {
+      // All messages now come from the server API
       const chatMessages = await MessageAPI.read(chatId);
       setMessages(chatMessages || []);
     } catch (error) {
@@ -317,6 +446,40 @@ export function ChatLayout() {
   const sendMessage = useCallback(async () => {
     if (!message.trim() || !selectedChat || !auth?.user) return;
 
+    // Check if this is a guest chat
+    const isGuestChat = (selectedChat as any)?.isGuestChat;
+    
+    if (isGuestChat) {
+      console.log('📤 Admin responding to guest chat');
+      
+      // For guest chats, send response through the regular API
+      // The server will handle sending to the guest user
+      const messageData = {
+        idChat: selectedChat._id,
+        message: message.trim(),
+        sender: 'admin',
+        reciver: 'guest', // Send to guest
+      };
+
+      console.log('📤 Sending admin response via API:', messageData);
+      const sentMessage = await MessageAPI.send(messageData);
+      console.log('✅ Admin response sent successfully:', sentMessage);
+      
+      setMessage('');
+      
+      // Refresh messages to show the new response
+      await loadMessages(selectedChat._id);
+      await silentlyUpdateChats();
+      
+      // Auto-scroll to bottom
+      setTimeout(() => {
+        scrollToBottom();
+      }, 100);
+      
+      return;
+    }
+
+    // Regular authenticated user flow
     // Always set sender/reciver as required
     // Admin users have role === 'ADMIN'
     const isAdmin = auth.user.role === 'ADMIN';
@@ -395,37 +558,8 @@ export function ChatLayout() {
       const sentMessage = await MessageAPI.send(messageData);
       console.log('✅ Message sent successfully:', sentMessage);
       
-      // Emit socket event for real-time delivery to user
-      if (socketContext?.socket && reciver) {
-        const socketMessageData = {
-          ...messageData,
-          _id: sentMessage?._id || `temp-${Date.now()}`,
-          createdAt: new Date().toISOString(),
-          isAdmin: true,
-          sender: 'admin',
-          reciver: reciver
-        };
-        
-        console.log('📤 Emitting adminMessage socket event:', socketMessageData);
-        
-        // Emit adminMessage event (primary event for admin chat)
-        socketContext.socket.emit('adminMessage', socketMessageData);
-        
-        // Also emit sendMessage for broader compatibility
-        socketContext.socket.emit('sendMessage', socketMessageData);
-        
-        // Emit newMessage for notification system
-        socketContext.socket.emit('newMessage', {
-          message: messageData.message,
-          reciver: reciver,
-          idChat: messageData.idChat,
-          sender: 'admin'
-        });
-        
-        console.log('✅ All socket events emitted for real-time delivery to user:', reciver);
-      } else {
-        console.warn('⚠️ Cannot emit socket events - socket not connected or no receiver');
-      }
+      // The server-side MessageService.create will handle socket events automatically
+      // No need to emit socket events from client-side
       
       setMessage('');
       // Refresh messages
@@ -437,7 +571,279 @@ export function ChatLayout() {
     } catch (error) {
       console.error('❌ Error sending message:', error);
     }
-  }, [message, selectedChat, auth?.user, socketContext?.socket, loadMessages, silentlyUpdateChats]);
+  }, [message, selectedChat, auth?.user, socketContext?.socket, loadMessages, silentlyUpdateChats, scrollToBottom]);
+
+  // Handle file selection - memoized with useCallback
+  const handleFileSelect = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      // Check file size (max 10MB)
+      if (file.size > 10 * 1024 * 1024) {
+        alert('File is too large. Maximum size: 10MB');
+        return;
+      }
+
+      // Check file type
+      const allowedTypes = [
+        'image/jpeg', 'image/png', 'image/gif', 'image/webp',
+        'application/pdf', 'text/plain', 'application/msword',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+      ];
+
+      if (!allowedTypes.includes(file.type)) {
+        alert('File type not supported. Supported formats: Images (JPG, PNG, GIF, WebP), PDF, TXT, DOC, DOCX');
+        return;
+      }
+
+      setSelectedFile(file);
+      
+      // Create preview for images
+      if (file.type.startsWith('image/')) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          setFilePreview(e.target?.result as string);
+        };
+        reader.readAsDataURL(file);
+      } else {
+        setFilePreview('');
+      }
+    }
+  }, []);
+
+  const removeSelectedFile = useCallback(() => {
+    setSelectedFile(null);
+    setFilePreview('');
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  }, []);
+
+  const sendAttachment = useCallback(async () => {
+    if (!selectedFile || !selectedChat) {
+      return;
+    }
+
+    setIsUploading(true);
+    
+    // Create temporary message for immediate display
+    const isAdmin = auth?.user?.role === 'ADMIN';
+    const sender = isAdmin ? 'admin' : auth?.user?._id;
+    const tempMessageId = `temp-attachment-${Date.now()}-${Math.random()}`;
+    
+    // Create a blob URL for preview
+    const previewUrl = URL.createObjectURL(selectedFile);
+    
+    const tempAttachmentInfo = {
+      _id: tempMessageId,
+      url: previewUrl,
+      name: selectedFile.name,
+      type: selectedFile.type,
+      size: selectedFile.size,
+      filename: selectedFile.name
+    };
+    
+    // Find receiver
+    const user = selectedChat.users.find(u => u._id !== 'admin' && u.AccountType !== 'admin');
+    const reciver = isAdmin ? (user?._id || 'guest') : 'admin';
+    
+    const tempMessage: Message = {
+      _id: tempMessageId,
+      message: `📎 ${selectedFile.name}`,
+      sender: sender || '',
+      reciver: reciver,
+      idChat: selectedChat._id,
+      createdAt: new Date().toISOString(),
+      attachment: tempAttachmentInfo,
+      isRead: false
+    };
+    
+    // Add temporary message immediately to local state
+    setMessages(prev => [...prev, tempMessage]);
+    console.log('✅ Temporary attachment message added to local state');
+    
+    // Scroll to bottom
+    setTimeout(() => {
+      scrollToBottom();
+    }, 10);
+    
+    try {
+      // Step 1: Upload file to attachments endpoint
+      const uploadFormData = new FormData();
+      uploadFormData.append('file', selectedFile);
+      uploadFormData.append('as', 'message-attachment');
+      
+      console.log('📤 Uploading file...');
+      const apiUrl = typeof window !== 'undefined' && window.location ? 
+        `${window.location.protocol}//${window.location.hostname}:3000` : 
+        'http://localhost:3000';
+      const uploadResponse = await fetch(`${apiUrl}/attachments/upload`, {
+        method: 'POST',
+        body: uploadFormData
+      });
+
+      if (!uploadResponse.ok) {
+        throw new Error('Upload failed');
+      }
+
+      const uploadData = await uploadResponse.json();
+      console.log('✅ File uploaded:', uploadData);
+      
+      // Extract attachment info
+      const attachmentInfo = {
+        _id: uploadData._id || uploadData.id,
+        url: uploadData.fullUrl || uploadData.url || `http://localhost:3000/static/${uploadData.filename}`,
+        name: uploadData.originalname || selectedFile.name,
+        type: uploadData.mimetype || selectedFile.type,
+        size: uploadData.size || selectedFile.size,
+        filename: uploadData.filename
+      };
+
+      // Step 2: Create message with attachment
+      const messageData = {
+        idChat: selectedChat._id,
+        message: `📎 ${selectedFile.name}`,
+        sender: sender || '',
+        reciver: reciver,
+        attachment: attachmentInfo, // Add attachment to message
+      };
+
+      console.log('📤 Sending attachment message with data:', JSON.stringify(messageData, null, 2));
+      console.log('📎 Attachment info being sent:', JSON.stringify(attachmentInfo, null, 2));
+      
+      const sentMessage = await MessageAPI.send(messageData);
+      
+      console.log('✅ Attachment message sent, response:', JSON.stringify(sentMessage, null, 2));
+      
+      // Replace temporary message with server response
+      const messageResponse = sentMessage?.data || sentMessage;
+      if (messageResponse && messageResponse._id) {
+        setMessages(prev => prev.map(msg => 
+          msg._id === tempMessageId
+            ? { ...messageResponse, attachment: attachmentInfo }
+            : msg
+        ));
+        console.log('✅ Temporary attachment message replaced with server response');
+        
+        // Clean up blob URL
+        URL.revokeObjectURL(previewUrl);
+      }
+
+      // Clear file selection
+      removeSelectedFile();
+
+      // Refresh messages
+      await loadMessages(selectedChat._id);
+      await silentlyUpdateChats();
+    } catch (error) {
+      console.error('❌ Error sending attachment:', error);
+      
+      // Replace with error message
+      setMessages(prev => prev.map(msg => 
+        msg._id === tempMessageId
+          ? { ...msg, message: 'Failed to send attachment', isError: true } as any
+          : msg
+      ));
+      
+      alert('Failed to send attachment. Please try again.');
+    } finally {
+      setIsUploading(false);
+    }
+  }, [selectedFile, selectedChat, auth?.user, loadMessages, silentlyUpdateChats, removeSelectedFile, scrollToBottom]);
+
+  // Voice message functions
+  const startRecording = useCallback(async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mediaRecorder = new MediaRecorder(stream);
+      mediaRecorderRef.current = mediaRecorder;
+      audioChunksRef.current = [];
+
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          audioChunksRef.current.push(event.data);
+        }
+      };
+
+      mediaRecorder.onstop = () => {
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        setAudioBlob(audioBlob);
+        const url = URL.createObjectURL(audioBlob);
+        setAudioUrl(url);
+        
+        // Stop all tracks
+        stream.getTracks().forEach(track => track.stop());
+      };
+
+      mediaRecorder.start();
+      setIsRecording(true);
+    } catch (error) {
+      console.error('Error accessing microphone:', error);
+      alert('Unable to access microphone');
+    }
+  }, []);
+
+  const stopRecording = useCallback(() => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop();
+      setIsRecording(false);
+    }
+  }, [isRecording]);
+
+  const sendVoiceMessage = useCallback(async () => {
+    if (!audioBlob || !selectedChat) {
+      return;
+    }
+
+    try {
+      const formData = new FormData();
+      const isAdmin = auth?.user?.role === 'ADMIN';
+      
+      formData.append('audio', audioBlob, 'voice-message.webm');
+      formData.append('idChat', selectedChat._id);
+      formData.append('sender', isAdmin ? 'admin' : (auth?.user?._id || 'guest'));
+      formData.append('reciver', isAdmin ? selectedChat.users.find(u => u._id !== 'admin')?._id || 'guest' : 'admin');
+
+      const apiUrl = typeof window !== 'undefined' && window.location ? 
+        `${window.location.protocol}//${window.location.hostname}:3000` : 
+        'http://localhost:3000';
+      const response = await fetch(`${apiUrl}/message/voice-message`, {
+        method: 'POST',
+        body: formData
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setAudioBlob(null);
+        setAudioUrl('');
+        if (audioUrl) URL.revokeObjectURL(audioUrl);
+        
+        // Refresh messages
+        await loadMessages(selectedChat._id);
+        await silentlyUpdateChats();
+      } else {
+        throw new Error('Failed to send voice message');
+      }
+    } catch (error) {
+      console.error('Error sending voice message:', error);
+      alert('Failed to send voice message');
+    }
+  }, [audioBlob, selectedChat, auth?.user, audioUrl, loadMessages, silentlyUpdateChats]);
+
+  const getFileIcon = (fileType: string) => {
+    if (fileType.startsWith('image/')) return 'image';
+    if (fileType === 'application/pdf') return 'picture_as_pdf';
+    if (fileType.includes('word')) return 'description';
+    if (fileType === 'text/plain') return 'text_snippet';
+    return 'attach_file';
+  };
+
+  const formatFileSize = (bytes: number) => {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  };
 
   // Handle socket messages - memoized with useCallback
   const handleNewMessage = useCallback((data: Message) => {
@@ -558,6 +964,175 @@ export function ChatLayout() {
     }
   }, []);
 
+  const handleImageClick = useCallback((imageUrl: string, imageName: string) => {
+    console.log('🖼️ Opening image modal:', { imageUrl, imageName });
+    setSelectedImage({ url: imageUrl, name: imageName });
+  }, []);
+
+  const handleCloseImage = useCallback(() => {
+    setSelectedImage(null);
+  }, []);
+
+  const handleDownloadImage = useCallback(async (fileUrl: string, fileName: string) => {
+    try {
+      console.log('📥 Starting download:', { fileUrl, fileName });
+      
+      // Check if fileUrl is valid
+      if (!fileUrl) {
+        throw new Error('File URL is undefined or empty');
+      }
+      
+      // Ensure we have a proper URL
+      let fullUrl = fileUrl;
+      if (fileUrl.startsWith('/static/')) {
+        const apiUrl = typeof window !== 'undefined' && window.location ? 
+          `${window.location.protocol}//${window.location.hostname}:3000` : 
+          'http://localhost:3000';
+        fullUrl = `${apiUrl}${fileUrl}`;
+      }
+      
+      console.log('📥 Download URL:', fullUrl);
+      
+      // Fetch the file as a blob
+      const response = await fetch(fullUrl);
+      
+      if (!response.ok) {
+        throw new Error(`Failed to fetch file: ${response.status} ${response.statusText}`);
+      }
+      
+      const blob = await response.blob();
+      console.log('📥 Blob type:', blob.type);
+      console.log('📥 File size:', blob.size, 'bytes');
+      
+      // Create object URL from the blob
+      const objectUrl = URL.createObjectURL(blob);
+      
+      // Determine file name and extension
+      let downloadFileName = fileName || 'file';
+      if (!downloadFileName || downloadFileName === 'undefined' || !downloadFileName.includes('.')) {
+        // Try to get extension from content type
+        const mimeType = blob.type;
+        if (mimeType.startsWith('image/')) {
+          const extension = mimeType.split('/')[1]?.split('+')[0] || 'png';
+          downloadFileName = `image.${extension}`;
+        } else if (mimeType.startsWith('audio/')) {
+          const extension = mimeType.split('/')[1]?.split('+')[0] || 'webm';
+          downloadFileName = `audio.${extension}`;
+        } else if (mimeType.includes('pdf')) {
+          downloadFileName = 'document.pdf';
+        } else {
+          downloadFileName = 'file';
+        }
+      }
+      
+      console.log('📥 Downloading as:', downloadFileName);
+      
+      // Create download link
+    const link = document.createElement('a');
+      link.href = objectUrl;
+      link.download = downloadFileName;
+    document.body.appendChild(link);
+    link.click();
+      
+      // Clean up
+      setTimeout(() => {
+    document.body.removeChild(link);
+        URL.revokeObjectURL(objectUrl);
+      }, 100);
+      
+      console.log('✅ Download initiated successfully');
+    } catch (error) {
+      console.error('❌ Error downloading file:', error);
+      alert('Failed to download file. Please try again.');
+    }
+  }, []);
+
+  // Handle audio playback - useRef to store audio elements
+  const audioRefs = useRef<Map<string, HTMLAudioElement>>(new Map());
+
+  const handlePlayAudio = useCallback((audioUrl: string, messageId: string) => {
+    console.log('🎤 handlePlayAudio called:', { audioUrl, messageId });
+    
+    // Get or create audio element
+    let audioElement = audioRefs.current.get(messageId);
+    
+    if (!audioElement) {
+      console.log('🎤 Creating new audio element');
+      audioElement = new Audio(audioUrl);
+      
+      // Handle when audio ends
+      audioElement.addEventListener('ended', () => {
+        console.log('🎤 Audio ended');
+        setPlayingAudioId(null);
+      });
+      
+      // Handle when audio is paused
+      audioElement.addEventListener('pause', () => {
+        console.log('🎤 Audio paused');
+        setPlayingAudioId(null);
+      });
+      
+      // Handle when audio starts playing
+      audioElement.addEventListener('play', () => {
+        console.log('🎤 Audio playing');
+        setPlayingAudioId(messageId);
+        setLoadingAudioId(null);
+      });
+      
+      // Handle audio loading
+      audioElement.addEventListener('loadstart', () => {
+        console.log('🎤 Audio loading started');
+        setLoadingAudioId(messageId);
+      });
+      
+      audioElement.addEventListener('canplay', () => {
+        console.log('🎤 Audio can play');
+        setLoadingAudioId(null);
+      });
+      
+      audioElement.addEventListener('error', (e) => {
+        console.error('🎤 Audio error:', e);
+        console.error('🎤 Audio error code:', audioElement.error);
+        console.error('🎤 Audio URL:', audioUrl);
+        if (audioElement.error) {
+          console.error('🎤 Error details:', {
+            code: audioElement.error.code,
+            message: audioElement.error.message
+          });
+        }
+        setLoadingAudioId(null);
+      });
+      
+      audioRefs.current.set(messageId, audioElement);
+    }
+    
+    // Toggle play/pause
+    if (audioElement.paused) {
+      console.log('🎤 Starting audio playback');
+      // Stop any other playing audio
+      if (playingAudioId && playingAudioId !== messageId) {
+        const otherAudio = audioRefs.current.get(playingAudioId);
+        if (otherAudio) {
+          otherAudio.pause();
+          otherAudio.currentTime = 0;
+        }
+      }
+      
+      audioElement.play()
+        .then(() => {
+          console.log('✅ Audio playback started successfully');
+        })
+        .catch(error => {
+          console.error('❌ Error playing audio:', error);
+          console.error('❌ Failed URL:', audioUrl);
+        });
+    } else {
+      console.log('🎤 Pausing audio');
+      audioElement.pause();
+      setPlayingAudioId(null);
+    }
+  }, [playingAudioId]);
+
   const getUserFromChat = useCallback((chat: Chat) => {
     // Always get the second user (index 1) from the users array
     // This is the client/buyer/seller user in admin chats
@@ -574,39 +1149,41 @@ export function ChatLayout() {
     // - If current user (admin) is the receiver -> message goes LEFT (user sent to admin)
     
     const currentUserId = auth?.user?._id;
+    const currentUserRole = auth?.user?.role;
+    const isAdmin = currentUserRole === 'ADMIN';
+    
+    // Check if sender is admin (for backoffice users)
+    const isSenderAdmin = msg.sender === 'admin' || msg.sender === 'ADMIN';
     const isCurrentUserSender = msg.sender === currentUserId;
-    const isCurrentUserReceiver = msg.reciver === currentUserId;
     
     console.log('🔍 DEBUG - Message analysis:', {
-      message: msg.message.substring(0, 20) + '...',
+      messagePreview: msg.message.substring(0, 30),
       sender: `"${msg.sender}"`,
       reciver: `"${msg.reciver}"`,
       currentUserId: `"${currentUserId}"`,
+      currentUserRole: `"${currentUserRole}"`,
+      isAdmin,
+      isSenderAdmin,
       isCurrentUserSender,
-      isCurrentUserReceiver
+      hasAttachment: !!msg.attachment
     });
     
-    // If current user is the sender, it's our message (goes RIGHT)
+    // If current user is admin and sender is admin, it's our message (goes RIGHT)
+    if (isAdmin && isSenderAdmin) {
+      console.log('✅ Going RIGHT - Admin sent this message');
+      return true;
+    }
+    
+    // If current user is the sender by ID, it's our message (goes RIGHT)
     if (isCurrentUserSender) {
       console.log('✅ Going RIGHT - Current user is sender');
       return true;
     }
-    // If current user is the receiver, it's from someone else (goes LEFT)
-    else if (isCurrentUserReceiver) {
-      console.log('✅ Going LEFT - Current user is receiver');
-      return false;
-    }
-    // Fallback: check if sender is 'admin' (for backward compatibility)
-    else if (msg.sender === 'admin' || msg.sender === 'ADMIN') {
-      console.log('✅ Going RIGHT - Admin is sender (fallback)');
-      return true;
-    }
+    
     // Default: message from user (goes LEFT)
-    else {
-      console.log('✅ Going LEFT - User message (default)');
-      return false;
-    }
-  }, [auth?.user?._id]);
+    console.log('✅ Going LEFT - Message from someone else');
+    return false;
+  }, [auth?.user?._id, auth?.user?.role]);
 
   const getFilteredChats = useCallback((clientType: ClientType) => {
     console.group(`🔍 FILTERING CHATS FOR ${clientType.title}`);
@@ -647,6 +1224,10 @@ export function ChatLayout() {
         // Show both CLIENT and BUYER types in the client tab
         matchesType = clientType.id === 'client';
         console.log(`Type is ${userAccountType}, matches client tab: ${matchesType}`);
+      } else if (userAccountType === 'GUEST' || userAccountType === 'guest') {
+        // Show guest users in the guest tab
+        matchesType = clientType.id === 'guest';
+        console.log(`Type is ${userAccountType}, matches guest tab: ${matchesType}`);
       } else if (clientType.id === 'client') {
         // For any other account type, show in the client tab as fallback
         // This ensures all chats are visible somewhere
@@ -683,6 +1264,7 @@ export function ChatLayout() {
     console.log('🔍 Chat selected:', chat);
     console.log('🔍 Chat users:', chat.users);
     console.log('🔍 Current admin user:', auth?.user);
+    console.log('🔍 Is guest chat:', (chat as any).isGuestChat);
     
     // Debug: Log each user in the selected chat
     if (chat.users && Array.isArray(chat.users)) {
@@ -708,18 +1290,25 @@ export function ChatLayout() {
       window.adminNotificationsHook.clearNewNotifications();
     }
     
-    // Mark all messages in this chat as read
-    try {
-      await MessageAPI.markAllAsRead(chat._id);
-      console.log('✅ All messages marked as read for chat:', chat._id);
-      
-      // Immediately trigger badge refresh
+    // For guest chats, we don't need to mark messages as read via API
+    if (!(chat as any).isGuestChat) {
+      // Mark all messages in this chat as read
+      try {
+        await MessageAPI.markAllAsRead(chat._id);
+        console.log('✅ All messages marked as read for chat:', chat._id);
+        
+        // Immediately trigger badge refresh
+        window.dispatchEvent(new CustomEvent('refreshAdminNotifications'));
+        
+        // Also silently update chats to reflect the read status
+        silentlyUpdateChats();
+      } catch (error) {
+        console.error('❌ Error marking messages as read:', error);
+      }
+    } else {
+      console.log('🔍 Guest chat selected - no need to mark messages as read');
+      // Still trigger badge refresh for consistency
       window.dispatchEvent(new CustomEvent('refreshAdminNotifications'));
-      
-      // Also silently update chats to reflect the read status
-      silentlyUpdateChats();
-    } catch (error) {
-      console.error('❌ Error marking messages as read:', error);
     }
   }, [loadMessages, silentlyUpdateChats]);
 
@@ -798,11 +1387,16 @@ export function ChatLayout() {
                 <Typography variant="h6" sx={{ fontWeight: 600 }}>
                   {user?.firstName} {user?.lastName}
                 </Typography>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
                   <OnlineIcon sx={{ fontSize: 12, color: '#4CAF50' }} />
                   <Typography variant="caption" sx={{ opacity: 0.9 }}>
                     {user?.AccountType} • En ligne
                   </Typography>
+                  {user?.phone && (
+                    <Typography variant="body2" sx={{ opacity: 0.95, fontWeight: 700, fontSize: '0.9rem' }}>
+                      📞 {user.phone}
+                    </Typography>
+                  )}
                   <Chip 
                     label="Client" 
                     size="small"
@@ -906,9 +1500,287 @@ export function ChatLayout() {
                               : `1px solid ${alpha(theme.palette.grey[300], 0.5)}`,
                           }}
                         >
-                          <Typography variant="body1" sx={{ mb: 0.5, wordBreak: 'break-word' }}>
-                            {msg.message}
-                          </Typography>
+                          {/* Display attachment or text message */}
+                          {msg.attachment && msg.attachment.url && msg.attachment.name ? (
+                            <>
+                              {console.log('📎 ChatLayout rendering attachment:', msg.attachment)}
+                              {msg.attachment.type?.startsWith('audio/') || msg.attachment.name?.includes('voice') ? (
+                                // Display voice message with play button
+                                (() => {
+                                  // Get the audio URL - it might already be a full URL from the server
+                                  let audioUrl = msg.attachment.url || '';
+                                  
+                                  // If it's a relative URL, make it absolute
+                                  if (audioUrl.startsWith('/static/')) {
+                                    const apiUrl = typeof window !== 'undefined' && window.location ? 
+                                      `${window.location.protocol}//${window.location.hostname}:3000` : 
+                                      'http://localhost:3000';
+                                    audioUrl = `${apiUrl}${audioUrl}`;
+                                  }
+                                  
+                                  // If it's already a full URL, use it as is
+                                  const isPlaying = playingAudioId === msg._id;
+                                  const isLoading = loadingAudioId === msg._id;
+                                  console.log('🎤 Voice message - Original URL:', msg.attachment.url);
+                                  console.log('🎤 Voice message - Processed URL:', audioUrl);
+                                  console.log('🎤 Voice message - Is playing:', isPlaying);
+                                  console.log('🎤 Voice message - Is loading:', isLoading);
+                                  return (
+                                    <Box sx={{ mb: 1 }}>
+                                      <Box
+                                        sx={{
+                                          display: 'flex',
+                                          alignItems: 'center',
+                                          gap: 1.5,
+                                          bgcolor: alpha(isOwnMessage(msg) ? theme.palette.primary.dark : theme.palette.grey[300], 0.2),
+                                          border: `1px solid ${alpha(isOwnMessage(msg) ? theme.palette.primary.contrastText : theme.palette.primary.main, 0.2)}`,
+                                          borderRadius: 3,
+                                          p: 1.5,
+                                          minWidth: 0,
+                                          maxWidth: '100%'
+                                        }}
+                                      >
+                                        {/* Play/Pause Button */}
+                                        <IconButton
+                                          onClick={() => handlePlayAudio(audioUrl, msg._id)}
+                                          disabled={isLoading}
+                                          size="medium"
+                                          sx={{
+                                            color: isOwnMessage(msg) 
+                                              ? theme.palette.primary.contrastText 
+                                              : theme.palette.primary.main,
+                                            bgcolor: alpha(isOwnMessage(msg) 
+                                              ? theme.palette.primary.contrastText 
+                                              : theme.palette.primary.main, 0.1),
+                                            width: 40,
+                                            height: 40,
+                                            flexShrink: 0,
+                                            '&:hover': {
+                                              bgcolor: alpha(isOwnMessage(msg) 
+                                                ? theme.palette.primary.contrastText 
+                                                : theme.palette.primary.main, 0.2),
+                                            },
+                                            '&:disabled': {
+                                              opacity: 0.6
+                                            }
+                                          }}
+                                        >
+                                          {isLoading ? (
+                                            <CircularProgress size={20} sx={{ color: 'inherit' }} />
+                                          ) : isPlaying ? (
+                                            <PauseIcon sx={{ fontSize: 20 }} />
+                                          ) : (
+                                            <PlayArrowIcon sx={{ fontSize: 20 }} />
+                                          )}
+                                        </IconButton>
+                                        
+                                        {/* Audio Info */}
+                                        <Box sx={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: 1 }}>
+                                          <MicIcon 
+                                            sx={{ 
+                                              fontSize: 18,
+                                              color: isOwnMessage(msg) 
+                                                ? theme.palette.primary.contrastText 
+                                                : theme.palette.primary.main,
+                                              opacity: 0.7,
+                                              flexShrink: 0
+                                            }} 
+                                          />
+                                          <Box sx={{ flex: 1, minWidth: 0, overflow: 'hidden' }}>
+                                            <Typography 
+                                              variant="body2" 
+                                              sx={{ 
+                                                fontWeight: 500,
+                                                fontSize: '0.875rem',
+                                                color: isOwnMessage(msg) 
+                                                  ? theme.palette.primary.contrastText 
+                                                  : 'text.primary',
+                                                whiteSpace: 'nowrap',
+                                                overflow: 'hidden',
+                                                textOverflow: 'ellipsis'
+                                              }}
+                                            >
+                                              {msg.attachment.name || 'Voice message'}
+                                            </Typography>
+                                            <Typography 
+                                              variant="caption" 
+                                              sx={{ 
+                                                opacity: 0.6,
+                                                color: isOwnMessage(msg) 
+                                                  ? theme.palette.primary.contrastText 
+                                                  : 'text.secondary',
+                                                fontSize: '0.7rem',
+                                                display: 'block'
+                                              }}
+                                            >
+                                              Audio • {Math.round((msg.attachment.size || 0) / 1024)} KB
+                                            </Typography>
+                                          </Box>
+                                        </Box>
+                                      </Box>
+                                    </Box>
+                                  );
+                                })()
+                              ) : msg.attachment.type?.startsWith('image/') ? (
+                                // Display image with click to view and download options
+                                <Box sx={{ mb: 1 }}>
+                                  <Box sx={{ position: 'relative', borderRadius: 2, overflow: 'hidden' }}>
+                                    <img
+                                      src={msg.attachment.url}
+                                      alt={msg.attachment.name || 'Attachment'}
+                                      style={{
+                                        width: '100%',
+                                        maxWidth: '300px',
+                                        height: 'auto',
+                                        cursor: 'pointer',
+                                        display: 'block',
+                                        borderRadius: '8px'
+                                      }}
+                                      onClick={() => handleImageClick(msg.attachment.url, msg.attachment.name)}
+                                    />
+                                    <Box
+                                      sx={{
+                                        position: 'absolute',
+                                        bottom: 8,
+                                        right: 8,
+                                        display: 'flex',
+                                        gap: 1,
+                                        bgcolor: 'rgba(0, 0, 0, 0.6)',
+                                        borderRadius: 1,
+                                        p: 0.5
+                                      }}
+                                    >
+                                      <IconButton
+                                        size="small"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleImageClick(msg.attachment.url, msg.attachment.name);
+                                        }}
+                                        sx={{ color: 'white' }}
+                                      >
+                                        <ImageIcon fontSize="small" />
+                                      </IconButton>
+                                      {msg.attachment?.url && (
+                                      <IconButton
+                                        size="small"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                            console.log('📎 Image download clicked - full message:', msg);
+                                            console.log('📎 Image download clicked - attachment data:', msg.attachment);
+                                            console.log('📎 Image download clicked - attachment URL:', msg.attachment?.url);
+                                            console.log('📎 Image download clicked - attachment name:', msg.attachment?.name);
+                                            
+                                          handleDownloadImage(msg.attachment.url, msg.attachment.name);
+                                        }}
+                                        sx={{ color: 'white' }}
+                                      >
+                                        <DownloadIcon fontSize="small" />
+                                      </IconButton>
+                                      )}
+                                    </Box>
+                                  </Box>
+                                </Box>
+                              ) : (
+                                // Display file attachment
+                                <Box
+                                  sx={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: 1.5,
+                                    bgcolor: alpha(isOwnMessage(msg) ? theme.palette.primary.dark : theme.palette.grey[300], 0.2),
+                                    border: `1px solid ${alpha(isOwnMessage(msg) ? theme.palette.primary.contrastText : theme.palette.primary.main, 0.2)}`,
+                                    borderRadius: 2,
+                                    p: 1.5,
+                                    mb: 1,
+                                    minWidth: 0,
+                                    maxWidth: '100%'
+                                  }}
+                                >
+                                  <Box
+                                    sx={{
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'center',
+                                      width: 40,
+                                      height: 40,
+                                      borderRadius: 1.5,
+                                      bgcolor: alpha(isOwnMessage(msg) ? theme.palette.primary.contrastText : theme.palette.primary.main, 0.15),
+                                      flexShrink: 0
+                                    }}
+                                  >
+                                    <AttachFileIcon 
+                                      sx={{ 
+                                        fontSize: 20,
+                                        color: isOwnMessage(msg) 
+                                          ? theme.palette.primary.contrastText 
+                                          : theme.palette.primary.main
+                                      }} 
+                                    />
+                                  </Box>
+                                  <Box sx={{ flex: 1, minWidth: 0, overflow: 'hidden' }}>
+                                    <Typography 
+                                      variant="body2" 
+                                      sx={{ 
+                                        fontWeight: 500,
+                                        fontSize: '0.875rem',
+                                        color: isOwnMessage(msg) 
+                                          ? theme.palette.primary.contrastText 
+                                          : 'text.primary',
+                                        whiteSpace: 'nowrap',
+                                        overflow: 'hidden',
+                                        textOverflow: 'ellipsis'
+                                      }}
+                                    >
+                                      {msg.attachment.name}
+                                    </Typography>
+                                    <Typography 
+                                      variant="caption" 
+                                      sx={{ 
+                                        opacity: 0.6,
+                                        color: isOwnMessage(msg) 
+                                          ? theme.palette.primary.contrastText 
+                                          : 'text.secondary',
+                                        fontSize: '0.7rem'
+                                      }}
+                                    >
+                                      File • {Math.round((msg.attachment.size || 0) / 1024)} KB
+                                    </Typography>
+                                  </Box>
+                                  {msg.attachment?.url && (
+                                  <IconButton
+                                    size="small"
+                                      onClick={() => {
+                                        console.log('📎 File download clicked - full message:', msg);
+                                        console.log('📎 File download clicked - attachment data:', msg.attachment);
+                                        console.log('📎 File download clicked - attachment URL:', msg.attachment?.url);
+                                        console.log('📎 File download clicked - attachment name:', msg.attachment?.name);
+                                        
+                                        handleDownloadImage(msg.attachment.url, msg.attachment.name);
+                                      }}
+                                      sx={{
+                                        color: isOwnMessage(msg) 
+                                          ? theme.palette.primary.contrastText 
+                                          : theme.palette.primary.main,
+                                        flexShrink: 0
+                                      }}
+                                    >
+                                      <DownloadIcon sx={{ fontSize: 18 }} />
+                                  </IconButton>
+                                  )}
+                                </Box>
+                              )}
+                              {/* Show text message only if it's not just the file name */}
+                              {msg.message && msg.message.trim() && !msg.message.startsWith('📎') && (
+                                <Typography variant="body1" sx={{ mb: 0.5, wordBreak: 'break-word' }}>
+                                  {msg.message}
+                                </Typography>
+                              )}
+                            </>
+                          ) : (
+                            <Typography variant="body1" sx={{ mb: 0.5, wordBreak: 'break-word' }}>
+                              {msg.message}
+                            </Typography>
+                          )}
                           <Typography
                             variant="caption"
                             sx={{
@@ -956,7 +1828,138 @@ export function ChatLayout() {
               bgcolor: theme.palette.background.paper,
             }}
           >
+            {/* File Preview */}
+            {selectedFile && (
+              <Box sx={{ mb: 2 }}>
+                <Paper elevation={2} sx={{ p: 2, bgcolor: alpha(theme.palette.primary.main, 0.05), border: `1px solid ${alpha(theme.palette.primary.main, 0.2)}` }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                    {filePreview ? (
+                      <img src={filePreview} alt="Preview" style={{ width: 60, height: 60, borderRadius: 8, objectFit: 'cover' }} />
+                    ) : (
+                      <AttachFileIcon sx={{ fontSize: 40, color: theme.palette.primary.main }} />
+                    )}
+                    <Box sx={{ flex: 1 }}>
+                      <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                        {selectedFile.name}
+                      </Typography>
+                      <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                        {formatFileSize(selectedFile.size)}
+                      </Typography>
+                    </Box>
+                    <Box sx={{ display: 'flex', gap: 1 }}>
+                      <IconButton
+                        size="small"
+                        onClick={sendAttachment}
+                        disabled={isUploading}
+                        sx={{ bgcolor: theme.palette.primary.main, color: 'white' }}
+                      >
+                        {isUploading ? <CircularProgress size={20} sx={{ color: 'white' }} /> : <SendIcon />}
+                      </IconButton>
+                      <IconButton
+                        size="small"
+                        onClick={removeSelectedFile}
+                        sx={{ bgcolor: theme.palette.error.main, color: 'white' }}
+                      >
+                        <CloseIcon />
+                      </IconButton>
+                    </Box>
+                  </Box>
+                </Paper>
+              </Box>
+            )}
+
+            {/* Voice Preview */}
+            {audioUrl && (
+              <Box sx={{ mb: 2 }}>
+                <Paper elevation={2} sx={{ p: 2, bgcolor: alpha(theme.palette.secondary.main, 0.05), border: `1px solid ${alpha(theme.palette.secondary.main, 0.2)}` }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                    <MicIcon sx={{ fontSize: 40, color: theme.palette.secondary.main }} />
+                    <audio src={audioUrl} controls style={{ flex: 1, height: 40 }} />
+                    <Box sx={{ display: 'flex', gap: 1 }}>
+                      <IconButton
+                        size="small"
+                        onClick={sendVoiceMessage}
+                        sx={{ bgcolor: theme.palette.primary.main, color: 'white' }}
+                      >
+                        <SendIcon />
+                      </IconButton>
+                      <IconButton
+                        size="small"
+                        onClick={() => {
+                          setAudioUrl('');
+                          setAudioBlob(null);
+                          if (audioUrl) URL.revokeObjectURL(audioUrl);
+                        }}
+                        sx={{ bgcolor: theme.palette.error.main, color: 'white' }}
+                      >
+                        <CloseIcon />
+                      </IconButton>
+                    </Box>
+                  </Box>
+                </Paper>
+              </Box>
+            )}
+
+            {/* Hidden file input */}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*,.pdf,.txt,.doc,.docx"
+              onChange={handleFileSelect}
+              style={{ display: 'none' }}
+            />
+
             <Box sx={{ display: 'flex', gap: 1, alignItems: 'flex-end' }}>
+              {/* Attachment button */}
+              <IconButton
+                onClick={() => fileInputRef.current?.click()}
+                sx={{
+                  bgcolor: alpha(theme.palette.primary.main, 0.1),
+                  color: theme.palette.primary.main,
+                  '&:hover': {
+                    bgcolor: alpha(theme.palette.primary.main, 0.2),
+                  },
+                  borderRadius: 2,
+                }}
+              >
+                <AttachFileIcon />
+              </IconButton>
+
+              {/* Voice message button */}
+              {!audioUrl && (
+                <IconButton
+                  onClick={() => {
+                    if (isRecording) {
+                      stopRecording();
+                    } else {
+                      startRecording();
+                    }
+                  }}
+                  sx={{
+                    bgcolor: isRecording ? alpha(theme.palette.error.main, 0.1) : alpha(theme.palette.secondary.main, 0.1),
+                    color: isRecording ? theme.palette.error.main : theme.palette.secondary.main,
+                    '&:hover': {
+                      bgcolor: isRecording ? alpha(theme.palette.error.main, 0.2) : alpha(theme.palette.secondary.main, 0.2),
+                    },
+                    borderRadius: 2,
+                    animation: isRecording ? 'pulse 1s infinite' : 'none',
+                  }}
+                >
+                  <MicIcon />
+                </IconButton>
+              )}
+
+              <style>{`
+                @keyframes pulse {
+                  0%, 100% {
+                    opacity: 1;
+                  }
+                  50% {
+                    opacity: 0.5;
+                  }
+                }
+              `}</style>
+
               <TextField
                 fullWidth
                 multiline
@@ -1216,11 +2219,18 @@ export function ChatLayout() {
                                           >
                                             {chat.lastMessage?.message || 'Aucun message'}
                                           </Typography>
-                                          {user.email && (
-                                            <Typography variant="caption" color="text.secondary">
-                                              {user.email}
-                                            </Typography>
-                                          )}
+                                          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                                            {user.email && (
+                                              <Typography variant="caption" color="text.secondary">
+                                                {user.email}
+                                              </Typography>
+                                            )}
+                                            {user.phone && (
+                                              <Typography variant="body2" sx={{ color: type.color, fontWeight: 700, fontSize: '0.85rem' }}>
+                                                📞 {user.phone}
+                                              </Typography>
+                                            )}
+                                          </Box>
                                         </Box>
                                       }
                                     />
@@ -1262,6 +2272,140 @@ export function ChatLayout() {
           </Box>
         </Box>
       </Container>
+
+      {/* Image Modal - Similar to FloatingAdminChat */}
+      {selectedImage && (
+        <Dialog
+          open={!!selectedImage}
+          onClose={handleCloseImage}
+          maxWidth={false}
+          PaperProps={{
+            sx: {
+              bgcolor: 'rgba(0, 0, 0, 0.9)',
+              borderRadius: 0,
+              overflow: 'hidden',
+              position: 'relative',
+              width: '100vw',
+              height: '100vh',
+              maxWidth: '100vw',
+              maxHeight: '100vh',
+              margin: 0
+            }
+          }}
+        >
+          <DialogContent 
+            sx={{ 
+              p: 0, 
+              display: 'flex', 
+              justifyContent: 'center', 
+              alignItems: 'center',
+              width: '100%',
+              height: '100%',
+              position: 'relative',
+              cursor: 'pointer'
+            }}
+            onClick={handleCloseImage}
+          >
+            <Box sx={{ position: 'relative', maxWidth: '90vw', maxHeight: '90vh' }}>
+              <img
+                src={selectedImage.url}
+                alt={selectedImage.name}
+                style={{
+                  maxWidth: '90vw',
+                  maxHeight: '90vh',
+                  width: 'auto',
+                  height: 'auto',
+                  borderRadius: '8px',
+                  objectFit: 'contain',
+                  cursor: 'pointer',
+                  display: 'block'
+                }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  // Open in browser on single click
+                  window.open(selectedImage.url, '_blank');
+                }}
+                onDoubleClick={(e) => {
+                  e.stopPropagation();
+                  handleDownloadImage(selectedImage.url, selectedImage.name);
+                }}
+                onError={(e) => {
+                  console.error('❌ Failed to load image in modal:', selectedImage.url);
+                  // Try to construct absolute URL if relative
+                  const img = e.target as HTMLImageElement;
+                  if (selectedImage.url.startsWith('/static/')) {
+                    const absoluteUrl = `http://localhost:3000${selectedImage.url}`;
+                    console.log('🔄 Trying absolute URL:', absoluteUrl);
+                    img.src = absoluteUrl;
+                  }
+                }}
+                onLoad={() => {
+                  console.log('✅ Image loaded successfully in modal:', selectedImage.url);
+                }}
+              />
+              <IconButton
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleCloseImage();
+                }}
+                sx={{
+                  position: 'absolute',
+                  top: 8,
+                  right: 8,
+                  bgcolor: 'rgba(255, 255, 255, 0.2)',
+                  color: 'white',
+                  zIndex: 1,
+                  '&:hover': {
+                    bgcolor: 'rgba(255, 255, 255, 0.3)'
+                  }
+                }}
+              >
+                <CloseIcon />
+              </IconButton>
+              <IconButton
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleDownloadImage(selectedImage.url, selectedImage.name);
+                }}
+                sx={{
+                  position: 'absolute',
+                  top: 8,
+                  right: 56,
+                  bgcolor: 'rgba(255, 255, 255, 0.2)',
+                  color: 'white',
+                  zIndex: 1,
+                  '&:hover': {
+                    bgcolor: 'rgba(255, 255, 255, 0.3)'
+                  }
+                }}
+                title="Download"
+              >
+                <DownloadIcon />
+              </IconButton>
+              <IconButton
+                onClick={(e) => {
+                  e.stopPropagation();
+                  window.open(selectedImage.url, '_blank');
+                }}
+                sx={{
+                  position: 'absolute',
+                  top: 8,
+                  right: 104,
+                  bgcolor: 'rgba(255, 255, 255, 0.2)',
+                  color: 'white',
+                  zIndex: 1,
+                  '&:hover': {
+                    bgcolor: 'rgba(255, 255, 255, 0.3)'
+                  }
+                }}
+                title="Open in browser"
+              >
+                <ImageIcon />
+              </IconButton>
+            </Box>
+          </DialogContent>
+        </Dialog>
+      )}
     </Page>
   );
 }

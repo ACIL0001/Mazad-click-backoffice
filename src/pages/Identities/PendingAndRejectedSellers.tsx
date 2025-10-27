@@ -38,6 +38,8 @@ interface PendingAndRejectedSellersProps {
 const TABLE_HEAD = [
   { id: "user", label: "Utilisateur", alignRight: false, searchable: true },
   { id: "email", label: "Email", alignRight: false, searchable: true },
+  { id: "secteur", label: "Secteur", alignRight: false, searchable: true },
+  { id: "entreprise", label: "Entreprise", alignRight: false, searchable: true },
   { id: "conversion", label: "Conversion", alignRight: false, searchable: false },
   { id: "documents", label: "Documents", alignRight: false, searchable: false },
   { id: "createdAt", label: "Créé le", alignRight: false, searchable: false },
@@ -248,6 +250,32 @@ function SellersTableBody({
               </Typography>
             </TableCell>
             
+            {/* Secteur Cell */}
+            <TableCell align="left" sx={{ py: 2 }}>
+              <Typography
+                variant="body2"
+                sx={{
+                  color: theme.palette.text.primary,
+                  fontSize: "0.875rem",
+                }}
+              >
+                {user?.secteur || "N/A"}
+              </Typography>
+            </TableCell>
+            
+            {/* Entreprise Cell */}
+            <TableCell align="left" sx={{ py: 2 }}>
+              <Typography
+                variant="body2"
+                sx={{
+                  color: theme.palette.text.primary,
+                  fontSize: "0.875rem",
+                }}
+              >
+                {user?.entreprise || "N/A"}
+              </Typography>
+            </TableCell>
+            
             {/* Conversion Type Cell */}
             <TableCell align="left" sx={{ py: 2 }}>
               <Stack direction="row" alignItems="center" spacing={1}>
@@ -440,7 +468,7 @@ export default function PendingAndRejectedSellers({
         for (const id of selected) {
           const identity = pendingAndRejectedSellers.find(seller => seller._id === id)
           if (identity) {
-            await IdentityAPI.verifyIdentity(identity._id, { action: 'accept' })
+            await IdentityAPI.verifyIdentity(identity._id, 'accept')
           }
         }
         enqueueSnackbar(`${selected.length} demandes acceptées avec succès !`, { variant: "success" })
@@ -460,7 +488,7 @@ export default function PendingAndRejectedSellers({
         for (const id of selected) {
           const identity = pendingAndRejectedSellers.find(seller => seller._id === id)
           if (identity) {
-            await IdentityAPI.verifyIdentity(identity._id, { action: 'reject' })
+            await IdentityAPI.verifyIdentity(identity._id, 'reject')
           }
         }
         enqueueSnackbar(`${selected.length} demandes rejetées avec succès !`, { variant: "success" })

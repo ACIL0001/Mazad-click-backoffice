@@ -129,15 +129,11 @@ export default function ComprehensiveDashboard() {
     setError(null)
     
     try {
-      // FIXED: Fetch data sequentially to prevent rate limiting
-      console.log('📄 Dashboard: Starting sequential data fetch...');
       
       const userStats = await StatsAPI.getUserStats().catch(err => {
         console.warn('User stats failed:', err);
         return { total: 0, byType: { admin: 0, professional: 0, client: 0, reseller: 0 } };
       });
-      
-      await new Promise(resolve => setTimeout(resolve, 100)); // Small delay
       
       const auctionStats = await StatsAPI.getAuctionStats().catch(err => {
         console.warn('Auction stats failed:', err);
@@ -150,8 +146,6 @@ export default function ComprehensiveDashboard() {
         };
       });
       
-      await new Promise(resolve => setTimeout(resolve, 100));
-      
       const tenderStats = await StatsAPI.getTenderStats().catch(err => {
         console.warn('Tender stats failed:', err);
         return { 
@@ -163,56 +157,30 @@ export default function ComprehensiveDashboard() {
         };
       });
       
-      await new Promise(resolve => setTimeout(resolve, 100));
-      
       const categoryStats = await StatsAPI.getCategoryStats().catch(err => {
         console.warn('Category stats failed:', err);
         return [];
       });
-      
-      await new Promise(resolve => setTimeout(resolve, 100));
       
       const dashboardStats = await StatsAPI.getDashboardStats().catch(err => {
         console.warn('Dashboard stats failed:', err);
         return { widgets: [] };
       });
       
-      await new Promise(resolve => setTimeout(resolve, 100));
-      
       const userTimeSeries = await StatsAPI.getUserTimeSeries().catch(err => {
         console.warn('User time series failed:', err);
         return { labels: [], data: [] };
       });
-      
-      await new Promise(resolve => setTimeout(resolve, 100));
       
       const auctionTimeSeries = await StatsAPI.getAuctionTimeSeries().catch(err => {
         console.warn('Auction time series failed:', err);
         return { labels: [], data: [] };
       });
       
-      await new Promise(resolve => setTimeout(resolve, 100));
-      
-      const allUsers = await UserAPI.getAll().catch(err => {
-        console.warn('All users failed:', err);
-        return [];
-      });
-      
-      await new Promise(resolve => setTimeout(resolve, 100));
-      
-      const allAuctions = await AuctionsAPI.getAuctions().catch(err => {
-        console.warn('All auctions failed:', err);
-        return [];
-      });
-      
-      await new Promise(resolve => setTimeout(resolve, 100));
-      
       const pendingIdentities = await IdentityAPI.getPendingIdentities().catch(err => {
         console.warn('Pending identities failed:', err);
         return [];
       });
-      
-      await new Promise(resolve => setTimeout(resolve, 100));
       
       const subscriptionStats = await SubscriptionAPI.getStats().catch(err => {
         console.warn('Subscription stats failed:', err);
@@ -277,7 +245,6 @@ export default function ComprehensiveDashboard() {
 
       setDashboardData(processedData)
     } catch (err) {
-      console.error('Dashboard data fetch error:', err)
       setError("Erreur lors du chargement des données. Certaines données peuvent ne pas être disponibles.")
       
       // Set fallback data to prevent complete failure
@@ -1001,12 +968,7 @@ export default function ComprehensiveDashboard() {
         </CardContent>
       </Card>
 
-      <style>{`
-  @keyframes spin {
-    from { transform: rotate(0deg); }
-    to { transform: rotate(360deg); }
-  }
-`}</style>
+{/* Animation styles removed for performance optimization */}
     </Container>
   )
 }

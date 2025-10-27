@@ -34,6 +34,8 @@ interface AcceptedSellersProps {
 const TABLE_HEAD = [
   { id: "user", label: "Utilisateur", alignRight: false, searchable: true },
   { id: "email", label: "Email", alignRight: false, searchable: true },
+  { id: "secteur", label: "Secteur", alignRight: false, searchable: true },
+  { id: "entreprise", label: "Entreprise", alignRight: false, searchable: true },
   { id: "type", label: "Type", alignRight: false, searchable: false },
   { id: "status", label: "Statut", alignRight: false, searchable: false },
   { id: "createdAt", label: "Créé le", alignRight: false, searchable: false },
@@ -194,6 +196,28 @@ function SellerItem({ seller, selected, setSelected, onOpenVerificationModal, on
           }}
         >
           {user?.email || "Email non disponible"}
+        </Typography>
+      </TableCell>
+      <TableCell align="left" sx={{ py: 2 }}>
+        <Typography
+          variant="body2"
+          sx={{
+            color: theme.palette.text.primary,
+            fontSize: "0.875rem",
+          }}
+        >
+          {user?.secteur || "N/A"}
+        </Typography>
+      </TableCell>
+      <TableCell align="left" sx={{ py: 2 }}>
+        <Typography
+          variant="body2"
+          sx={{
+            color: theme.palette.text.primary,
+            fontSize: "0.875rem",
+          }}
+        >
+          {user?.entreprise || "N/A"}
         </Typography>
       </TableCell>
       <TableCell align="left" sx={{ py: 2 }}>
@@ -416,7 +440,7 @@ export default function AcceptedSellers({ acceptedSellers, onOpenVerificationMod
         setFilterName={setFilterName}
         rowsPerPage={rowsPerPage}
         setRowsPerPage={setRowsPerPage}
-        searchFields={["user.firstName", "user.lastName", "user.email"]}
+        searchFields={["user.firstName", "user.lastName", "user.email", "user.secteur", "user.entreprise"]}
         numSelected={selected.length}
         onDeleteSelected={handleDeleteSelected}
         loading={false}

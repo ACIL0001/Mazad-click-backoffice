@@ -399,7 +399,7 @@ export default function NavSection({ ...other }) {
       {
         title: 'Centre de Communication',
         path: '/dashboard/chat',
-        icon: getIcon('material-symbols:chat-bubble', adminNotificationCount > 0 ? adminNotificationCount : null),
+        icon: getIcon('material-symbols:chat-bubble'),
         requiresAdmin: true,
       },
       {

@@ -134,7 +134,7 @@ export default function IdentityVerificationDetailsPage() {
 
         setIsVerifying(true);
         try {
-            await IdentityAPI.verifyIdentity(identityDetails._id, { action: confirmationDialog.action });
+            await IdentityAPI.verifyIdentity(identityDetails._id, confirmationDialog.action);
             
             const actionText = confirmationDialog.action === 'accept' ? 'acceptée' : 'rejetée';
             enqueueSnackbar(`Demande ${actionText} avec succès.`, { variant: 'success' });
@@ -553,6 +553,28 @@ export default function IdentityVerificationDetailsPage() {
                                                     {user.email}
                                                 </Typography>
                                             </Box>
+
+                                            {user?.secteur && (
+                                                <Box>
+                                                    <Typography variant={isMobile ? "caption" : "caption"} color="text.secondary" sx={{ fontWeight: 600, textTransform: 'uppercase', letterSpacing: 1, fontSize: isMobile ? '0.65rem' : 'inherit' }}>
+                                                        Secteur d'activité
+                                                    </Typography>
+                                                    <Typography variant={isMobile ? "body2" : "body1"} sx={{ fontWeight: 500, mt: 0.5, fontSize: isMobile ? '0.8rem' : 'inherit' }}>
+                                                        {user.secteur}
+                                                    </Typography>
+                                                </Box>
+                                            )}
+
+                                            {user?.entreprise && (
+                                                <Box>
+                                                    <Typography variant={isMobile ? "caption" : "caption"} color="text.secondary" sx={{ fontWeight: 600, textTransform: 'uppercase', letterSpacing: 1, fontSize: isMobile ? '0.65rem' : 'inherit' }}>
+                                                        Nom de l'entreprise
+                                                    </Typography>
+                                                    <Typography variant={isMobile ? "body2" : "body1"} sx={{ fontWeight: 500, mt: 0.5, fontSize: isMobile ? '0.8rem' : 'inherit' }}>
+                                                        {user.entreprise}
+                                                    </Typography>
+                                                </Box>
+                                            )}
 
                                             <Box sx={{ display: 'flex', alignItems: 'center', gap: isMobile ? 0.5 : 1 }}>
                                                 <Typography variant={isMobile ? "caption" : "caption"} color="text.secondary" sx={{ fontWeight: 600, textTransform: 'uppercase', letterSpacing: 1, fontSize: isMobile ? '0.65rem' : 'inherit' }}>

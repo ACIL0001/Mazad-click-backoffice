@@ -22,6 +22,11 @@ import {
     alpha,
     IconButton,
     Alert,
+    Fade,
+    Slide,
+    Zoom,
+    Paper,
+    Divider,
 } from '@mui/material';
 // components
 import Page from '../../components/Page';
@@ -47,14 +52,27 @@ import GppBadIcon from '@mui/icons-material/GppBad';
 import VerifiedUserIcon from '@mui/icons-material/VerifiedUser';
 import HowToRegIcon from '@mui/icons-material/HowToReg';
 import InfoIcon from '@mui/icons-material/Info';
+import DescriptionIcon from '@mui/icons-material/Description';
+import VisibilityIcon from '@mui/icons-material/Visibility';
+import PersonIcon from '@mui/icons-material/Person';
+import DeleteIcon from '@mui/icons-material/Delete';
+import RefreshIcon from '@mui/icons-material/Refresh';
+import EmailIcon from '@mui/icons-material/Email';
+import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import CloseIcon from '@mui/icons-material/Close';
 
 import { UserAPI } from '@/api/user';
 import { ReviewAPI } from '@/api/review';
+import { IdentityAPI, UserDocuments, UserDocument } from '@/api/identity';
+import app from '@/config';
 import { ChangeEvent, MouseEvent } from 'react';
 
 const COLUMNS = [
     { id: 'firstName', label: 'Nom', alignRight: false, searchable: true },
     { id: 'phone', label: 'Tel', alignRight: false, searchable: true },
+    { id: 'secteur', label: 'Secteur', alignRight: false, searchable: true },
+    { id: 'entreprise', label: 'Entreprise', alignRight: false, searchable: true },
     { id: 'isVerified', label: 'Vérifié', alignRight: false, searchable: false },
     { id: 'isActive', label: 'Activé', alignRight: false, searchable: false },
     { id: 'isBanned', label: 'Banni', alignRight: false, searchable: false },
@@ -99,6 +117,141 @@ const IconWrapperStyle = styled('div')(({ theme }) => ({
     },
 }));
 
+// Enhanced Modal Styled Components
+const AnimatedDialog = styled(Dialog)(({ theme }) => ({
+    '& .MuiDialog-paper': {
+        borderRadius: 16,
+        background: `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.05)} 0%, ${alpha(theme.palette.secondary.main, 0.05)} 100%)`,
+        backdropFilter: 'blur(10px)',
+        boxShadow: `0 20px 40px ${alpha(theme.palette.common.black, 0.15)}`,
+        border: `1px solid ${alpha(theme.palette.primary.main, 0.1)}`,
+        animation: 'slideInUp 0.3s ease-out',
+    },
+    '@keyframes slideInUp': {
+        '0%': {
+            transform: 'translateY(50px)',
+            opacity: 0,
+        },
+        '100%': {
+            transform: 'translateY(0)',
+            opacity: 1,
+        },
+    },
+}));
+
+const DocumentCard = styled(Card)(({ theme }) => ({
+    position: 'relative',
+    height: '100%',
+    borderRadius: 12,
+    background: `linear-gradient(135deg, ${theme.palette.background.paper} 0%, ${alpha(theme.palette.primary.main, 0.02)} 100%)`,
+    border: `1px solid ${alpha(theme.palette.primary.main, 0.1)}`,
+    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+    cursor: 'pointer',
+    overflow: 'hidden',
+    '&:hover': {
+        transform: 'translateY(-4px)',
+        boxShadow: `0 12px 24px ${alpha(theme.palette.primary.main, 0.15)}`,
+        border: `1px solid ${alpha(theme.palette.primary.main, 0.3)}`,
+        '& .document-icon': {
+            transform: 'scale(1.1) rotate(5deg)',
+        },
+        '& .document-button': {
+            background: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.secondary.main} 100%)`,
+            transform: 'scale(1.05)',
+        },
+    },
+    '&::before': {
+        content: '""',
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        height: 4,
+        background: `linear-gradient(90deg, ${theme.palette.primary.main} 0%, ${theme.palette.secondary.main} 100%)`,
+    },
+}));
+
+const DocumentIconWrapper = styled('div')(({ theme }) => ({
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: 60,
+    height: 60,
+    borderRadius: '50%',
+    background: `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.1)} 0%, ${alpha(theme.palette.secondary.main, 0.1)} 100%)`,
+    margin: '0 auto 16px',
+    transition: 'all 0.3s ease',
+    '& .document-icon': {
+        fontSize: 32,
+        color: theme.palette.primary.main,
+        transition: 'all 0.3s ease',
+    },
+}));
+
+const UserInfoCard = styled(Card)(({ theme }) => ({
+    borderRadius: 12,
+    background: `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.8)} 0%, ${alpha(theme.palette.secondary.main, 0.8)} 100%)`,
+    border: `1px solid ${alpha(theme.palette.primary.main, 0.3)}`,
+    position: 'relative',
+    overflow: 'hidden',
+    color: theme.palette.common.white,
+    '&::before': {
+        content: '""',
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        height: 4,
+        background: `linear-gradient(90deg, ${theme.palette.primary.main} 0%, ${theme.palette.secondary.main} 100%)`,
+    },
+}));
+
+const StyledDialogTitle = styled(DialogTitle)(({ theme }) => ({
+    background: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.secondary.main} 100%)`,
+    color: theme.palette.primary.contrastText,
+    borderRadius: '16px 16px 0 0',
+    padding: theme.spacing(3),
+    position: 'relative',
+    '&::after': {
+        content: '""',
+        position: 'absolute',
+        bottom: 0,
+        left: '50%',
+        transform: 'translateX(-50%)',
+        width: 60,
+        height: 4,
+        background: alpha(theme.palette.primary.contrastText, 0.3),
+        borderRadius: 2,
+    },
+}));
+
+const AnimatedButton = styled(Button)(({ theme }) => ({
+    borderRadius: 8,
+    textTransform: 'none',
+    fontWeight: 600,
+    padding: theme.spacing(1.5, 3),
+    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+    position: 'relative',
+    overflow: 'hidden',
+    '&:hover': {
+        transform: 'translateY(-2px)',
+        boxShadow: `0 8px 16px ${alpha(theme.palette.primary.main, 0.3)}`,
+    },
+    '&::before': {
+        content: '""',
+        position: 'absolute',
+        top: 0,
+        left: '-100%',
+        width: '100%',
+        height: '100%',
+        background: `linear-gradient(90deg, transparent, ${alpha(theme.palette.common.white, 0.2)}, transparent)`,
+        transition: 'left 0.5s',
+    },
+    '&:hover::before': {
+        left: '100%',
+    },
+}));
+
 export default function Professionals() {
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
@@ -128,6 +281,14 @@ export default function Professionals() {
     const [currentRate, setCurrentRate] = useState<number | null>(null);
     const [initialRate, setInitialRate] = useState<number | null>(null);
     const [professionalNameForRateDialog, setProfessionalNameForRateDialog] = useState('');
+
+    // Documents modal state
+    const [openDocumentsDialog, setOpenDocumentsDialog] = useState(false);
+    const [userDocuments, setUserDocuments] = useState<UserDocuments | null>(null);
+    const [documentsLoading, setDocumentsLoading] = useState(false);
+    const [professionalNameForDocumentsDialog, setProfessionalNameForDocumentsDialog] = useState('');
+    const [currentUserId, setCurrentUserId] = useState('');
+    const [updatingDocument, setUpdatingDocument] = useState<string | null>(null);
 
     useEffect(() => {
         fetchProfessionals();
@@ -384,6 +545,80 @@ export default function Professionals() {
         navigate(`/dashboard/users/professionals/${user._id}`);
     };
 
+    const handleViewDocuments = async (userId: string, professionalName: string) => {
+        setCurrentUserId(userId);
+        setProfessionalNameForDocumentsDialog(professionalName);
+        setOpenDocumentsDialog(true);
+        setDocumentsLoading(true);
+        setUserDocuments(null);
+
+        try {
+            const documents = await IdentityAPI.getUserDocuments(userId);
+            setUserDocuments(documents);
+        } catch (error) {
+            console.error('Failed to fetch user documents:', error);
+            enqueueSnackbar('Erreur lors du chargement des documents.', { variant: 'error' });
+        } finally {
+            setDocumentsLoading(false);
+        }
+    };
+
+    const handleDeleteDocument = async (documentField: string) => {
+        if (!userDocuments?._id) return;
+        
+        if (window.confirm('Êtes-vous sûr de vouloir supprimer ce document?')) {
+            setUpdatingDocument(documentField);
+            try {
+                await IdentityAPI.deleteDocument(userDocuments._id, documentField);
+                enqueueSnackbar('Document supprimé avec succès', { variant: 'success' });
+                // Reload documents
+                const documents = await IdentityAPI.getUserDocuments(currentUserId);
+                setUserDocuments(documents);
+            } catch (error) {
+                console.error('Failed to delete document:', error);
+                enqueueSnackbar('Erreur lors de la suppression du document', { variant: 'error' });
+            } finally {
+                setUpdatingDocument(null);
+            }
+        }
+    };
+
+    const handleUpdateDocument = async (documentField: string) => {
+        if (!userDocuments?._id) return;
+        
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = 'image/jpeg,image/png,application/pdf';
+        input.onchange = async (e: any) => {
+            const file = e.target.files?.[0];
+            if (!file) return;
+
+            if (file.size > 5 * 1024 * 1024) {
+                enqueueSnackbar('Fichier trop volumineux. Maximum: 5MB', { variant: 'error' });
+                return;
+            }
+
+            setUpdatingDocument(documentField);
+            try {
+                const formData = new FormData();
+                formData.append('file', file);
+                formData.append('field', documentField);
+                
+                await IdentityAPI.updateDocumentByIdentity(userDocuments._id, documentField, file);
+                enqueueSnackbar('Document modifié avec succès', { variant: 'success' });
+                // Reload documents
+                const documents = await IdentityAPI.getUserDocuments(currentUserId);
+                setUserDocuments(documents);
+            } catch (error) {
+                console.error('Failed to update document:', error);
+                enqueueSnackbar('Erreur lors de la modification du document', { variant: 'error' });
+            } finally {
+                setUpdatingDocument(null);
+            }
+        };
+        input.click();
+    };
+
     const TableBodyComponent = ({ data = [], selected, setSelected, onDeleteSingle }: { data: any[], selected: string[], setSelected: (selected: string[]) => void, onDeleteSingle?: (id: string) => void }) => {
         const emptyRows = page > 0 ? Math.max(0, (1 + page) * rowsPerPage - data.length) : 0;
         const displayedData = data;
@@ -423,7 +658,7 @@ export default function Professionals() {
         return (
             <TableBody>
                 {displayedData.map((row, index) => {
-                    const { _id, firstName, lastName, phone, isVerified, isActive, isBanned, isRecommended, createdAt, rate } = row;
+                    const { _id, firstName, lastName, phone, secteur, entreprise, isVerified, isActive, isBanned, isRecommended, createdAt, rate } = row;
                     const professionalFullName = `${firstName} ${lastName}`;
                     const isItemSelected = selected.indexOf(professionalFullName) !== -1;
 
@@ -482,6 +717,18 @@ export default function Professionals() {
 
                             <TableCell align="left" sx={{ display: isMobile ? 'none' : 'table-cell' }}>{phone}</TableCell>
 
+                            <TableCell align="left" sx={{ display: isMobile ? 'none' : 'table-cell' }}>
+                                <Typography variant="body2" sx={{ fontSize: isMobile ? '0.75rem' : '0.875rem' }}>
+                                    {secteur || 'N/A'}
+                                </Typography>
+                            </TableCell>
+
+                            <TableCell align="left" sx={{ display: isMobile ? 'none' : 'table-cell' }}>
+                                <Typography variant="body2" sx={{ fontSize: isMobile ? '0.75rem' : '0.875rem' }}>
+                                    {entreprise || 'N/A'}
+                                </Typography>
+                            </TableCell>
+
                             <TableCell align="left">
                                 <Label variant="ghost" color={isVerified ? 'success' : 'error'} sx={{ fontSize: isMobile ? '0.7rem' : '0.75rem' }}>
                                     {sentenceCase(isVerified ? "Compte Valide" : 'Compte Non Valide')}
@@ -532,6 +779,7 @@ export default function Professionals() {
                                 <ActionsMenu
                                     _id={_id}
                                     actions={[
+                                        { label: 'Voir Documents', onClick: () => handleViewDocuments(_id, professionalFullName), icon: 'eva:file-text-outline' },
                                         { label: 'Modifier Rate', onClick: () => handleOpenRateDialog(_id, professionalFullName, rate), icon: 'eva:edit-fill' },
                                         isRecommended
                                             ? { label: 'Retirer Recommandation', onClick: () => unrecommendProfessional(_id, professionalFullName), icon: 'eva:star-outline' }
@@ -693,7 +941,7 @@ export default function Professionals() {
                         rowsPerPage={rowsPerPage}
                         setRowsPerPage={setRowsPerPage}
                         TableBodyComponent={TableBodyComponent}
-                        searchFields={['firstName', 'lastName', 'phone']}
+                        searchFields={['firstName', 'lastName', 'phone', 'secteur', 'entreprise']}
                         numSelected={selected.length}
                         onDeleteSelected={handleDeleteSelected}
                         loading={loading}
@@ -800,6 +1048,342 @@ export default function Professionals() {
                     </Button>
                 </DialogActions>
             </Dialog>
+
+            {/* Enhanced Documents Modal */}
+            <AnimatedDialog
+                open={openDocumentsDialog}
+                onClose={() => setOpenDocumentsDialog(false)}
+                maxWidth="lg"
+                fullWidth
+                fullScreen={isMobile}
+            >
+                <StyledDialogTitle>
+                    <Stack direction="row" alignItems="center" spacing={2} sx={{ color: 'inherit' }}>
+                        <Fade in={true} timeout={500}>
+                            <DescriptionIcon sx={{ fontSize: 28 }} />
+                        </Fade>
+                        <Typography variant="h5" sx={{ fontWeight: 600 }}>
+                            Documents de {professionalNameForDocumentsDialog}
+                        </Typography>
+                        <Box sx={{ flexGrow: 1 }} />
+                        <IconButton
+                            onClick={() => setOpenDocumentsDialog(false)}
+                            sx={{ 
+                                color: 'inherit',
+                                '&:hover': { 
+                                    backgroundColor: alpha('#fff', 0.1),
+                                    transform: 'rotate(90deg)',
+                                },
+                                transition: 'all 0.3s ease',
+                            }}
+                        >
+                            <CloseIcon />
+                        </IconButton>
+                    </Stack>
+                </StyledDialogTitle>
+                
+                <DialogContent sx={{ p: { xs: 2, sm: 3 }, background: alpha(theme.palette.background.paper, 0.5) }}>
+                    {documentsLoading ? (
+                        <Fade in={documentsLoading} timeout={300}>
+                            <Box sx={{ 
+                                display: 'flex', 
+                                flexDirection: 'column',
+                                alignItems: 'center', 
+                                justifyContent: 'center', 
+                                py: 6,
+                                textAlign: 'center'
+                            }}>
+                                <Zoom in={true} timeout={600}>
+                                    <Box sx={{
+                                        width: 80,
+                                        height: 80,
+                                        borderRadius: '50%',
+                                        background: `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.1)} 0%, ${alpha(theme.palette.secondary.main, 0.1)} 100%)`,
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        mb: 3,
+                                        animation: 'pulse 2s infinite',
+                                        '@keyframes pulse': {
+                                            '0%': { transform: 'scale(1)' },
+                                            '50%': { transform: 'scale(1.1)' },
+                                            '100%': { transform: 'scale(1)' },
+                                        },
+                                    }}>
+                                        <DescriptionIcon sx={{ fontSize: 40, color: theme.palette.primary.main }} />
+                        </Box>
+                                </Zoom>
+                                <Typography variant="h6" sx={{ color: 'text.secondary', fontWeight: 500 }}>
+                                    Chargement des documents...
+                                </Typography>
+                            </Box>
+                        </Fade>
+                    ) : userDocuments ? (
+                        <Fade in={!documentsLoading} timeout={500}>
+                        <Grid container spacing={3}>
+                                {/* Enhanced User Info */}
+                            <Grid item xs={12}>
+                                    <UserInfoCard sx={{ p: 3, mb: 3 }}>
+                                        <Stack direction="row" alignItems="center" spacing={2} sx={{ mb: 2 }}>
+                                            <PersonIcon sx={{ color: alpha(theme.palette.common.white, 0.9), fontSize: 24 }} />
+                                            <Typography variant="h6" sx={{ fontWeight: 600, color: alpha(theme.palette.common.white, 0.95) }}>
+                                                Informations du professionnel
+                                            </Typography>
+                                        </Stack>
+                                        <Divider sx={{ mb: 2, borderColor: alpha(theme.palette.common.white, 0.3) }} />
+                                        <Grid container spacing={3}>
+                                        <Grid item xs={12} sm={6}>
+                                                <Stack direction="row" alignItems="center" spacing={1}>
+                                                    <PersonIcon sx={{ color: alpha(theme.palette.common.white, 0.8), fontSize: 20 }} />
+                                                    <Typography variant="body2" sx={{ color: alpha(theme.palette.common.white, 0.9) }}>
+                                                        <strong>Nom:</strong> {userDocuments.user.firstName} {userDocuments.user.lastName}
+                                            </Typography>
+                                                </Stack>
+                                        </Grid>
+                                        <Grid item xs={12} sm={6}>
+                                                <Stack direction="row" alignItems="center" spacing={1}>
+                                                    <EmailIcon sx={{ color: alpha(theme.palette.common.white, 0.8), fontSize: 20 }} />
+                                                    <Typography variant="body2" sx={{ color: alpha(theme.palette.common.white, 0.9) }}>
+                                                        <strong>Email:</strong> {userDocuments.user.email}
+                                            </Typography>
+                                                </Stack>
+                                        </Grid>
+                                        <Grid item xs={12} sm={6}>
+                                                <Stack direction="row" alignItems="center" spacing={1}>
+                                                    <CheckCircleIcon sx={{ 
+                                                        color: userDocuments.status === 'DONE' ? theme.palette.success.main : theme.palette.warning.main, 
+                                                        fontSize: 20 
+                                                    }} />
+                                                    <Typography variant="body2" sx={{ color: alpha(theme.palette.common.white, 0.9) }}>
+                                                        <strong>Statut:</strong> 
+                                                        <Chip 
+                                                            label={userDocuments.status} 
+                                                            size="small" 
+                                                            color={userDocuments.status === 'DONE' ? 'success' : 'warning'}
+                                                            sx={{ ml: 1 }}
+                                                        />
+                                            </Typography>
+                                                </Stack>
+                                        </Grid>
+                                        <Grid item xs={12} sm={6}>
+                                                <Stack direction="row" alignItems="center" spacing={1}>
+                                                    <CalendarTodayIcon sx={{ color: alpha(theme.palette.common.white, 0.8), fontSize: 20 }} />
+                                                    <Typography variant="body2" sx={{ color: alpha(theme.palette.common.white, 0.9) }}>
+                                                        <strong>Soumis le:</strong> {new Date(userDocuments.createdAt).toLocaleDateString()}
+                                            </Typography>
+                                                </Stack>
+                                        </Grid>
+                                    </Grid>
+                                    </UserInfoCard>
+                            </Grid>
+
+                                {/* Enhanced Documents Grid */}
+                                {Object.entries(userDocuments).map(([key, value], index) => {
+                                if (key === '_id' || key === 'user' || key === 'status' || key === 'createdAt' || key === 'updatedAt' || !value || typeof value !== 'object' || !('url' in value)) {
+                                    return null;
+                                }
+
+                                const document = value as any;
+                                const documentName = key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
+
+                                return (
+                                    <Grid item xs={12} sm={6} md={4} key={key}>
+                                            <Zoom in={true} timeout={300 + index * 100}>
+                                                <DocumentCard sx={{ p: 3, height: '100%' }}>
+                                                    <DocumentIconWrapper>
+                                                        <DescriptionIcon className="document-icon" />
+                                                    </DocumentIconWrapper>
+                                                    
+                                                    <Typography 
+                                                        variant="h6" 
+                                                        gutterBottom 
+                                                        sx={{ 
+                                                            textAlign: 'center',
+                                                            fontWeight: 600,
+                                                            color: theme.palette.text.primary,
+                                                            mb: 1
+                                                        }}
+                                                    >
+                                                {documentName}
+                                            </Typography>
+                                                    
+                                                    <Typography 
+                                                        variant="body2" 
+                                                        color="text.secondary" 
+                                                        sx={{ 
+                                                            mb: 3, 
+                                                            textAlign: 'center',
+                                                            wordBreak: 'break-word',
+                                                            minHeight: '2.5em',
+                                                            display: '-webkit-box',
+                                                            WebkitLineClamp: 2,
+                                                            WebkitBoxOrient: 'vertical',
+                                                            overflow: 'hidden',
+                                                        }}
+                                                    >
+                                                {document.originalname}
+                                            </Typography>
+                                                    
+                                                    <Stack direction="row" spacing={1} sx={{ width: '100%' }}>
+                                                        <AnimatedButton
+                                                            variant="contained"
+                                                            className="document-button"
+                                                            onClick={() => {
+                                                                const baseUrl = app.baseURL.endsWith('/') ? app.baseURL.slice(0, -1) : app.baseURL;
+                                                                const documentUrl = document.url.startsWith('/') ? document.url : `/${document.url}`;
+                                                                window.open(`${baseUrl}${documentUrl}`, '_blank');
+                                                            }}
+                                                            startIcon={<VisibilityIcon />}
+                                                            sx={{
+                                                                background: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.secondary.main} 100%)`,
+                                                                color: 'white',
+                                                                flex: 1,
+                                                                '&:hover': {
+                                                                    background: `linear-gradient(135deg, ${theme.palette.primary.dark} 0%, ${theme.palette.secondary.dark} 100%)`,
+                                                                },
+                                                            }}
+                                                        >
+                                                            Voir
+                                                        </AnimatedButton>
+                                                        <AnimatedButton
+                                                            variant="contained"
+                                                            className="document-button"
+                                                            onClick={() => handleUpdateDocument(key)}
+                                                            disabled={updatingDocument === key}
+                                                            startIcon={<RefreshIcon />}
+                                                            sx={{
+                                                                background: `linear-gradient(135deg, ${theme.palette.warning.main} 0%, ${theme.palette.warning.dark} 100%)`,
+                                                                color: 'white',
+                                                                flex: 1,
+                                                                '&:hover': {
+                                                                    background: `linear-gradient(135deg, ${theme.palette.warning.dark} 0%, #e65100 100%)`,
+                                                                },
+                                                                '&:disabled': {
+                                                                    background: alpha(theme.palette.warning.main, 0.5),
+                                                                },
+                                                            }}
+                                                        >
+                                                            {updatingDocument === key ? '...' : 'Modifier'}
+                                                        </AnimatedButton>
+                                                        <AnimatedButton
+                                                            variant="contained"
+                                                            className="document-button"
+                                                            onClick={() => handleDeleteDocument(key)}
+                                                            disabled={updatingDocument === key}
+                                                            startIcon={<DeleteIcon />}
+                                                            sx={{
+                                                                background: `linear-gradient(135deg, ${theme.palette.error.main} 0%, ${theme.palette.error.dark} 100%)`,
+                                                                color: 'white',
+                                                                flex: 1,
+                                                                '&:hover': {
+                                                                    background: `linear-gradient(135deg, ${theme.palette.error.dark} 0%, #b71c1c 100%)`,
+                                                                },
+                                                                '&:disabled': {
+                                                                    background: alpha(theme.palette.error.main, 0.5),
+                                                                },
+                                                            }}
+                                                        >
+                                                            {updatingDocument === key ? '...' : 'Supprimer'}
+                                                        </AnimatedButton>
+                                                    </Stack>
+                                                </DocumentCard>
+                                            </Zoom>
+                                    </Grid>
+                                );
+                            })}
+
+                                {/* Enhanced No documents message */}
+                            {Object.entries(userDocuments).filter(([key, value]) => 
+                                key !== '_id' && key !== 'user' && key !== 'status' && key !== 'createdAt' && key !== 'updatedAt' && 
+                                value && typeof value === 'object' && 'url' in value
+                            ).length === 0 && (
+                                <Grid item xs={12}>
+                                        <Fade in={true} timeout={600}>
+                                            <Box sx={{ 
+                                                textAlign: 'center', 
+                                                py: 6,
+                                                background: `linear-gradient(135deg, ${alpha(theme.palette.background.paper, 0.5)} 0%, ${alpha(theme.palette.primary.main, 0.02)} 100%)`,
+                                                borderRadius: 2,
+                                                border: `2px dashed ${alpha(theme.palette.primary.main, 0.2)}`,
+                                            }}>
+                                                <Zoom in={true} timeout={800}>
+                                                    <Box sx={{
+                                                        width: 80,
+                                                        height: 80,
+                                                        borderRadius: '50%',
+                                                        background: `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.1)} 0%, ${alpha(theme.palette.secondary.main, 0.1)} 100%)`,
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        justifyContent: 'center',
+                                                        margin: '0 auto 16px',
+                                                    }}>
+                                                        <DescriptionIcon sx={{ fontSize: 40, color: theme.palette.primary.main }} />
+                                                    </Box>
+                                                </Zoom>
+                                                <Typography variant="h6" sx={{ color: 'text.secondary', fontWeight: 500, mb: 1 }}>
+                                            Aucun document trouvé
+                                        </Typography>
+                                        <Typography variant="body2" color="text.secondary">
+                                            Ce professionnel n'a pas encore soumis de documents d'identité.
+                                        </Typography>
+                                    </Box>
+                                        </Fade>
+                                </Grid>
+                            )}
+                        </Grid>
+                        </Fade>
+                    ) : (
+                        <Fade in={true} timeout={300}>
+                            <Box sx={{ 
+                                textAlign: 'center', 
+                                py: 6,
+                                background: `linear-gradient(135deg, ${alpha(theme.palette.error.main, 0.05)} 0%, ${alpha(theme.palette.error.main, 0.02)} 100%)`,
+                                borderRadius: 2,
+                                border: `1px solid ${alpha(theme.palette.error.main, 0.2)}`,
+                            }}>
+                                <Zoom in={true} timeout={600}>
+                                    <Box sx={{
+                                        width: 80,
+                                        height: 80,
+                                        borderRadius: '50%',
+                                        background: `linear-gradient(135deg, ${alpha(theme.palette.error.main, 0.1)} 0%, ${alpha(theme.palette.error.main, 0.05)} 100%)`,
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        margin: '0 auto 16px',
+                                    }}>
+                                        <CloseIcon sx={{ fontSize: 40, color: theme.palette.error.main }} />
+                                    </Box>
+                                </Zoom>
+                                <Typography variant="h6" color="error" sx={{ fontWeight: 500 }}>
+                                Erreur lors du chargement des documents
+                            </Typography>
+                        </Box>
+                        </Fade>
+                    )}
+                </DialogContent>
+                
+                <DialogActions sx={{ 
+                    p: { xs: 2, sm: 3 }, 
+                    background: alpha(theme.palette.background.paper, 0.8),
+                    borderTop: `1px solid ${alpha(theme.palette.primary.main, 0.1)}`,
+                }}>
+                    <AnimatedButton 
+                        onClick={() => setOpenDocumentsDialog(false)} 
+                        variant="outlined"
+                        sx={{
+                            borderColor: theme.palette.primary.main,
+                            color: theme.palette.primary.main,
+                            '&:hover': {
+                                borderColor: theme.palette.primary.dark,
+                                backgroundColor: alpha(theme.palette.primary.main, 0.05),
+                            },
+                        }}
+                    >
+                        Fermer
+                    </AnimatedButton>
+                </DialogActions>
+            </AnimatedDialog>
         </Page>
     );
 }

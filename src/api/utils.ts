@@ -6,6 +6,7 @@ import useAuth from '@/hooks/useAuth';
 import useRequest from '@/hooks/useRequest';
 import { LoginResponseData } from '@/types/Auth';
 import { AuthAPI } from './auth';
+import { authStore } from '@/contexts/authStore';
 
 const instance = axios.create({
   baseURL: app.baseURL,
@@ -55,17 +56,19 @@ const AxiosInterceptor = ({ children }: any) => {
   const { enqueueSnackbar } = useSnackbar();
 
   const onRequest = (req: any) => {
-    console.log('🚀 Request interceptor - URL:', req.url);
+    // Get the latest auth state directly from zustand store to avoid stale closures
+    const currentAuth = authStore.getState();
+    
+    console.log('🚀 Request interceptor - URL:', req.url, 'isLogged:', currentAuth.isLogged, 'hasToken:', !!currentAuth.auth?.tokens?.accessToken);
+    
     setLoading(true);
 
-    req.headers['accept-language'] = auth?.user?.preference?.language || 'FR';
+    req.headers['accept-language'] = currentAuth.auth?.user?.preference?.language || 'FR';
 
     const getAccessToken = () => {
-      if (auth?.tokens?.accessToken) {
-        console.log('🔑 Found token in auth.tokens');
-        return auth.tokens.accessToken;
+      if (currentAuth.auth?.tokens?.accessToken) {
+        return currentAuth.auth.tokens.accessToken;
       }
-      console.log('❌ No token found in auth:', auth);
       return null;
     };
 
@@ -80,28 +83,14 @@ const AxiosInterceptor = ({ children }: any) => {
 
     const isPublicEndpoint = publicEndpoints.some(endpoint => req.url.includes(endpoint));
     
-    console.log('📋 Request details:', {
-      url: req.url,
-      isLogged,
-      isPublicEndpoint,
-      hasAuth: !!auth,
-      hasTokens: !!auth?.tokens
-    });
-
-    if (isLogged && !isPublicEndpoint) {
-      const accessToken = getAccessToken();
-      
-      if (accessToken) {
-        console.log('✅ Adding Authorization header');
-        req.headers.Authorization = 'Bearer ' + accessToken;
-      } else {
-        console.log('⚠️ No access token available for authenticated request');
-      }
-    } else {
-      console.log('ℹ️ Skipping auth header:', {
-        reason: !isLogged ? 'not logged in' : 
-               isPublicEndpoint ? 'public endpoint' : 'unknown'
-      });
+    // Add token if we have one and it's not a public endpoint
+    const accessToken = getAccessToken();
+    
+    if (accessToken && !isPublicEndpoint) {
+      console.log('✅ Adding Authorization header');
+      req.headers.Authorization = 'Bearer ' + accessToken;
+    } else if (!isPublicEndpoint && !accessToken) {
+      console.warn('⚠️ Request to protected endpoint without token:', req.url);
     }
 
     if (req.data instanceof FormData && !req.headers['Content-Type']) {
@@ -154,14 +143,17 @@ const AxiosInterceptor = ({ children }: any) => {
         isRefreshing = true;
 
         try {
+          // Get latest auth state from store
+          const currentAuth = authStore.getState();
+          
           const getRefreshToken = () => {
-            if (auth?.tokens?.refreshToken) return auth.tokens.refreshToken;
+            if (currentAuth.auth?.tokens?.refreshToken) return currentAuth.auth.tokens.refreshToken;
             return null;
           };
 
           const refreshToken = getRefreshToken();
           
-          if (!isLogged || !refreshToken) {
+          if (!currentAuth.isLogged || !refreshToken) {
             console.log('No refresh token available, clearing auth');
             isRefreshing = false;
             clear();
@@ -184,23 +176,26 @@ const AxiosInterceptor = ({ children }: any) => {
             };
 
             // FIXED: Properly structured authUpdate object matching LoginResponseData
+            // Get current user from store
+            const currentAuth = authStore.getState();
+            
             const authUpdate: LoginResponseData = {
               session: {
                 accessToken: tokensData.accessToken,
                 refreshToken: tokensData.refreshToken,
               },
               user: {
-                _id: auth.user._id || '',
-                firstName: auth.user.firstname || auth.user.firstName || '',
-                lastName: auth.user.lastname || auth.user.lastName || '',
-                email: auth.user.email || '',
-                type: auth.user.type || '',
-                accountType: auth.user.accountType || '',
-                phone: auth.user.phone || auth.user.tel?.toString() || '',
-                isPhoneVerified: auth.user.isPhoneVerified || false,
+                _id: currentAuth.auth?.user?._id || '',
+                firstName: currentAuth.auth?.user?.firstname || currentAuth.auth?.user?.firstName || '',
+                lastName: currentAuth.auth?.user?.lastname || currentAuth.auth?.user?.lastName || '',
+                email: currentAuth.auth?.user?.email || '',
+                type: currentAuth.auth?.user?.type || '',
+                accountType: currentAuth.auth?.user?.accountType || '',
+                phone: currentAuth.auth?.user?.phone || currentAuth.auth?.user?.tel?.toString() || '',
+                isPhoneVerified: currentAuth.auth?.user?.isPhoneVerified || false,
                 // WORKAROUND: Use 'as any' to bypass the incorrect type error.
                 // The root cause is likely a cached/stale type definition.
-                photoURL: auth.user.photoURL || auth.user.picture?.url || '',
+                photoURL: currentAuth.auth?.user?.photoURL || currentAuth.auth?.user?.picture?.url || '',
 
               },
             };

@@ -63,7 +63,7 @@ function DashboardNavbar({ onOpenSidebar, onOpenRightSidebar }) {
   const [notifications, setNotifications] = useState([]);
   const [notificationsLoading, setNotificationsLoading] = useState(false);
   const [previousNotificationCount, setPreviousNotificationCount] = useState(0);
-  const { isLogged } = useAuth();
+  const { isLogged, auth, isReady } = useAuth();
   const theme = useTheme();
   
   // The use of '?' after 'serverStats' is now more appropriate because 'online' might not exist on the returned object.
@@ -73,7 +73,9 @@ function DashboardNavbar({ onOpenSidebar, onOpenRightSidebar }) {
   const socketContext = useContext(SocketContext);
 
   useEffect(() => {
-    if (isLogged) {
+    // Wait for auth to be ready and user to be logged in with valid tokens
+    if (isReady && isLogged && auth?.tokens?.accessToken && auth?.user?._id) {
+      console.log('🔐 Auth ready, fetching notifications...');
       getNotifications();
       // Set up polling for notifications every 30 seconds as fallback
       const interval = setInterval(() => {
@@ -81,8 +83,15 @@ function DashboardNavbar({ onOpenSidebar, onOpenRightSidebar }) {
       }, 30000);
       
       return () => clearInterval(interval);
+    } else {
+      console.log('🔐 Auth not ready yet:', { 
+        isReady,
+        isLogged, 
+        hasToken: !!auth?.tokens?.accessToken, 
+        hasUser: !!auth?.user?._id 
+      });
     }
-  }, [isLogged]);
+  }, [isReady, isLogged, auth?.tokens?.accessToken, auth?.user?._id]);
 
   // Listen for real-time notifications via socket
   useEffect(() => {
@@ -101,6 +110,23 @@ function DashboardNavbar({ onOpenSidebar, onOpenRightSidebar }) {
   }, [socketContext?.socket]);
 
   const getNotifications = async () => {
+    // Only fetch if we have a valid auth token and user
+    if (!auth?.tokens?.accessToken || !auth?.user?._id) {
+      console.log('🔐 Skipping notification fetch - auth not ready:', {
+        hasToken: !!auth?.tokens?.accessToken,
+        hasUser: !!auth?.user?._id,
+        tokenPreview: auth?.tokens?.accessToken ? auth.tokens.accessToken.substring(0, 20) + '...' : 'none',
+        userId: auth?.user?._id
+      });
+      return;
+    }
+
+    console.log('🔐 Fetching notifications with valid auth...', {
+      tokenPreview: auth.tokens.accessToken.substring(0, 20) + '...',
+      userId: auth.user._id,
+      userType: auth.user.type
+    });
+    
     try {
       setNotificationsLoading(true);
       const { data } = await NotificationAPI.getAll();
@@ -113,8 +139,15 @@ function DashboardNavbar({ onOpenSidebar, onOpenRightSidebar }) {
       
       setNotifications(newNotifications);
       setPreviousNotificationCount(newNotifications.length);
+      console.log('✅ Notifications fetched successfully:', newNotifications.length);
     } catch (err) {
-      console.error('Error fetching notifications:', err);
+      console.error('❌ Error fetching notifications:', err);
+      console.error('❌ Error details:', {
+        status: err.response?.status,
+        statusText: err.response?.statusText,
+        data: err.response?.data,
+        message: err.message
+      });
       setNotifications([]);
     } finally {
       setNotificationsLoading(false);

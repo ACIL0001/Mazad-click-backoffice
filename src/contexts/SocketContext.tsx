@@ -6,7 +6,6 @@ import config from '@/config';
 
 export interface ISocketContext {
   socket: Socket;
-  notificationSocket?: Socket; // Add this property that was missing
   addListener: (eventName: string, handler: (data?: any) => void) => void;
   removeListener: (eventName: string) => void;
   emit: (eventName: string, data?: any) => void;
@@ -22,9 +21,24 @@ declare interface ISocketEvent {
   handler: (data?: any) => void;
 }
 
+// Create a mock socket object for initial state
+const createMockSocket = (): Socket => {
+  return ({
+    id: 'mock',
+    connected: false,
+    disconnected: true,
+    emit: () => {},
+    on: () => {},
+    off: () => {},
+    once: () => {},
+    removeAllListeners: () => {},
+    disconnect: () => {},
+    connect: () => {},
+  } as any) as Socket;
+};
+
 const initialState: ISocketContext = {
-  socket: io(config.socket),
-  notificationSocket: undefined, // Initialize the missing property
+  socket: createMockSocket(),
   addListener: (eventName: string, handler: (data: any) => void) => {},
   removeListener: (eventName: string) => {},
   emit: (eventName: string, data?: any) => {},
@@ -48,7 +62,6 @@ export function useCreateSocket() {
 
 export default function SocketProvider({ children }: any) {
   const [socket, setSocket] = useState<Socket>();
-  const [notificationSocket, setNotificationSocket] = useState<Socket>(); // Add state for notification socket
   const [eventListeners, setEventListeners] = useState<ISocketEvent[]>([]);
   const [messages, setMessages] = useState<any[]>([]);
   const [onlineUsers, setOnlineUsers] = useState<any[]>([]);
@@ -59,31 +72,93 @@ export default function SocketProvider({ children }: any) {
   useEffect(() => {
     if (!auth?.user) return;
     
+    console.log('🔌 Initializing socket connection for user:', auth.user._id);
+    
     const so: Socket = io('http://localhost:3000', {
-      query: { userId: auth.user._id }
-    });
-
-    // Create notification socket (you can use same socket or create separate one)
-    const notificationSo: Socket = io('http://localhost:3000/notifications', {
-      query: { userId: auth.user._id }
+      query: { userId: auth.user._id },
+      transports: ['websocket', 'polling'],
+      autoConnect: true,
+      reconnection: true,
+      reconnectionDelay: 1000,
+      reconnectionDelayMax: 5000,
+      reconnectionAttempts: 5
     });
 
     so.on('connect', () => {
-      console.log('Connected to backend!');
+      console.log('✅ Connected to backend!');
+    });
+
+    so.on('connect_error', (error) => {
+      console.error('❌ Socket connection error:', error);
+    });
+
+    so.on('disconnect', (reason) => {
+      console.log('🔌 Socket disconnected:', reason);
     });
     
     setSocket(so);
-    setNotificationSocket(notificationSo);
 
     so.on('sendMessage', (data) => {
       console.log('📨 Admin received message via socket:', data);
-      setMessages((prev) => [...prev, data]);
+      
+      // Check if this message is for admin (reciver === 'admin' or sender is not admin)
+      const isAdminMessage = data.reciver === 'admin' || data.reciver === 'ADMIN';
+      const isFromAdmin = data.sender === 'admin' || data.sender === 'ADMIN';
+      
+      console.log('🔍 Message analysis:', {
+        isAdminMessage,
+        isFromAdmin,
+        sender: data.sender,
+        reciver: data.reciver,
+        currentUserId: auth?.user?._id
+      });
+      
+      // Only add messages that are either:
+      // 1. From users to admin (reciver === 'admin')
+      // 2. From admin to users (sender === 'admin')
+      if (isAdminMessage || isFromAdmin) {
+        console.log('✅ Adding admin message to state');
+        setMessages((prev) => {
+          // Check for duplicates
+          const exists = prev.some(msg => 
+            msg._id === data._id || 
+            (msg.message === data.message && msg.sender === data.sender && 
+             Math.abs(new Date(msg.createdAt).getTime() - new Date(data.createdAt).getTime()) < 1000)
+          );
+          
+          if (exists) {
+            console.log('⚠️ Message already exists, skipping');
+            return prev;
+          }
+          
+          return [...prev, data];
+        });
+      } else {
+        console.log('❌ Message not for admin, ignoring');
+      }
     });
     
     // Also listen for adminMessage events (for consistency)
     so.on('adminMessage', (data) => {
       console.log('📨 Admin received adminMessage via socket:', data);
-      setMessages((prev) => [...prev, data]);
+      
+      // adminMessage events are always for admin chat
+      setMessages((prev) => {
+        // Check for duplicates
+        const exists = prev.some(msg => 
+          msg._id === data._id || 
+          (msg.message === data.message && msg.sender === data.sender && 
+           Math.abs(new Date(msg.createdAt).getTime() - new Date(data.createdAt).getTime()) < 1000)
+        );
+        
+        if (exists) {
+          console.log('⚠️ AdminMessage already exists, skipping');
+          return prev;
+        }
+        
+        console.log('✅ Adding adminMessage to state');
+        return [...prev, data];
+      });
     });
     
     so.on('notification', (data) => {
@@ -93,11 +168,13 @@ export default function SocketProvider({ children }: any) {
     
     so.on('newMessage', () => setUnread((prev) => prev + 1));
 
+    // Cleanup function to properly disconnect
     return () => {
-      so.disconnect();
-      notificationSo.disconnect();
+      console.log('🧹 Cleaning up socket connection');
+      so.removeAllListeners(); // Remove all event listeners
+      so.disconnect(); // Disconnect the socket
     };
-  }, [auth?.user]);
+  }, [auth?.user?._id]); // Use _id instead of user object to prevent unnecessary re-renders
 
   // Handle online users
   useEffect(() => {
@@ -155,7 +232,6 @@ export default function SocketProvider({ children }: any) {
   return (
     <SocketContext.Provider value={{ 
       socket: socket as Socket, 
-      notificationSocket: notificationSocket, // Add the missing property
       addListener, 
       removeListener, 
       emit,

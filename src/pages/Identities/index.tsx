@@ -145,7 +145,7 @@ export default function Identity() {
     // Handle verification using the API
     const handleVerifyIdentity = useCallback(async (identity: IdentityDocument, action: 'accept' | 'reject') => {
         try {
-            await IdentityAPI.verifyIdentity(identity._id, { action });
+            await IdentityAPI.verifyIdentity(identity._id, action);
             
             // Remove from all pending lists immediately
             setPendingProfessionals(prev => prev.filter(item => item._id !== identity._id));

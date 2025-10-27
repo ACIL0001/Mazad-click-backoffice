@@ -212,14 +212,20 @@ export default function NotificationsPopover({ notifications, onRefresh, loading
                     </ListSubheader>
                   }
                 >
-                  {unread.map((notification) => (
-                    <NotificationItem 
-                      key={notification._id} 
-                      notification={notification} 
-                      onMarkAsRead={onRefresh}
-                      onClose={handleClose}
-                    />
-                  ))}
+                  {unread.map((notification) => {
+                    const convertedNotification = {
+                      ...notification,
+                      createdAt: notification.createdAt ? new Date(notification.createdAt) : new Date()
+                    };
+                    return (
+                      <NotificationItem 
+                        key={notification._id} 
+                        notification={convertedNotification} 
+                        onMarkAsRead={onRefresh}
+                        onClose={handleClose}
+                      />
+                    );
+                  })}
                 </List>
               )}
 
@@ -241,14 +247,20 @@ export default function NotificationsPopover({ notifications, onRefresh, loading
                     </ListSubheader>
                   }
                 >
-                  {before.map((notification) => (
-                    <NotificationItem 
-                      key={notification._id} 
-                      notification={notification} 
-                      onMarkAsRead={onRefresh}
-                      onClose={handleClose}
-                    />
-                  ))}
+                  {before.map((notification) => {
+                    const convertedNotification = {
+                      ...notification,
+                      createdAt: notification.createdAt ? new Date(notification.createdAt) : new Date()
+                    };
+                    return (
+                      <NotificationItem 
+                        key={notification._id} 
+                        notification={convertedNotification} 
+                        onMarkAsRead={onRefresh}
+                        onClose={handleClose}
+                      />
+                    );
+                  })}
                 </List>
               )}
             </>
@@ -375,6 +387,18 @@ function NotificationItem({ notification, onMarkAsRead, onClose }) {
 function renderContent(notification) {
   const { type, action } = notification;
 
+  // Handle message notifications - redirect to ChatLayout
+  if (type === 'MESSAGE_ADMIN' || type === 'MESSAGE_RECEIVED') {
+    return {
+      ...notification,
+      title: notification.title || 'Nouveau message',
+      description: notification.message || 'Vous avez reçu un nouveau message',
+      avatar: <Iconify icon="eva:message-circle-fill" sx={{ fontSize: 24, color: 'primary.main' }} />,
+      url: "chat", // Redirect to ChatLayout
+      createdAt: notification.createdAt ? new Date(notification.createdAt) : new Date()
+    };
+  }
+
   // Handle identity verification notifications
   if (type === 'IDENTITY_VERIFICATION') {
     return {
@@ -382,7 +406,8 @@ function renderContent(notification) {
       title: notification.title || 'Nouvelle demande de vérification d\'identité',
       description: notification.message || 'Une nouvelle demande de vérification d\'identité a été soumise',
       avatar: <Iconify icon="mdi:account-check" sx={{ fontSize: 24, color: 'primary.main' }} />,
-      url: "identities"
+      url: "identities",
+      createdAt: notification.createdAt ? new Date(notification.createdAt) : new Date()
     };
   }
 
@@ -393,7 +418,8 @@ function renderContent(notification) {
         title: 'Vous avez une nouvelle commande',
         description: 'en attente de livraison',
         avatar: <img alt="new order" src="/static/icons/ic_notification_package.svg" />,
-        url: "orders"
+        url: "orders",
+        createdAt: notification.createdAt ? new Date(notification.createdAt) : new Date()
       }
     default:
       return {
@@ -401,7 +427,7 @@ function renderContent(notification) {
         title: notification.title || "",
         description: notification.message || '',
         url: "app",
-        createdAt: notification.createdAt || new Date()
+        createdAt: notification.createdAt ? new Date(notification.createdAt) : new Date()
       }
   }
 }

@@ -478,6 +478,28 @@ export default function ProfessionalsDetailsPage() {
                                 </Typography>
                             </InfoRow>
                             
+                            {user?.secteur && (
+                                <InfoRow>
+                                    <Typography variant={isMobile ? "body2" : "body1"} color="text.secondary" sx={{ fontWeight: 500 }}>
+                                        Secteur d'activité
+                                    </Typography>
+                                    <Typography variant={isMobile ? "body1" : "body1"} sx={{ fontWeight: 600, fontSize: isMobile ? '0.85rem' : 'inherit' }}>
+                                        {user.secteur}
+                                    </Typography>
+                                </InfoRow>
+                            )}
+                            
+                            {user?.entreprise && (
+                                <InfoRow>
+                                    <Typography variant={isMobile ? "body2" : "body1"} color="text.secondary" sx={{ fontWeight: 500 }}>
+                                        Nom de l'entreprise
+                                    </Typography>
+                                    <Typography variant={isMobile ? "body1" : "body1"} sx={{ fontWeight: 600, fontSize: isMobile ? '0.85rem' : 'inherit' }}>
+                                        {user.entreprise}
+                                    </Typography>
+                                </InfoRow>
+                            )}
+                            
                             <InfoRow>
                                 <Typography variant={isMobile ? "body2" : "body1"} color="text.secondary" sx={{ fontWeight: 500 }}>
                                     Date de création

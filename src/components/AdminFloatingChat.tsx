@@ -355,13 +355,15 @@ const FloatingAdminChat: React.FC = () => {
       console.log('📨 Current adminChat:', adminChat);
       
       // Check if this message belongs to our admin chat
-      const isAdminMessage = data.reciver === 'admin' || data.sender === 'admin';
+      const isAdminMessage = data.reciver === 'admin' || data.reciver === 'ADMIN';
+      const isFromAdmin = data.sender === 'admin' || data.sender === 'ADMIN';
       const isFromCurrentUser = data.sender === auth?.user?._id;
       const isToCurrentUser = data.reciver === auth?.user?._id;
       const isInCurrentChat = adminChat && data.idChat === adminChat._id;
       
       console.log('🔍 Message analysis:', {
         isAdminMessage,
+        isFromAdmin,
         isFromCurrentUser,
         isToCurrentUser,
         isInCurrentChat,
@@ -373,24 +375,24 @@ const FloatingAdminChat: React.FC = () => {
       });
       
       // Accept messages that are either:
-      // 1. From admin to current user (admin responding)
-      // 2. From current user to admin (user asking)
+      // 1. From users to admin (reciver === 'admin') - these are support requests
+      // 2. From admin to users (sender === 'admin') - these are admin responses
       // 3. In the same chat as our adminChat (if it exists)
-      // 4. Any message where receiver is 'admin' (broadcast to all users)
-      // 5. Any message where sender is 'admin' and receiver is current user
       const shouldAcceptMessage = (
-        (isAdminMessage && (isFromCurrentUser || isToCurrentUser)) ||
-        isInCurrentChat ||
-        (data.reciver === 'admin' && isFromCurrentUser) ||
-        (data.sender === 'admin' && isToCurrentUser) ||
-        (data.sender === 'admin' && data.reciver === auth?.user?._id)
+        isAdminMessage || // User sending to admin
+        isFromAdmin ||    // Admin sending to user
+        isInCurrentChat   // Messages in current chat
       );
       
       if (shouldAcceptMessage) {
         console.log('✅ Accepting message, adding to messages');
         setMessages(prev => {
           // Check if message already exists to avoid duplicates
-          const messageExists = prev.some(msg => msg._id === data._id);
+          const messageExists = prev.some(msg => 
+            msg._id === data._id || 
+            (msg.message === data.message && msg.sender === data.sender && 
+             Math.abs(new Date(msg.createdAt).getTime() - new Date(data.createdAt).getTime()) < 1000)
+          );
           if (messageExists) {
             console.log('⚠️ Message already exists, skipping');
             return prev;
@@ -398,16 +400,21 @@ const FloatingAdminChat: React.FC = () => {
           return [...prev, data];
         });
         
-        if (!isOpen) {
+        // Only increment unread count if message is FROM users TO admin (not from admin)
+        if (!isOpen && isAdminMessage && !isFromAdmin) {
+          console.log('📊 Incrementing unread count for user message to admin');
           setUnreadCount(prev => prev + 1);
         }
       } else {
-        console.log('❌ Message not for this chat, ignoring');
+        console.log('❌ Message not for admin chat, ignoring');
       }
     };
 
     console.log('🔌 Setting up socket listener for sendMessage');
     socket.on('sendMessage', handleNewMessage);
+    
+    // Also listen for adminMessage events (for consistency)
+    socket.on('adminMessage', handleNewMessage);
 
     // Test socket connection by emitting a test event
     if (socket.connected) {
@@ -446,6 +453,7 @@ const FloatingAdminChat: React.FC = () => {
     return () => {
       console.log('🔌 Cleaning up socket listener');
       socket?.off('sendMessage', handleNewMessage);
+      socket?.off('adminMessage', handleNewMessage);
       socket?.off('testResponse', handleTestResponse);
       socket?.off('testBroadcast', handleTestBroadcast);
       socket?.off('notification', handleNotification);

@@ -11,7 +11,7 @@ export const useAdminNotifications = () => {
   const [loading, setLoading] = useState(false);
   const [newNotifications, setNewNotifications] = useState([]); // Track only new notifications
   const socketContext = useContext(SocketContext);
-  const { auth } = useAuth();
+  const { auth, isReady } = useAuth();
 
   // Calculate unread message count from backend - optimized version
   const getUnreadMessageCount = useCallback(async () => {
@@ -49,6 +49,19 @@ export const useAdminNotifications = () => {
 
   // Combined function to get both notifications and unread messages - optimized
   const getAllAdminNotifications = useCallback(async () => {
+    // Only fetch if we have a valid auth token and user
+    if (!auth?.tokens?.accessToken || !auth?.user?._id) {
+      console.log('🔐 Skipping admin notification fetch - auth not ready:', {
+        hasToken: !!auth?.tokens?.accessToken,
+        hasUser: !!auth?.user?._id
+      });
+      setNotifications([]);
+      setAdminNotificationCount(0);
+      setLoading(false);
+      return;
+    }
+
+    console.log('🔐 Fetching admin notifications with valid auth...');
     try {
       setLoading(true);
       
@@ -159,19 +172,43 @@ export const useAdminNotifications = () => {
     };
 
     const handleMessageRead = (data: any) => {
-      console.log('✅ Message marked as read:', data);
+      console.log('✅ Message marked as read via socket:', data);
+      
       // Immediately refresh the count when messages are read
-      getAllAdminNotifications();
+      // Use setTimeout to ensure the server has processed the read status
+      setTimeout(() => {
+        getAllAdminNotifications();
+      }, 500);
+    };
+
+    const handleMarkAllAsRead = (data: any) => {
+      console.log('✅ All messages marked as read via socket:', data);
+      // Refresh the count
+      setTimeout(() => {
+        getAllAdminNotifications();
+      }, 500);
+    };
+
+    const handleAdminMessagesMarkedAsRead = (data: any) => {
+      console.log('✅ Admin messages marked as read via socket:', data);
+      // Refresh the count immediately for admin
+      setTimeout(() => {
+        getAllAdminNotifications();
+      }, 500);
     };
 
     socketContext.socket.on('notification', handleNewNotification);
     socketContext.socket.on('sendMessage', handleNewMessage);
     socketContext.socket.on('messageRead', handleMessageRead);
+    socketContext.socket.on('messagesMarkedAsRead', handleMarkAllAsRead);
+    socketContext.socket.on('adminMessagesMarkedAsRead', handleAdminMessagesMarkedAsRead);
 
     return () => {
       socketContext.socket.off('notification', handleNewNotification);
       socketContext.socket.off('sendMessage', handleNewMessage);
       socketContext.socket.off('messageRead', handleMessageRead);
+      socketContext.socket.off('messagesMarkedAsRead', handleMarkAllAsRead);
+      socketContext.socket.off('adminMessagesMarkedAsRead', handleAdminMessagesMarkedAsRead);
     };
   }, [socketContext?.socket, getAllAdminNotifications, auth?.user]);
 
@@ -185,7 +222,9 @@ export const useAdminNotifications = () => {
 
   // Initial load and periodic refresh - optimized intervals
   useEffect(() => {
-    if (auth?.user) {
+    // Wait for auth to be ready and user to be logged in with valid tokens
+    if (isReady && auth?.tokens?.accessToken && auth?.user?._id) {
+      console.log('🔐 Admin auth ready, fetching notifications...');
       // Load immediately
       getAllAdminNotifications();
       
@@ -195,8 +234,14 @@ export const useAdminNotifications = () => {
       }, 30000);
       
       return () => clearInterval(interval);
+    } else {
+      console.log('🔐 Admin auth not ready yet:', { 
+        isReady,
+        hasToken: !!auth?.tokens?.accessToken, 
+        hasUser: !!auth?.user?._id 
+      });
     }
-  }, [auth?.user?._id, getAllAdminNotifications]);
+  }, [isReady, auth?.tokens?.accessToken, auth?.user?._id, getAllAdminNotifications]);
 
   // Expose a function to force immediate refresh
   const forceRefresh = useCallback(() => {
