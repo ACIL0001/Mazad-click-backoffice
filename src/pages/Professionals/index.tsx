@@ -300,8 +300,13 @@ export default function Professionals() {
         UserAPI.getProfessionals()
             .then((data) => {
                 setProfessionals(data);
-                console.log("Fetched verified professionals:", data);
-                enqueueSnackbar(`${data.length} professionnels vérifiés chargés avec succès.`, { variant: 'success' });
+                console.log("Fetched all professionals:", data);
+                const verifiedCount = data.filter((p: any) => p.isVerified).length;
+                const totalCount = data.length;
+                enqueueSnackbar(
+                    `${totalCount} professionnel${totalCount > 1 ? 's' : ''} chargé${totalCount > 1 ? 's' : ''} avec succès (${verifiedCount} vérifié${verifiedCount > 1 ? 's' : ''}).`, 
+                    { variant: 'success' }
+                );
             })
             .catch((e) => {
                 console.error("Failed to load professionals:", e);

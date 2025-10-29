@@ -21,8 +21,10 @@ export const UserAPI = {
   updateSubscriptionPlan: (plan: string): Promise<any> => requests.put('users/subscription-plan', { plan }),
   verifyUser: (userId: string, isVerified: boolean): Promise<any> => requests.put(`users/verify/${userId}`, { isVerified }),
   
-  // UPDATED: Modified to only return verified professionals and resellers
-  getProfessionals: (): Promise<any> => requests.get('users/professionals/verified'),
+  // Returns all professionals (verified and unverified)
+  getProfessionals: (): Promise<any> => requests.get('users/professionals'),
+  // Returns only verified professionals
+  getVerifiedProfessionals: (): Promise<any> => requests.get('users/professionals/verified'),
   getResellers: (): Promise<any> => requests.get('users/resellers/verified'),
   
   getClients: (): Promise<any> => requests.get('users/clients'),
