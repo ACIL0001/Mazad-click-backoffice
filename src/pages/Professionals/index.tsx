@@ -297,19 +297,41 @@ export default function Professionals() {
 
     const fetchProfessionals = () => {
         setLoading(true);
+        console.log('🔄 Fetching ALL professionals (verified and unverified)...');
         UserAPI.getProfessionals()
             .then((data) => {
-                setProfessionals(data);
-                console.log("Fetched all professionals:", data);
-                const verifiedCount = data.filter((p: any) => p.isVerified).length;
-                const totalCount = data.length;
+                console.log("✅ Fetched professionals response:", data);
+                console.log("📊 Response type:", Array.isArray(data) ? 'array' : typeof data);
+                console.log("📊 Response length:", Array.isArray(data) ? data.length : 'N/A');
+                
+                // Handle different response structures
+                let professionalsList = data;
+                if (data && !Array.isArray(data)) {
+                    // If response is an object, try to extract the array
+                    if (data.users && Array.isArray(data.users)) {
+                        professionalsList = data.users;
+                    } else if (data.data && Array.isArray(data.data)) {
+                        professionalsList = data.data;
+                    } else {
+                        console.warn("⚠️ Unexpected response structure:", data);
+                        professionalsList = [];
+                    }
+                }
+                
+                console.log(`📋 Total professionals to display: ${professionalsList.length}`);
+                const verifiedCount = professionalsList.filter((p: any) => p?.isVerified === true).length;
+                const unverifiedCount = professionalsList.length - verifiedCount;
+                console.log(`✅ Verified: ${verifiedCount}, ❌ Unverified: ${unverifiedCount}`);
+                
+                setProfessionals(professionalsList);
                 enqueueSnackbar(
-                    `${totalCount} professionnel${totalCount > 1 ? 's' : ''} chargé${totalCount > 1 ? 's' : ''} avec succès (${verifiedCount} vérifié${verifiedCount > 1 ? 's' : ''}).`, 
+                    `${professionalsList.length} professionnel${professionalsList.length > 1 ? 's' : ''} chargé${professionalsList.length > 1 ? 's' : ''} avec succès (${verifiedCount} vérifié${verifiedCount > 1 ? 's' : ''}, ${unverifiedCount} non vérifié${unverifiedCount > 1 ? 's' : ''}).`, 
                     { variant: 'success' }
                 );
             })
             .catch((e) => {
-                console.error("Failed to load professionals:", e);
+                console.error("❌ Failed to load professionals:", e);
+                console.error("❌ Error details:", e.response?.data || e.message);
                 enqueueSnackbar('Chargement des professionnels échoué.', { variant: 'error' });
             })
             .finally(() => {
@@ -633,7 +655,7 @@ export default function Professionals() {
                 <TableBody>
                     <TableRow>
                         <TableCell colSpan={COLUMNS.length} align="center" sx={{ py: 4 }}>
-                            <Typography>Chargement des professionnels vérifiés...</Typography>
+                            <Typography>Chargement des professionnels...</Typography>
                         </TableCell>
                     </TableRow>
                 </TableBody>
@@ -648,10 +670,10 @@ export default function Professionals() {
                             <Box sx={{ textAlign: 'center' }}>
                                 <InfoIcon sx={{ fontSize: 48, color: 'text.secondary', mb: 2 }} />
                                 <Typography variant="h6" sx={{ mb: 1, color: 'text.secondary' }}>
-                                    Aucun professionnel vérifié trouvé
+                                    Aucun professionnel trouvé
                                 </Typography>
                                 <Typography variant="body2" sx={{ color: 'text.secondary', maxWidth: 400, mx: 'auto' }}>
-                                    Les professionnels n'apparaîtront dans cette liste qu'après avoir soumis et fait vérifier leurs documents d'identité par un administrateur.
+                                    Il n'y a pas encore de professionnels enregistrés dans le système.
                                 </Typography>
                             </Box>
                         </TableCell>
