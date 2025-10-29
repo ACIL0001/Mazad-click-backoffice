@@ -27,6 +27,8 @@ import {
     Zoom,
     Paper,
     Divider,
+    ToggleButton,
+    ToggleButtonGroup,
 } from '@mui/material';
 // components
 import Page from '../../components/Page';
@@ -268,6 +270,7 @@ export default function Professionals() {
     const [orderBy, setOrderBy] = useState('createdAt');
     const [filterName, setFilterName] = useState('');
     const [rowsPerPage, setRowsPerPage] = useState(10);
+    const [verifiedFilter, setVerifiedFilter] = useState<'all' | 'verified' | 'unverified'>('all');
 
     const [openConfirmDialog, setOpenConfirmDialog] = useState(false);
     const [userToConfirmId, setUserToConfirmId] = useState('');
@@ -845,13 +848,13 @@ export default function Professionals() {
     return (
         <Page title="Users - Professionals">
             <Container maxWidth="xl" sx={{ py: { xs: 2, sm: 3 } }}>
-                {/* Info Alert */}
+                {/* Info Alert - Updated message */}
                 <Alert 
                     severity="info" 
                     sx={{ mb: 3 }}
                     icon={<InfoIcon />}
                 >
-                    Cette page n'affiche que les professionnels dont les documents d'identité ont été vérifiés et acceptés (statut: DONE).
+                    Cette page affiche tous les professionnels (vérifiés et non vérifiés). Utilisez les filtres ci-dessous pour affiner votre recherche.
                 </Alert>
 
                 <Grid container spacing={isMobile ? 2 : 3} sx={{ mb: { xs: 2, sm: 3 } }}>
@@ -865,7 +868,7 @@ export default function Professionals() {
                             </IconWrapperStyle>
                             <Box>
                                 <Typography variant={isMobile ? "body2" : "h6"} color="textSecondary" sx={{ opacity: 0.72 }}>
-                                    Professionnels Vérifiés
+                                    Total Professionnels
                                 </Typography>
                                 <Typography variant={isMobile ? "h5" : "h4"} component="div">
                                     {totalProfessionals}
@@ -951,9 +954,62 @@ export default function Professionals() {
                     </Grid>
                 </Grid>
 
-                {professionals && (
+                {/* Verified Filter Toggle */}
+                <Box sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
+                    <Typography variant="body2" sx={{ fontWeight: 600, color: 'text.secondary' }}>
+                        Filtrer par vérification:
+                    </Typography>
+                    <ToggleButtonGroup
+                        value={verifiedFilter}
+                        exclusive
+                        onChange={(event, newValue) => {
+                            if (newValue !== null) {
+                                setVerifiedFilter(newValue);
+                                setPage(0); // Reset to first page when filter changes
+                            }
+                        }}
+                        size="small"
+                        sx={{
+                            '& .MuiToggleButton-root': {
+                                px: 2,
+                                py: 0.75,
+                                fontSize: '0.875rem',
+                                textTransform: 'none',
+                                borderColor: 'divider',
+                                '&.Mui-selected': {
+                                    backgroundColor: theme.palette.primary.main,
+                                    color: 'white',
+                                    '&:hover': {
+                                        backgroundColor: theme.palette.primary.dark,
+                                    },
+                                },
+                            },
+                        }}
+                    >
+                        <ToggleButton value="all">
+                            Tous ({professionals.length})
+                        </ToggleButton>
+                        <ToggleButton value="verified">
+                            Vérifiés ({professionals.filter((p: any) => p.isVerified).length})
+                        </ToggleButton>
+                        <ToggleButton value="unverified">
+                            Non vérifiés ({professionals.filter((p: any) => !p.isVerified).length})
+                        </ToggleButton>
+                    </ToggleButtonGroup>
+                </Box>
+
+                {professionals && (() => {
+                    // Filter professionals by verification status first
+                    let filteredByVerification = professionals;
+                    if (verifiedFilter === 'verified') {
+                        filteredByVerification = professionals.filter((p: any) => p.isVerified === true);
+                    } else if (verifiedFilter === 'unverified') {
+                        filteredByVerification = professionals.filter((p: any) => p.isVerified !== true);
+                    }
+
+                    return (
                     <MuiTable
-                        data={professionals}
+                            data={filteredByVerification}
                         columns={COLUMNS}
                         page={page}
                         setPage={setPage}
@@ -973,7 +1029,8 @@ export default function Professionals() {
                         onDeleteSelected={handleDeleteSelected}
                         loading={loading}
                     />
-                )}
+                    );
+                })()}
             </Container>
 
             {/* Confirmation Dialog */}

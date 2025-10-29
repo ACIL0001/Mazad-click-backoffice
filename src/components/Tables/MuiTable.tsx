@@ -285,27 +285,38 @@ export function applySortFilter(
 ) {
   const safeArray = Array.isArray(array) ? array : []
 
-  const stabilizedThis = safeArray.map((el, index) => [el, index])
-  stabilizedThis.sort((a, b) => {
-    const order = comparator(a[0], b[0])
-    if (order !== 0) return order
-    return a[1] - b[1]
-  })
-
+  // Filter first if query exists
+  let filteredArray = safeArray
   if (query && searchFields.length > 0) {
-    return filter(safeArray, (obj) => {
+    const searchQuery = query.toLowerCase().trim()
+    filteredArray = filter(safeArray, (obj) => {
       return searchFields.some((field) => {
+        // Handle full name search (firstName + lastName)
+        if (field === 'firstName' || field === 'lastName') {
+          const firstName = obj.firstName || ''
+          const lastName = obj.lastName || ''
+          const fullName = `${firstName} ${lastName}`.toLowerCase().trim()
+          if (fullName.includes(searchQuery)) return true
+        }
+        
         const value = field.split(".").reduce((acc, part) => (acc ? acc[part] : undefined), obj)
 
         if (value == null) return false
 
         const stringValue = String(value).toLowerCase()
-        const searchQuery = query.toLowerCase().trim()
 
         return stringValue.includes(searchQuery)
       })
     })
   }
+
+  // Sort the filtered array
+  const stabilizedThis = filteredArray.map((el, index) => [el, index])
+  stabilizedThis.sort((a, b) => {
+    const order = comparator(a[0], b[0])
+    if (order !== 0) return order
+    return a[1] - b[1]
+  })
 
   return stabilizedThis.map((el) => el[0])
 }
@@ -427,7 +438,9 @@ export default function MuiTable({
     [selected, setSelected],
   )
 
-  const filteredData = applySortFilter(safeData, getComparator(order, orderBy), filterName, [searchField])
+  // Use all searchFields if provided, otherwise use single searchField
+  const fieldsToSearch = searchFields.length > 0 ? searchFields : [searchField]
+  const filteredData = applySortFilter(safeData, getComparator(order, orderBy), filterName, fieldsToSearch)
   const paginatedData = filteredData.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
 
   const isNotFound = !loading && filteredData.length === 0 && filterName !== ""
