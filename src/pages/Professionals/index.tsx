@@ -75,7 +75,9 @@ const COLUMNS = [
     { id: 'phone', label: 'Tel', alignRight: false, searchable: true },
     { id: 'secteur', label: 'Secteur', alignRight: false, searchable: true },
     { id: 'entreprise', label: 'Entreprise', alignRight: false, searchable: true },
+    { id: 'postOccupé', label: 'Post occupé', alignRight: false, searchable: true },
     { id: 'isVerified', label: 'Vérifié', alignRight: false, searchable: false },
+    { id: 'isCertified', label: 'Certifié', alignRight: false, searchable: false },
     { id: 'isActive', label: 'Activé', alignRight: false, searchable: false },
     { id: 'isBanned', label: 'Banni', alignRight: false, searchable: false },
     { id: 'isRecommended', label: 'Recommandé', alignRight: false, searchable: false },
@@ -688,7 +690,7 @@ export default function Professionals() {
         return (
             <TableBody>
                 {displayedData.map((row, index) => {
-                    const { _id, firstName, lastName, phone, secteur, entreprise, isVerified, isActive, isBanned, isRecommended, createdAt, rate } = row;
+                    const { _id, firstName, lastName, phone, secteur, entreprise, postOccupé, isVerified, isCertified, isActive, isBanned, isRecommended, createdAt, rate } = row;
                     const professionalFullName = `${firstName} ${lastName}`;
                     const isItemSelected = selected.indexOf(professionalFullName) !== -1;
 
@@ -759,9 +761,21 @@ export default function Professionals() {
                                 </Typography>
                             </TableCell>
 
+                            <TableCell align="left" sx={{ display: isMobile ? 'none' : 'table-cell' }}>
+                                <Typography variant="body2" sx={{ fontSize: isMobile ? '0.75rem' : '0.875rem' }}>
+                                    {postOccupé || 'N/A'}
+                                </Typography>
+                            </TableCell>
+
                             <TableCell align="left">
                                 <Label variant="ghost" color={isVerified ? 'success' : 'error'} sx={{ fontSize: isMobile ? '0.7rem' : '0.75rem' }}>
                                     {sentenceCase(isVerified ? "Compte Valide" : 'Compte Non Valide')}
+                                </Label>
+                            </TableCell>
+
+                            <TableCell align="left">
+                                <Label variant="ghost" color={isCertified ? 'primary' : 'default'} sx={{ fontSize: isMobile ? '0.7rem' : '0.75rem' }}>
+                                    {sentenceCase(isCertified ? 'Certifié' : 'Non Certifié')}
                                 </Label>
                             </TableCell>
 
@@ -1024,7 +1038,7 @@ export default function Professionals() {
                         rowsPerPage={rowsPerPage}
                         setRowsPerPage={setRowsPerPage}
                         TableBodyComponent={TableBodyComponent}
-                        searchFields={['firstName', 'lastName', 'phone', 'secteur', 'entreprise']}
+                        searchFields={['firstName', 'lastName', 'phone', 'secteur', 'entreprise', 'postOccupé']}
                         numSelected={selected.length}
                         onDeleteSelected={handleDeleteSelected}
                         loading={loading}

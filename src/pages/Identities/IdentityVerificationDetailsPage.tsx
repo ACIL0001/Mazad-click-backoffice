@@ -254,9 +254,6 @@ export default function IdentityVerificationDetailsPage() {
         createdAt
     } = identityDetails;
 
-    // Type cast user to any to access additional properties like secteur and entreprise
-    const userWithExtendedProps = user as any;
-
     // Determine user type and status information
     const getUserTypeInfo = () => {
         switch (conversionType) {
@@ -557,24 +554,35 @@ export default function IdentityVerificationDetailsPage() {
                                                 </Typography>
                                             </Box>
 
-                                            {userWithExtendedProps?.secteur && (
+                                            {user?.secteur && (
                                                 <Box>
                                                     <Typography variant={isMobile ? "caption" : "caption"} color="text.secondary" sx={{ fontWeight: 600, textTransform: 'uppercase', letterSpacing: 1, fontSize: isMobile ? '0.65rem' : 'inherit' }}>
                                                         Secteur d'activité
                                                     </Typography>
                                                     <Typography variant={isMobile ? "body2" : "body1"} sx={{ fontWeight: 500, mt: 0.5, fontSize: isMobile ? '0.8rem' : 'inherit' }}>
-                                                        {userWithExtendedProps.secteur}
+                                                        {user.secteur}
                                                     </Typography>
                                                 </Box>
                                             )}
 
-                                            {userWithExtendedProps?.entreprise && (
+                                            {user?.entreprise && (
                                                 <Box>
                                                     <Typography variant={isMobile ? "caption" : "caption"} color="text.secondary" sx={{ fontWeight: 600, textTransform: 'uppercase', letterSpacing: 1, fontSize: isMobile ? '0.65rem' : 'inherit' }}>
                                                         Nom de l'entreprise
                                                     </Typography>
                                                     <Typography variant={isMobile ? "body2" : "body1"} sx={{ fontWeight: 500, mt: 0.5, fontSize: isMobile ? '0.8rem' : 'inherit' }}>
-                                                        {userWithExtendedProps.entreprise}
+                                                        {user.entreprise}
+                                                    </Typography>
+                                                </Box>
+                                            )}
+
+                                            {user?.postOccupé && (
+                                                <Box>
+                                                    <Typography variant={isMobile ? "caption" : "caption"} color="text.secondary" sx={{ fontWeight: 600, textTransform: 'uppercase', letterSpacing: 1, fontSize: isMobile ? '0.65rem' : 'inherit' }}>
+                                                        Post occupé
+                                                    </Typography>
+                                                    <Typography variant={isMobile ? "body2" : "body1"} sx={{ fontWeight: 500, mt: 0.5, fontSize: isMobile ? '0.8rem' : 'inherit' }}>
+                                                        {user.postOccupé}
                                                     </Typography>
                                                 </Box>
                                             )}
@@ -657,7 +665,7 @@ export default function IdentityVerificationDetailsPage() {
                                         icon="eva:clock-outline"
                                         actions={
                                             <Grid container spacing={2}>
-                                                <Grid item xs={12} sm={6}>
+                                                <Grid item xs={12} sm={4}>
                                                     <Button
                                                         fullWidth
                                                         variant="contained"
@@ -671,7 +679,7 @@ export default function IdentityVerificationDetailsPage() {
                                                         {isVerifying ? <CircularProgress size={20} color="inherit" /> : 'Accepter'}
                                                     </Button>
                                                 </Grid>
-                                                <Grid item xs={12} sm={6}>
+                                                <Grid item xs={12} sm={4}>
                                                     <Button
                                                         fullWidth
                                                         variant="contained"
@@ -683,6 +691,28 @@ export default function IdentityVerificationDetailsPage() {
                                                         sx={{ borderRadius: 2, py: isMobile ? 1.5 : 2, fontSize: isMobile ? '0.9rem' : 'inherit' }}
                                                     >
                                                         {isVerifying ? <CircularProgress size={20} color="inherit" /> : 'Rejeter'}
+                                                    </Button>
+                                                </Grid>
+                                                <Grid item xs={12} sm={4}>
+                                                    <Button
+                                                        fullWidth
+                                                        variant="outlined"
+                                                        color="info"
+                                                        startIcon={<Iconify icon="eva:award-outline" sx={{ fontSize: isMobile ? 20 : 24 }} />}
+                                                        onClick={async () => {
+                                                            if (!identityDetails) return;
+                                                            try {
+                                                                await IdentityAPI.certifyIdentity(identityDetails._id);
+                                                                enqueueSnackbar('Utilisateur certifié avec succès.', { variant: 'success' });
+                                                            } catch (err: any) {
+                                                                enqueueSnackbar(err?.message || 'Échec de la certification.', { variant: 'error' });
+                                                            }
+                                                        }}
+                                                        disabled={isVerifying}
+                                                        size={isMobile ? "medium" : "large"}
+                                                        sx={{ borderRadius: 2, py: isMobile ? 1.5 : 2, fontSize: isMobile ? '0.9rem' : 'inherit' }}
+                                                    >
+                                                        Certifier
                                                     </Button>
                                                 </Grid>
                                             </Grid>

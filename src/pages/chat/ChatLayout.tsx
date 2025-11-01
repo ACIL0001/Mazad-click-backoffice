@@ -1503,7 +1503,7 @@ export function ChatLayout() {
                           {/* Display attachment or text message */}
                           {msg.attachment && msg.attachment.url && msg.attachment.name ? (
                             <>
-                              {console.log('📎 ChatLayout rendering attachment:', msg.attachment)}
+                              {(() => { console.log('📎 ChatLayout rendering attachment:', msg.attachment); return null; })()}
                               {msg.attachment.type?.startsWith('audio/') || msg.attachment.name?.includes('voice') ? (
                                 // Display voice message with play button
                                 (() => {
@@ -1512,9 +1512,10 @@ export function ChatLayout() {
                                   
                                   // If it's a relative URL, make it absolute
                                   if (audioUrl.startsWith('/static/')) {
-                                    const apiUrl = typeof window !== 'undefined' && window.location ? 
-                                      `${window.location.protocol}//${window.location.hostname}:3000` : 
-                                      'http://localhost:3000';
+                                    // const apiUrl = typeof window !== 'undefined' && window.location ? 
+                                    //   `${window.location.protocol}//${window.location.hostname}:3000` : 
+                                    //   'http://localhost:3000';
+                                    const apiUrl = import.meta.env.VITE_API_URL || 'https://mazadclick-server.onrender.com';
                                     audioUrl = `${apiUrl}${audioUrl}`;
                                   }
                                   

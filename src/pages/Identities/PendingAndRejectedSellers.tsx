@@ -25,6 +25,7 @@ import Iconify from "@/components/Iconify"
 import { useSnackbar } from "notistack"
 import MuiTable from "../../components/Tables/MuiTable"
 import { IdentityDocument, IdentityAPI } from "../../api/identity"
+import { UserAPI } from "../../api/user"
 
 interface PendingAndRejectedSellersProps {
   pendingAndRejectedSellers: IdentityDocument[]
@@ -40,6 +41,7 @@ const TABLE_HEAD = [
   { id: "email", label: "Email", alignRight: false, searchable: true },
   { id: "secteur", label: "Secteur", alignRight: false, searchable: true },
   { id: "entreprise", label: "Entreprise", alignRight: false, searchable: true },
+  { id: "postOccupé", label: "Post occupé", alignRight: false, searchable: true },
   { id: "conversion", label: "Conversion", alignRight: false, searchable: false },
   { id: "documents", label: "Documents", alignRight: false, searchable: false },
   { id: "createdAt", label: "Créé le", alignRight: false, searchable: false },
@@ -138,7 +140,7 @@ function SellersTableBody({
     <TableBody>
       {data.map((seller) => {
         const isItemSelected = selected.indexOf(seller._id) !== -1
-        const user = seller.user as any
+        const user = seller.user
         const fullName = `${user?.firstName || ''} ${user?.lastName || ''}`.trim()
         const documentCount = getDocumentCount(seller)
         const conversionInfo = getConversionTypeDisplay(seller)
@@ -231,7 +233,7 @@ function SellersTableBody({
                       display: 'block'
                     }}
                   >
-                    → {conversionInfo.label}
+                    → {seller.targetUserType || 'Non défini'}
                   </Typography>
                 </Box>
               </Stack>
@@ -273,6 +275,19 @@ function SellersTableBody({
                 }}
               >
                 {user?.entreprise || "N/A"}
+              </Typography>
+            </TableCell>
+            
+            {/* Post occupé Cell */}
+            <TableCell align="left" sx={{ py: 2 }}>
+              <Typography
+                variant="body2"
+                sx={{
+                  color: theme.palette.text.primary,
+                  fontSize: "0.875rem",
+                }}
+              >
+                {user?.postOccupé || "N/A"}
               </Typography>
             </TableCell>
             
@@ -359,6 +374,38 @@ function SellersTableBody({
                     onClick={(e) => handleAccept(seller, e)}
                   >
                     <Iconify icon="solar:check-circle-bold" width={18} height={18} />
+                  </IconButton>
+                </Tooltip>
+
+                {/* Certify Button */}
+                <Tooltip title="Certifier l'utilisateur" placement="top">
+                  <IconButton
+                    size="small"
+                    sx={{
+                      width: 36,
+                      height: 36,
+                      borderRadius: 2,
+                      backgroundColor: alpha(theme.palette.info.main, 0.08),
+                      color: theme.palette.info.main,
+                      border: `1px solid ${alpha(theme.palette.info.main, 0.2)}`,
+                      transition: "all 0.2s ease-in-out",
+                      "&:hover": {
+                        backgroundColor: alpha(theme.palette.info.main, 0.16),
+                        transform: "translateY(-2px)",
+                        boxShadow: `0 4px 12px 0 ${alpha(theme.palette.info.main, 0.3)}`,
+                      },
+                    }}
+                    onClick={async (e) => {
+                      e.stopPropagation();
+                      try {
+                        await IdentityAPI.certifyIdentity(seller._id);
+                        enqueueSnackbar("Utilisateur certifié avec succès.", { variant: 'success' });
+                      } catch (err: any) {
+                        enqueueSnackbar(err?.message || "Échec de la certification.", { variant: 'error' });
+                      }
+                    }}
+                  >
+                    <Iconify icon="eva:award-outline" width={18} height={18} />
                   </IconButton>
                 </Tooltip>
 
@@ -449,9 +496,7 @@ export default function PendingAndRejectedSellers({
 
     if (window.confirm(`Êtes-vous sûr de vouloir supprimer les ${selected.length} éléments sélectionnés ?`)) {
       try {
-        for (const id of selected) {
-          await IdentityAPI.deleteIdentity(id)
-        }
+        await IdentityAPI.deleteIdentities(selected)
         enqueueSnackbar(`${selected.length} éléments supprimés avec succès !`, { variant: "success" })
         onDeleteSellers(selected)
         setSelected([])
@@ -603,7 +648,7 @@ export default function PendingAndRejectedSellers({
         setFilterName={setFilterName}
         rowsPerPage={rowsPerPage}
         setRowsPerPage={setRowsPerPage}
-        searchFields={["user.firstName", "user.lastName", "user.email"]}
+        searchFields={["user.firstName", "user.lastName", "user.email", "user.secteur", "user.entreprise", "user.postOccupé"]}
         numSelected={selected.length}
         onDeleteSelected={handleDeleteSelected}
         loading={false}

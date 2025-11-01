@@ -6,6 +6,7 @@ import config from '@/config';
 
 export interface ISocketContext {
   socket: Socket;
+  notificationSocket?: Socket;
   addListener: (eventName: string, handler: (data?: any) => void) => void;
   removeListener: (eventName: string) => void;
   emit: (eventName: string, data?: any) => void;
@@ -39,6 +40,7 @@ const createMockSocket = (): Socket => {
 
 const initialState: ISocketContext = {
   socket: createMockSocket(),
+  notificationSocket: createMockSocket(),
   addListener: (eventName: string, handler: (data: any) => void) => {},
   removeListener: (eventName: string) => {},
   emit: (eventName: string, data?: any) => {},
@@ -74,7 +76,8 @@ export default function SocketProvider({ children }: any) {
     
     console.log('🔌 Initializing socket connection for user:', auth.user._id);
     
-    const so: Socket = io('http://localhost:3000', {
+    // const so: Socket = io('http://localhost:3000', {
+    const so: Socket = io(import.meta.env.VITE_SOCKET_URL || 'https://mazadclick-server.onrender.com', {
       query: { userId: auth.user._id },
       transports: ['websocket', 'polling'],
       autoConnect: true,
@@ -229,9 +232,10 @@ export default function SocketProvider({ children }: any) {
     };
   }, [eventListeners, socket]);
 
-  return (
+    return (
     <SocketContext.Provider value={{ 
-      socket: socket as Socket, 
+      socket: socket as Socket,
+      notificationSocket: socket as Socket,
       addListener, 
       removeListener, 
       emit,

@@ -115,16 +115,57 @@ export default function Identity() {
                 }
             });
 
-            // Set state with combined data
-            setPendingProfessionals([...professionalVerifications, ...categorizedLegacy.professionals]);
-            setPendingResellers([...resellerConversions, ...categorizedLegacy.resellers]);
-            setPendingClientToProfessional([...clientToProfessionalConversions, ...categorizedLegacy.clientToProfessional]);
-            setAcceptedIdentities(acceptedResponse);
+            // Enrich identities with full user data to ensure all fields are available
+            const enrichIdentitiesWithUserData = async (identities: IdentityDocument[]): Promise<IdentityDocument[]> => {
+                return Promise.all(identities.map(async (identity) => {
+                    if (identity.user?._id) {
+                        try {
+                            // Always fetch full user data to ensure we have secteur, entreprise, postOccupé
+                            const fullUserData = await UserAPI.findById(identity.user._id);
+                            return {
+                                ...identity,
+                                user: {
+                                    ...identity.user,
+                                    ...fullUserData,
+                                    // Prefer backend populated data, fallback to enriched data
+                                    secteur: identity.user.secteur || fullUserData.secteur || undefined,
+                                    entreprise: identity.user.entreprise || fullUserData.entreprise || undefined,
+                                    postOccupé: identity.user.postOccupé || fullUserData.postOccupé || undefined,
+                                }
+                            };
+                        } catch (err) {
+                            console.warn(`Failed to enrich user data for identity ${identity._id}:`, err);
+                            // Return identity as is if enrichment fails - backend data should be enough
+                            return identity;
+                        }
+                    }
+                    return identity;
+                }));
+            };
 
-            console.log('Professional verifications:', professionalVerifications.length);
-            console.log('Reseller conversions:', resellerConversions.length);
-            console.log('Client to Professional:', clientToProfessionalConversions.length);
-            console.log('Accepted identities:', acceptedResponse.length);
+            // Enrich all identities with full user data
+            const [
+                enrichedProfessionalVerifications,
+                enrichedResellerConversions,
+                enrichedAcceptedIdentities,
+                enrichedClientToProfessional
+            ] = await Promise.all([
+                enrichIdentitiesWithUserData([...professionalVerifications, ...categorizedLegacy.professionals]),
+                enrichIdentitiesWithUserData([...resellerConversions, ...categorizedLegacy.resellers]),
+                enrichIdentitiesWithUserData(acceptedResponse),
+                enrichIdentitiesWithUserData([...clientToProfessionalConversions, ...categorizedLegacy.clientToProfessional])
+            ]);
+
+            // Set state with enriched data
+            setPendingProfessionals(enrichedProfessionalVerifications);
+            setPendingResellers(enrichedResellerConversions);
+            setPendingClientToProfessional(enrichedClientToProfessional);
+            setAcceptedIdentities(enrichedAcceptedIdentities);
+
+            console.log('Professional verifications:', enrichedProfessionalVerifications.length);
+            console.log('Reseller conversions:', enrichedResellerConversions.length);
+            console.log('Client to Professional:', enrichedClientToProfessional.length);
+            console.log('Accepted identities:', enrichedAcceptedIdentities.length);
 
             // Don't show success snackbar on every load - only log to console
 
@@ -189,9 +230,7 @@ export default function Identity() {
     // Delete handlers using the API
     const handleDeletePendingProfessionals = useCallback(async (idsToDelete: string[]) => {
         try {
-            for (const id of idsToDelete) {
-                await IdentityAPI.deleteIdentity(id);
-            }
+            await IdentityAPI.deleteIdentities(idsToDelete);
             setPendingProfessionals(prev => prev.filter(item => !idsToDelete.includes(item._id)));
             enqueueSnackbar(`${idsToDelete.length} vérifications professionnelles supprimées.`, { variant: "success" });
         } catch (error: any) {
@@ -203,9 +242,7 @@ export default function Identity() {
 
     const handleDeletePendingResellers = useCallback(async (idsToDelete: string[]) => {
         try {
-            for (const id of idsToDelete) {
-                await IdentityAPI.deleteIdentity(id);
-            }
+            await IdentityAPI.deleteIdentities(idsToDelete);
             setPendingResellers(prev => prev.filter(item => !idsToDelete.includes(item._id)));
             enqueueSnackbar(`${idsToDelete.length} conversions vers revendeur supprimées.`, { variant: "success" });
         } catch (error: any) {
@@ -217,9 +254,7 @@ export default function Identity() {
 
     const handleDeletePendingClientToProfessional = useCallback(async (idsToDelete: string[]) => {
         try {
-            for (const id of idsToDelete) {
-                await IdentityAPI.deleteIdentity(id);
-            }
+            await IdentityAPI.deleteIdentities(idsToDelete);
             setPendingClientToProfessional(prev => prev.filter(item => !idsToDelete.includes(item._id)));
             enqueueSnackbar(`${idsToDelete.length} conversions vers professionnel supprimées.`, { variant: "success" });
         } catch (error: any) {
@@ -231,9 +266,7 @@ export default function Identity() {
 
     const handleDeleteAcceptedIdentities = useCallback(async (idsToDelete: string[]) => {
         try {
-            for (const id of idsToDelete) {
-                await IdentityAPI.deleteIdentity(id);
-            }
+            await IdentityAPI.deleteIdentities(idsToDelete);
             setAcceptedIdentities(prev => prev.filter(item => !idsToDelete.includes(item._id)));
             enqueueSnackbar(`${idsToDelete.length} identités acceptées supprimées.`, { variant: "success" });
         } catch (error: any) {

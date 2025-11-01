@@ -24,6 +24,7 @@ import Iconify from "@/components/Iconify"
 import { useSnackbar } from "notistack"
 import MuiTable from "../../components/Tables/MuiTable"
 import { IdentityDocument } from "@/api/identity" // Import from API
+import { UserAPI } from "../../api/user"
 
 interface AcceptedSellersProps {
   acceptedSellers: IdentityDocument[]
@@ -36,6 +37,7 @@ const TABLE_HEAD = [
   { id: "email", label: "Email", alignRight: false, searchable: true },
   { id: "secteur", label: "Secteur", alignRight: false, searchable: true },
   { id: "entreprise", label: "Entreprise", alignRight: false, searchable: true },
+  { id: "postOccupé", label: "Post occupé", alignRight: false, searchable: true },
   { id: "type", label: "Type", alignRight: false, searchable: false },
   { id: "status", label: "Statut", alignRight: false, searchable: false },
   { id: "createdAt", label: "Créé le", alignRight: false, searchable: false },
@@ -72,7 +74,7 @@ function SellerItem({ seller, selected, setSelected, onOpenVerificationModal, on
   )
 
   const isItemSelected = selected.indexOf(seller._id) !== -1
-  const user = seller.user as any
+  const user = seller.user
   const fullName = `${user?.firstName || ""} ${user?.lastName || ""}`.trim()
 
   const getStatusColor = () => {
@@ -218,6 +220,17 @@ function SellerItem({ seller, selected, setSelected, onOpenVerificationModal, on
           }}
         >
           {user?.entreprise || "N/A"}
+        </Typography>
+      </TableCell>
+      <TableCell align="left" sx={{ py: 2 }}>
+        <Typography
+          variant="body2"
+          sx={{
+            color: theme.palette.text.primary,
+            fontSize: "0.875rem",
+          }}
+        >
+          {user?.postOccupé || "N/A"}
         </Typography>
       </TableCell>
       <TableCell align="left" sx={{ py: 2 }}>
@@ -440,7 +453,7 @@ export default function AcceptedSellers({ acceptedSellers, onOpenVerificationMod
         setFilterName={setFilterName}
         rowsPerPage={rowsPerPage}
         setRowsPerPage={setRowsPerPage}
-        searchFields={["user.firstName", "user.lastName", "user.email", "user.secteur", "user.entreprise"]}
+        searchFields={["user.firstName", "user.lastName", "user.email", "user.secteur", "user.entreprise", "user.postOccupé"]}
         numSelected={selected.length}
         onDeleteSelected={handleDeleteSelected}
         loading={false}

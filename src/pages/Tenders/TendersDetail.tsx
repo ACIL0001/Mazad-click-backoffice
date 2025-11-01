@@ -100,7 +100,7 @@ export default function TenderDetail() {
   const [rejectLoading, setRejectLoading] = useState<string | null>(null);
   const [chatLoading, setChatLoading] = useState(false);
   const navigate = useNavigate();
-  const { socket } = useCreateSocket();
+  const { notificationSocket } = useCreateSocket();
   const { auth } = useAuth();
 
   console.log('Auth data:', auth);
@@ -110,7 +110,7 @@ export default function TenderDetail() {
       getTenderDetails(id);
       getTenderBids(id);
     }
-  }, [id, socket]);
+  }, [id, notificationSocket]);
 
   const getTenderDetails = async (tenderId: string) => {
     try {
@@ -395,7 +395,7 @@ export default function TenderDetail() {
   const lowestBid = getLowestBid();
   const averageBid = getAverageBid();
 
-  console.log('Notification socket data:', socket);
+  console.log('Notification socket data:', notificationSocket);
 
   return (
     <Page title={`${t('details') || 'Détails'} - ${tender.title}`}>
