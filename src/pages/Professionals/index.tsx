@@ -534,6 +534,28 @@ export default function Professionals() {
         handleOpenConfirmDialog(id, name, 'unverify', `Êtes-vous sûr de vouloir annuler la vérification du compte de`);
     };
 
+    const certifyProfessional = async (userId: string) => {
+        try {
+            const professional = professionals.find(p => p._id === userId);
+            const professionalName = professional ? `${professional.firstName} ${professional.lastName}` : 'ce professionnel';
+            
+            // Get the identity document for this user
+            const userDocuments = await IdentityAPI.getUserDocuments(userId);
+            if (!userDocuments || !userDocuments._id) {
+                enqueueSnackbar('Aucun document d\'identité trouvé pour ce professionnel.', { variant: 'warning' });
+                return;
+            }
+            
+            // Certify the identity
+            await IdentityAPI.certifyIdentity(userDocuments._id);
+            enqueueSnackbar('Professionnel certifié avec succès.', { variant: 'success' });
+            fetchProfessionals();
+        } catch (error: any) {
+            console.error('Failed to certify professional:', error);
+            enqueueSnackbar(error?.response?.data?.message || 'Échec de la certification du professionnel.', { variant: 'error' });
+        }
+    };
+
     const recommendProfessional = (id: string, name: string) => {
         handleOpenConfirmDialog(id, name, 'recommend', `Êtes-vous sûr de vouloir recommander le compte de`);
     };
@@ -837,8 +859,11 @@ export default function Professionals() {
                                         isVerified
                                             ? { label: 'Annuler la vérification', onClick: () => unverifyProfessional(_id, professionalFullName), icon: 'eva:close-circle-outline' }
                                             : { label: 'Vérifier', onClick: () => verifyProfessional(_id, professionalFullName), icon: 'eva:checkmark-circle-outline' },
+                                        !isCertified
+                                            ? { label: 'Certifier', onClick: () => certifyProfessional(_id), icon: 'eva:award-outline' }
+                                            : null,
                                         { label: 'Supprimer', onClick: () => deleteProfessional(_id), icon: 'eva:trash-2-outline' }
-                                    ]}
+                                    ].filter(action => action !== null)}
                                 />
                             </TableCell>
                         </TableRow>
