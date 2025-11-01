@@ -1503,6 +1503,7 @@ export function ChatLayout() {
                           {/* Display attachment or text message */}
                           {msg.attachment && msg.attachment.url && msg.attachment.name ? (
                             <>
+                              {console.log('📎 ChatLayout rendering attachment:', msg.attachment)}
                               {msg.attachment.type?.startsWith('audio/') || msg.attachment.name?.includes('voice') ? (
                                 // Display voice message with play button
                                 (() => {
