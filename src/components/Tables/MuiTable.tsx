@@ -289,6 +289,53 @@ export function applySortFilter(
   let filteredArray = safeArray
   if (query && searchFields.length > 0) {
     const searchQuery = query.toLowerCase().trim()
+    
+    // Map French keywords to boolean values for better UX
+    const booleanKeywords: { [key: string]: boolean } = {
+      'vérifié': true,
+      'verifie': true,
+      'vérifiée': true,
+      'verifiee': true,
+      'non vérifié': false,
+      'non verifie': false,
+      'non vérifiée': false,
+      'non verifiee': false,
+      'certifié': true,
+      'certifie': true,
+      'certifiée': true,
+      'certifiee': true,
+      'non certifié': false,
+      'non certifie': false,
+      'non certifiée': false,
+      'non certifiee': false,
+      'actif': true,
+      'active': true,
+      'activé': true,
+      'activee': true,
+      'inactif': false,
+      'inactive': false,
+      'inactivé': false,
+      'inactivee': false,
+      'banni': true,
+      'ban': true,
+      'non banni': false,
+      'non ban': false,
+      'recommandé': true,
+      'recommandee': true,
+      'recommande': true,
+      'non recommandé': false,
+      'non recommandee': false,
+      'non recommande': false,
+      'oui': true,
+      'yes': true,
+      'non': false,
+      'no': false,
+      'true': true,
+      'false': false,
+      '1': true,
+      '0': false,
+    }
+    
     filteredArray = filter(safeArray, (obj) => {
       return searchFields.some((field) => {
         // Handle full name search (firstName + lastName)
@@ -302,6 +349,17 @@ export function applySortFilter(
         const value = field.split(".").reduce((acc, part) => (acc ? acc[part] : undefined), obj)
 
         if (value == null) return false
+
+        // Handle boolean fields with French keywords
+        if (typeof value === 'boolean') {
+          const booleanValue = booleanKeywords[searchQuery]
+          if (booleanValue !== undefined) {
+            return value === booleanValue
+          }
+          // Also check direct string match
+          const stringValue = String(value).toLowerCase()
+          return stringValue.includes(searchQuery)
+        }
 
         const stringValue = String(value).toLowerCase()
 
@@ -347,6 +405,7 @@ interface MuiTableProps {
   onDeleteSelected?: () => void
   loading: boolean
   actionButtonPosition?: "floating" | "sticky" | "inline" | "all"
+  getRowId?: (row: any) => string // Optional function to get the row identifier for selection
 }
 
 export default function MuiTable({
@@ -370,6 +429,7 @@ export default function MuiTable({
   onDeleteSelected,
   loading,
   actionButtonPosition = "sticky",
+  getRowId,
 }: MuiTableProps) {
   const theme = useTheme()
   const tableRef = useRef<HTMLDivElement>(null)
@@ -382,10 +442,38 @@ export default function MuiTable({
   const safeColumns = Array.isArray(columns) ? columns : []
 
   const allSearchFields = safeColumns.filter((col) => col.searchable !== false && col.id).map((col) => col.id)
-  const defaultSearchField = searchFields.length > 0 && searchFields[0] ? searchFields[0] : allSearchFields[0] || ""
-  const [searchField, setSearchField] = useState(defaultSearchField)
+  const defaultSearchField = searchFields.length > 0 && searchFields[0] ? searchFields[0] : (allSearchFields[0] || "")
+  
+  // Ensure searchField is always valid and exists in allSearchFields
+  const getValidSearchField = useCallback((field: string) => {
+    if (allSearchFields.length === 0) return ""
+    if (field && allSearchFields.includes(field)) return field
+    return allSearchFields[0] || ""
+  }, [allSearchFields])
+  
+  const [searchField, setSearchField] = useState(() => {
+    if (allSearchFields.length === 0) return ""
+    const validField = defaultSearchField && allSearchFields.includes(defaultSearchField) 
+      ? defaultSearchField 
+      : (allSearchFields[0] || "")
+    return validField
+  })
 
   const tableMinWidth = isSmallMobile ? 650 : isMobile ? 700 : isTablet ? 900 : 1000;
+
+  // Debug logging
+  useEffect(() => {
+    console.log('🔍 MuiTable - Search Field Debug:', {
+      safeColumns: safeColumns.length,
+      allSearchFields,
+      allSearchFieldsCount: allSearchFields.length,
+      searchFieldsProp: searchFields,
+      defaultSearchField,
+      currentSearchField: searchField,
+      isValidField: allSearchFields.includes(searchField),
+      columnsWithSearchable: safeColumns.map(col => ({ id: col.id, label: col.label, searchable: col.searchable }))
+    })
+  }, [safeColumns, allSearchFields, searchFields, defaultSearchField, searchField])
 
   // Handle floating button visibility
   useEffect(() => {
@@ -395,11 +483,19 @@ export default function MuiTable({
     return () => clearTimeout(timer)
   }, [numSelected])
 
+  // Update searchField when allSearchFields changes or when it becomes invalid
   useEffect(() => {
-    if (defaultSearchField && defaultSearchField !== searchField) {
-      setSearchField(defaultSearchField)
+    const validField = getValidSearchField(searchField)
+    if (validField !== searchField) {
+      console.log('🔄 MuiTable - Updating searchField to valid value:', { from: searchField, to: validField })
+      setSearchField(validField)
     }
-  }, [defaultSearchField, searchField])
+  }, [getValidSearchField, searchField])
+
+  // Use all searchFields if provided, otherwise use single searchField
+  const fieldsToSearch = searchFields.length > 0 ? searchFields : [searchField]
+  const filteredData = applySortFilter(safeData, getComparator(order, orderBy), filterName, fieldsToSearch)
+  const paginatedData = filteredData.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
 
   const handleRequestSort = (event: React.MouseEvent<unknown>, property: string) => {
     const isAsc = orderBy === property && order === "asc"
@@ -407,12 +503,36 @@ export default function MuiTable({
     setOrderBy(property)
   }
 
+  // Function to get row identifier - use custom function if provided, otherwise default to _id
+  const getRowIdentifier = useCallback((row: any) => {
+    if (getRowId) {
+      return getRowId(row)
+    }
+    // Default: try _id first, then id, then construct from firstName + lastName if available
+    if (row._id) return row._id
+    if (row.id) return row.id
+    if (row.firstName && row.lastName) {
+      return `${row.firstName} ${row.lastName}`
+    }
+    // Fallback: use index if nothing else works (shouldn't happen)
+    return String(row._id || row.id || JSON.stringify(row))
+  }, [getRowId])
+
   const handleSelectAllClick = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.checked) {
-      const newSelecteds = safeData.map((n: any) => n._id)
+      // Select only filtered data, not all data
+      const newSelecteds = filteredData.map((row: any) => getRowIdentifier(row))
+      console.log('🔍 MuiTable - Select All:', { 
+        totalData: safeData.length, 
+        filteredData: filteredData.length, 
+        selectedCount: newSelecteds.length,
+        firstSelectedId: newSelecteds[0],
+        usingCustomGetter: !!getRowId
+      })
       setSelected(newSelecteds)
       return
     }
+    console.log('🔍 MuiTable - Deselect All')
     setSelected([])
   }
 
@@ -437,11 +557,6 @@ export default function MuiTable({
     },
     [selected, setSelected],
   )
-
-  // Use all searchFields if provided, otherwise use single searchField
-  const fieldsToSearch = searchFields.length > 0 ? searchFields : [searchField]
-  const filteredData = applySortFilter(safeData, getComparator(order, orderBy), filterName, fieldsToSearch)
-  const paginatedData = filteredData.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
 
   const isNotFound = !loading && filteredData.length === 0 && filterName !== ""
   const isTableEmpty = !loading && filteredData.length === 0 && filterName === ""
@@ -559,12 +674,37 @@ export default function MuiTable({
                     Rechercher dans
                   </InputLabel>
                   <Select
-                    value={searchField}
+                    value={getValidSearchField(searchField)}
                     onChange={(e) => {
-                      setSearchField(e.target.value as string)
-                      setPage(0)
+                      const newValue = e.target.value as string
+                      console.log('🔍 MuiTable - Dropdown onChange:', { 
+                        oldValue: searchField, 
+                        newValue,
+                        allSearchFields,
+                        eventValue: e.target.value,
+                        isValid: allSearchFields.includes(newValue)
+                      })
+                      if (allSearchFields.includes(newValue)) {
+                        setSearchField(newValue)
+                        setPage(0)
+                      } else {
+                        console.error('❌ MuiTable - Invalid field selected:', newValue)
+                      }
                     }}
                     label="Rechercher dans"
+                    onOpen={() => {
+                      console.log('🔍 MuiTable - Dropdown opened:', { 
+                        currentValue: searchField,
+                        availableOptions: allSearchFields,
+                        menuItems: allSearchFields.map(field => {
+                          const column = safeColumns.find((col) => col.id === field)
+                          return { field, label: column?.label || field }
+                        })
+                      })
+                    }}
+                    onClose={() => {
+                      console.log('🔍 MuiTable - Dropdown closed:', { selectedValue: searchField })
+                    }}
                     sx={{
                       borderRadius: 2,
                       backgroundColor: theme.palette.background.paper,
@@ -584,9 +724,17 @@ export default function MuiTable({
                   >
                     {allSearchFields.map((field) => {
                       const column = safeColumns.find((col) => col.id === field)
+                      const label = column?.label || field.split(".").join(" ")
+                      console.log('🔍 MuiTable - Rendering MenuItem:', { field, label, column })
                       return (
-                        <MenuItem key={field} value={field}>
-                          {column?.label || field.split(".").join(" ")}
+                        <MenuItem 
+                          key={field} 
+                          value={field}
+                          onClick={() => {
+                            console.log('🔍 MuiTable - MenuItem clicked:', { field, label })
+                          }}
+                        >
+                          {label}
                         </MenuItem>
                       )
                     })}

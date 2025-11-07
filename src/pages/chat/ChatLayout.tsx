@@ -55,6 +55,48 @@ import { MessageAPI } from '../../api/message';
 import useAuth from '../../hooks/useAuth';
 import Page from '../../components/Page';
 
+const API_BASE_URL = (() => {
+  const envUrl = import.meta.env.VITE_API_URL;
+  if (envUrl && envUrl.trim() !== '') {
+    return envUrl.trim().replace(/\/$/, '');
+  }
+  return (import.meta.env.MODE === 'production'
+    ? 'https://mazadclick-server.onrender.com'
+    : 'http://localhost:3000').replace(/\/$/, '');
+})();
+
+const STATIC_BASE_URL = (() => {
+  const envUrl = import.meta.env.VITE_STATIC_URL;
+  if (envUrl && envUrl.trim() !== '') {
+    return envUrl.trim().replace(/\/$/, '');
+  }
+  return API_BASE_URL;
+})();
+
+const buildAbsoluteUrl = (path: string | undefined | null): string => {
+  if (!path) {
+    return STATIC_BASE_URL;
+  }
+  if (path.startsWith('http://') || path.startsWith('https://')) {
+    return path;
+  }
+  if (!path.startsWith('/')) {
+    return `${STATIC_BASE_URL}/${path}`;
+  }
+  return `${STATIC_BASE_URL}${path}`;
+};
+
+const resolveBrowserBaseUrl = (): string => {
+  if (typeof window !== 'undefined' && window.location) {
+    const { protocol, hostname, port } = window.location;
+    if (hostname && hostname !== 'localhost') {
+      const portSegment = port ? `:${port}` : '';
+      return `${protocol}//${hostname}${portSegment}`.replace(/\/$/, '');
+    }
+  }
+  return API_BASE_URL;
+};
+
 // Interfaces
 interface Message {
   _id: string;
@@ -673,10 +715,11 @@ export function ChatLayout() {
       uploadFormData.append('as', 'message-attachment');
       
       console.log('📤 Uploading file...');
-      const apiUrl = typeof window !== 'undefined' && window.location ? 
-        `${window.location.protocol}//${window.location.hostname}:3000` : 
-        'http://localhost:3000';
-      const uploadResponse = await fetch(`${apiUrl}/attachments/upload`, {
+      // const apiUrl = typeof window !== 'undefined' && window.location ? 
+      //   `${window.location.protocol}//${window.location.hostname}:3000` : 
+      //   'http://localhost:3000';
+      const apiUrl = resolveBrowserBaseUrl();
+      const uploadResponse = await fetch(`${apiUrl.replace(/\/$/, '')}/attachments/upload`, {
         method: 'POST',
         body: uploadFormData
       });
@@ -691,7 +734,8 @@ export function ChatLayout() {
       // Extract attachment info
       const attachmentInfo = {
         _id: uploadData._id || uploadData.id,
-        url: uploadData.fullUrl || uploadData.url || `http://localhost:3000/static/${uploadData.filename}`,
+      // url: uploadData.fullUrl || uploadData.url || `http://localhost:3000/static/${uploadData.filename}`,
+      url: uploadData.fullUrl || uploadData.url || buildAbsoluteUrl(`/static/${uploadData.filename}`),
         name: uploadData.originalname || selectedFile.name,
         type: uploadData.mimetype || selectedFile.type,
         size: uploadData.size || selectedFile.size,
@@ -803,10 +847,11 @@ export function ChatLayout() {
       formData.append('sender', isAdmin ? 'admin' : (auth?.user?._id || 'guest'));
       formData.append('reciver', isAdmin ? selectedChat.users.find(u => u._id !== 'admin')?._id || 'guest' : 'admin');
 
-      const apiUrl = typeof window !== 'undefined' && window.location ? 
-        `${window.location.protocol}//${window.location.hostname}:3000` : 
-        'http://localhost:3000';
-      const response = await fetch(`${apiUrl}/message/voice-message`, {
+      // const apiUrl = typeof window !== 'undefined' && window.location ? 
+      //   `${window.location.protocol}//${window.location.hostname}:3000` : 
+      //   'http://localhost:3000';
+      const apiUrl = resolveBrowserBaseUrl();
+      const response = await fetch(`${apiUrl.replace(/\/$/, '')}/message/voice-message`, {
         method: 'POST',
         body: formData
       });
@@ -985,9 +1030,10 @@ export function ChatLayout() {
       // Ensure we have a proper URL
       let fullUrl = fileUrl;
       if (fileUrl.startsWith('/static/')) {
-        const apiUrl = typeof window !== 'undefined' && window.location ? 
-          `${window.location.protocol}//${window.location.hostname}:3000` : 
-          'http://localhost:3000';
+        // const apiUrl = typeof window !== 'undefined' && window.location ? 
+        //   `${window.location.protocol}//${window.location.hostname}:3000` : 
+        //   'http://localhost:3000';
+        const apiUrl = resolveBrowserBaseUrl();
         fullUrl = `${apiUrl}${fileUrl}`;
       }
       
@@ -1503,7 +1549,10 @@ export function ChatLayout() {
                           {/* Display attachment or text message */}
                           {msg.attachment && msg.attachment.url && msg.attachment.name ? (
                             <>
-                              {(() => { console.log('📎 ChatLayout rendering attachment:', msg.attachment); return null; })()}
+                              {(() => {
+                                console.log('📎 ChatLayout rendering attachment:', msg.attachment);
+                                return null;
+                              })()}
                               {msg.attachment.type?.startsWith('audio/') || msg.attachment.name?.includes('voice') ? (
                                 // Display voice message with play button
                                 (() => {
@@ -1515,7 +1564,7 @@ export function ChatLayout() {
                                     // const apiUrl = typeof window !== 'undefined' && window.location ? 
                                     //   `${window.location.protocol}//${window.location.hostname}:3000` : 
                                     //   'http://localhost:3000';
-                                    const apiUrl = import.meta.env.VITE_API_URL || 'https://mazadclick-server.onrender.com';
+                                    const apiUrl = resolveBrowserBaseUrl();
                                     audioUrl = `${apiUrl}${audioUrl}`;
                                   }
                                   
@@ -2335,7 +2384,8 @@ export function ChatLayout() {
                   // Try to construct absolute URL if relative
                   const img = e.target as HTMLImageElement;
                   if (selectedImage.url.startsWith('/static/')) {
-                    const absoluteUrl = `http://localhost:3000${selectedImage.url}`;
+                    // const absoluteUrl = `http://localhost:3000${selectedImage.url}`;
+                    const absoluteUrl = `${resolveBrowserBaseUrl()}${selectedImage.url}`;
                     console.log('🔄 Trying absolute URL:', absoluteUrl);
                     img.src = absoluteUrl;
                   }

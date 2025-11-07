@@ -76,8 +76,14 @@ export default function SocketProvider({ children }: any) {
     
     console.log('🔌 Initializing socket connection for user:', auth.user._id);
     
+    const socketUrl = (config.socket && config.socket.trim() !== ''
+      ? config.socket.trim()
+      : (import.meta.env.MODE === 'production'
+        ? 'https://mazadclick-server.onrender.com/'
+        : 'http://localhost:3000/')).replace(/\/$/, '');
+
     // const so: Socket = io('http://localhost:3000', {
-    const so: Socket = io(import.meta.env.VITE_SOCKET_URL || 'https://mazadclick-server.onrender.com', {
+    const so: Socket = io(socketUrl, {
       query: { userId: auth.user._id },
       transports: ['websocket', 'polling'],
       autoConnect: true,
@@ -232,7 +238,7 @@ export default function SocketProvider({ children }: any) {
     };
   }, [eventListeners, socket]);
 
-    return (
+  return (
     <SocketContext.Provider value={{ 
       socket: socket as Socket,
       notificationSocket: socket as Socket,
