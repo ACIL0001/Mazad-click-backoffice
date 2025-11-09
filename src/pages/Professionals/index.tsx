@@ -976,12 +976,6 @@ export default function Professionals() {
                                 </Stack>
                             </TableCell>
 
-                            <TableCell align="left">
-                                <Typography variant="body2" sx={{ fontSize: isMobile ? '0.75rem' : '0.875rem' }}>
-                                    {normalizedPromoCode || 'N/A'}
-                                </Typography>
-                            </TableCell>
-
                             <TableCell align="left" sx={{ display: isMobile ? 'none' : 'table-cell' }}>{phone}</TableCell>
 
                             <TableCell align="left" sx={{ display: isMobile ? 'none' : 'table-cell' }}>
@@ -999,6 +993,12 @@ export default function Professionals() {
                             <TableCell align="left" sx={{ display: isMobile ? 'none' : 'table-cell' }}>
                                 <Typography variant="body2" sx={{ fontSize: isMobile ? '0.75rem' : '0.875rem' }}>
                                     {postOccupé || 'N/A'}
+                                </Typography>
+                            </TableCell>
+
+                            <TableCell align="left">
+                                <Typography variant="body2" sx={{ fontSize: isMobile ? '0.75rem' : '0.875rem' }}>
+                                    {normalizedPromoCode || 'N/A'}
                                 </Typography>
                             </TableCell>
 
