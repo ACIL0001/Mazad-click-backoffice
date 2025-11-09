@@ -749,6 +749,24 @@ export default function Professionals() {
         handleOpenConfirmDialog(id, name, 'unrecommend', `Êtes-vous sûr de vouloir retirer la recommandation du compte de`);
     };
 
+    const certifyProfessional = async (id: string, name: string) => {
+        try {
+            const documents = await IdentityAPI.getUserDocuments(id);
+            if (!documents?._id) {
+                enqueueSnackbar(`Impossible de certifier ${name} : documents d'identité introuvables.`, { variant: 'warning' });
+                return;
+            }
+
+            await IdentityAPI.certifyIdentity(documents._id);
+            enqueueSnackbar(`${name} a été certifié avec succès.`, { variant: 'success' });
+            fetchProfessionals();
+        } catch (error: any) {
+            console.error('❌ Failed to certify professional:', error);
+            const message = error?.response?.data?.message || 'Échec de la certification du professionnel.';
+            enqueueSnackbar(message, { variant: 'error' });
+        }
+    };
+
     const deleteProfessional = (id: string) => {
         const professional = professionals.find(p => p._id === id);
         if (professional) {
@@ -1006,9 +1024,22 @@ export default function Professionals() {
                             </TableCell>
 
                             <TableCell align="left">
-                                <Label variant="ghost" color={isCertified ? 'primary' : 'default'} sx={{ fontSize: isMobile ? '0.7rem' : '0.75rem' }}>
-                                    {sentenceCase(isCertified ? 'Certifié' : 'Non Certifié')}
-                                </Label>
+                                <Stack direction="row" spacing={1} alignItems="center">
+                                    <Label variant="ghost" color={isCertified ? 'primary' : 'default'} sx={{ fontSize: isMobile ? '0.7rem' : '0.75rem' }}>
+                                        {sentenceCase(isCertified ? 'Certifié' : 'Non Certifié')}
+                                    </Label>
+                                    {!isCertified && (
+                                        <Button
+                                            variant="outlined"
+                                            color="info"
+                                            size="small"
+                                            onClick={() => certifyProfessional(_id, professionalFullName)}
+                                            sx={{ borderRadius: 2, textTransform: 'none', fontSize: '0.7rem', fontWeight: 600 }}
+                                        >
+                                            Certifier
+                                        </Button>
+                                    )}
+                                </Stack>
                             </TableCell>
 
                             <TableCell align="left" sx={{ display: isMobile ? 'none' : 'table-cell' }}>
@@ -1055,21 +1086,24 @@ export default function Professionals() {
                                 <ActionsMenu
                                     _id={_id}
                                     actions={[
-                                        { label: 'Voir Documents', onClick: () => handleViewDocuments(_id, professionalFullName), icon: 'eva:file-text-outline' },
-                                        { label: 'Modifier Rate', onClick: () => handleOpenRateDialog(_id, professionalFullName, rate), icon: 'eva:edit-fill' },
+                                        { label: 'Voir Documents', onClick: () => handleViewDocuments(_id, professionalFullName), icon: 'eva:file-text-outline', color: 'info' },
+                                        { label: 'Modifier Rate', onClick: () => handleOpenRateDialog(_id, professionalFullName, rate), icon: 'eva:edit-fill', color: 'warning' },
                                         isRecommended
-                                            ? { label: 'Retirer Recommandation', onClick: () => unrecommendProfessional(_id, professionalFullName), icon: 'eva:star-outline' }
-                                            : { label: 'Recommander', onClick: () => recommendProfessional(_id, professionalFullName), icon: 'eva:star-fill' },
+                                            ? { label: 'Retirer Recommandation', onClick: () => unrecommendProfessional(_id, professionalFullName), icon: 'eva:star-outline', color: 'secondary' }
+                                            : { label: 'Recommander', onClick: () => recommendProfessional(_id, professionalFullName), icon: 'eva:star-fill', color: 'secondary' },
                                         isActive
-                                            ? { label: 'Désactiver', onClick: () => disableProfessional(_id, professionalFullName), icon: 'mdi:user-block-outline' }
-                                            : { label: 'Activer', onClick: () => enableProfessional(_id, professionalFullName), icon: 'mdi:user-check-outline' },
+                                            ? { label: 'Désactiver', onClick: () => disableProfessional(_id, professionalFullName), icon: 'mdi:user-block-outline', color: 'default' }
+                                            : { label: 'Activer', onClick: () => enableProfessional(_id, professionalFullName), icon: 'mdi:user-check-outline', color: 'default' },
                                         isBanned
-                                            ? { label: 'Débannir', onClick: () => unbanProfessional(_id, professionalFullName), icon: 'eva:person-done-outline' }
-                                            : { label: 'Bannir', onClick: () => banProfessional(_id, professionalFullName), icon: 'eva:slash-outline' },
+                                            ? { label: 'Débannir', onClick: () => unbanProfessional(_id, professionalFullName), icon: 'eva:person-done-outline', color: 'success' }
+                                            : { label: 'Bannir', onClick: () => banProfessional(_id, professionalFullName), icon: 'eva:slash-outline', color: 'error' },
                                         isVerified
-                                            ? { label: 'Annuler la vérification', onClick: () => unverifyProfessional(_id, professionalFullName), icon: 'eva:close-circle-outline' }
-                                            : { label: 'Vérifier', onClick: () => verifyProfessional(_id, professionalFullName), icon: 'eva:checkmark-circle-outline' },
-                                        { label: 'Supprimer', onClick: () => deleteProfessional(_id), icon: 'eva:trash-2-outline' }
+                                            ? { label: 'Annuler la vérification', onClick: () => unverifyProfessional(_id, professionalFullName), icon: 'eva:close-circle-outline', color: 'error' }
+                                            : { label: 'Vérifier', onClick: () => verifyProfessional(_id, professionalFullName), icon: 'eva:checkmark-circle-outline', color: 'success' },
+                                        isCertified
+                                            ? undefined
+                                            : { label: 'Certifier', onClick: () => certifyProfessional(_id, professionalFullName), icon: 'eva:award-outline', color: 'info' },
+                                        { label: 'Supprimer', onClick: () => deleteProfessional(_id), icon: 'eva:trash-2-outline', color: 'error' }
                                     ]}
                                 />
                             </TableCell>
