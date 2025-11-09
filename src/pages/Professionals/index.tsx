@@ -406,21 +406,21 @@ export default function Professionals() {
             console.log("✅ Fetched professionals response:", usersResponse);
             console.log("📊 Response type:", Array.isArray(usersResponse) ? 'array' : typeof usersResponse);
             console.log("📊 Response length:", Array.isArray(usersResponse) ? usersResponse.length : 'N/A');
-            
-            // Handle different response structures
+                
+                // Handle different response structures
             let professionalsList = usersResponse;
             if (usersResponse && !Array.isArray(usersResponse)) {
-                // If response is an object, try to extract the array
+                    // If response is an object, try to extract the array
                 if (usersResponse.users && Array.isArray(usersResponse.users)) {
                     professionalsList = usersResponse.users;
                 } else if (usersResponse.data && Array.isArray(usersResponse.data)) {
                     professionalsList = usersResponse.data;
-                } else {
+                    } else {
                     console.warn("⚠️ Unexpected response structure:", usersResponse);
-                    professionalsList = [];
+                        professionalsList = [];
+                    }
                 }
-            }
-
+                
             // Build subscription map keyed by userId -> latest active plan
             const subscriptionsArray = Array.isArray(subscriptionsResponse)
                 ? subscriptionsResponse
@@ -535,19 +535,19 @@ export default function Professionals() {
             console.log(`📋 Total professionals to display: ${professionalsWithPlans.length}`);
             const verifiedCount = professionalsWithPlans.filter((p: any) => p?.isVerified === true).length;
             const unverifiedCount = professionalsWithPlans.length - verifiedCount;
-            console.log(`✅ Verified: ${verifiedCount}, ❌ Unverified: ${unverifiedCount}`);
-            
+                console.log(`✅ Verified: ${verifiedCount}, ❌ Unverified: ${unverifiedCount}`);
+                
             setProfessionals(professionalsWithPlans);
-            enqueueSnackbar(
+                enqueueSnackbar(
                 `${professionalsWithPlans.length} professionnel${professionalsWithPlans.length > 1 ? 's' : ''} chargé${professionalsWithPlans.length > 1 ? 's' : ''} avec succès (${verifiedCount} vérifié${verifiedCount > 1 ? 's' : ''}, ${unverifiedCount} non vérifié${unverifiedCount > 1 ? 's' : ''}).`, 
-                { variant: 'success' }
-            );
+                    { variant: 'success' }
+                );
         } catch (e: any) {
-            console.error("❌ Failed to load professionals:", e);
-            console.error("❌ Error details:", e.response?.data || e.message);
-            enqueueSnackbar('Chargement des professionnels échoué.', { variant: 'error' });
+                console.error("❌ Failed to load professionals:", e);
+                console.error("❌ Error details:", e.response?.data || e.message);
+                enqueueSnackbar('Chargement des professionnels échoué.', { variant: 'error' });
         } finally {
-            setLoading(false);
+                setLoading(false);
         }
     };
 
@@ -1024,22 +1024,9 @@ export default function Professionals() {
                             </TableCell>
 
                             <TableCell align="left">
-                                <Stack direction="row" spacing={1} alignItems="center">
-                                    <Label variant="ghost" color={isCertified ? 'primary' : 'default'} sx={{ fontSize: isMobile ? '0.7rem' : '0.75rem' }}>
-                                        {sentenceCase(isCertified ? 'Certifié' : 'Non Certifié')}
-                                    </Label>
-                                    {!isCertified && (
-                                        <Button
-                                            variant="outlined"
-                                            color="info"
-                                            size="small"
-                                            onClick={() => certifyProfessional(_id, professionalFullName)}
-                                            sx={{ borderRadius: 2, textTransform: 'none', fontSize: '0.7rem', fontWeight: 600 }}
-                                        >
-                                            Certifier
-                                        </Button>
-                                    )}
-                                </Stack>
+                                <Label variant="ghost" color={isCertified ? 'primary' : 'default'} sx={{ fontSize: isMobile ? '0.7rem' : '0.75rem' }}>
+                                    {sentenceCase(isCertified ? 'Certifié' : 'Non Certifié')}
+                                </Label>
                             </TableCell>
 
                             <TableCell align="left" sx={{ display: isMobile ? 'none' : 'table-cell' }}>
