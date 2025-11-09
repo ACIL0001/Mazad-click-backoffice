@@ -77,7 +77,7 @@ const COLUMNS = [
     { id: 'secteur', label: 'Secteur', alignRight: false, searchable: true },
     { id: 'entreprise', label: 'Entreprise', alignRight: false, searchable: false },
     { id: 'postOccupé', label: 'Post occupé', alignRight: false, searchable: false },
-    { id: 'subscriptionPlan', label: 'Abonnement', alignRight: false, searchable: true },
+    { id: 'promoCode', label: 'Code promo', alignRight: false, searchable: true },
     { id: 'isVerified', label: 'Vérifié', alignRight: false, searchable: false },
     { id: 'isCertified', label: 'Certifié', alignRight: false, searchable: false },
     { id: 'isActive', label: 'Activé', alignRight: false, searchable: false },
@@ -915,12 +915,13 @@ export default function Professionals() {
         return (
             <TableBody>
                 {displayedData.map((row, index) => {
-                    const { _id, firstName, lastName, phone, secteur, entreprise, postOccupé, subscriptionPlan, isVerified, isCertified, isActive, isBanned, isRecommended, createdAt, rate } = row;
+                    const { _id, firstName, lastName, phone, secteur, entreprise, postOccupé, promoCode, isVerified, isCertified, isActive, isBanned, isRecommended, createdAt, rate } = row;
+                    const normalizedPromoCode = promoCode || row?.promo_code || row?.promotionCode || row?.promotion_code;
+
                     const professionalFullName = `${firstName} ${lastName}`;
                     const isItemSelected = selected.indexOf(professionalFullName) !== -1;
                     
                     // Get subscription plan color
-                    const planColor = getSubscriptionPlanColor(subscriptionPlan);
 
                     let rateColor: 'success' | 'warning' | 'error' | 'info' = 'info';
                     if (rate !== undefined && rate !== null) {
@@ -975,6 +976,12 @@ export default function Professionals() {
                                 </Stack>
                             </TableCell>
 
+                            <TableCell align="left">
+                                <Typography variant="body2" sx={{ fontSize: isMobile ? '0.75rem' : '0.875rem' }}>
+                                    {normalizedPromoCode || 'N/A'}
+                                </Typography>
+                            </TableCell>
+
                             <TableCell align="left" sx={{ display: isMobile ? 'none' : 'table-cell' }}>{phone}</TableCell>
 
                             <TableCell align="left" sx={{ display: isMobile ? 'none' : 'table-cell' }}>
@@ -993,28 +1000,6 @@ export default function Professionals() {
                                 <Typography variant="body2" sx={{ fontSize: isMobile ? '0.75rem' : '0.875rem' }}>
                                     {postOccupé || 'N/A'}
                                 </Typography>
-                            </TableCell>
-
-                            <TableCell align="left">
-                                {subscriptionPlan ? (
-                                    <Label 
-                                        variant="ghost" 
-                                        color={planColor.color}
-                                        sx={{ 
-                                            fontSize: isMobile ? '0.7rem' : '0.75rem',
-                                            backgroundColor: `${planColor.bgColor}20`,
-                                            color: planColor.bgColor,
-                                            fontWeight: 600,
-                                            border: `1px solid ${planColor.bgColor}40`
-                                        }}
-                                    >
-                                        {formatSubscriptionPlanLabel(subscriptionPlan)}
-                                    </Label>
-                                ) : (
-                                    <Label variant="ghost" color="default" sx={{ fontSize: isMobile ? '0.7rem' : '0.75rem' }}>
-                                        Aucun
-                                    </Label>
-                                )}
                             </TableCell>
 
                             <TableCell align="left">
