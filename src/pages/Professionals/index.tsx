@@ -302,12 +302,12 @@ const getSubscriptionPlanColor = (plan: string | null | undefined): { color: 'de
 };
 
 const formatSubscriptionPlanLabel = (plan: string | null | undefined) => {
-    if (!plan) {
-        return plan;
+    const normalized = normalizeSubscriptionPlanValue(plan);
+    if (!normalized) {
+        return normalized;
     }
 
-    const trimmed = plan.trim();
-    const lower = trimmed.toLowerCase();
+    const lower = normalized.toLowerCase();
 
     if (lower === '6mois') {
         return '6 mois';
@@ -316,7 +316,35 @@ const formatSubscriptionPlanLabel = (plan: string | null | undefined) => {
         return '1 an';
     }
 
-    return trimmed;
+    return normalized;
+};
+
+const normalizeSubscriptionPlanValue = (plan: any): string | null => {
+    if (!plan) {
+        return null;
+    }
+
+    if (typeof plan === 'string') {
+        const trimmed = plan.trim();
+        if (!trimmed || trimmed === '-' || trimmed.toLowerCase() === 'aucun' || trimmed.toLowerCase() === 'none') {
+            return null;
+        }
+        return trimmed;
+    }
+
+    if (typeof plan === 'object') {
+        if (plan?.name) {
+            return normalizeSubscriptionPlanValue(plan.name);
+        }
+        if (plan?.label) {
+            return normalizeSubscriptionPlanValue(plan.label);
+        }
+        if (plan?.plan) {
+            return normalizeSubscriptionPlanValue(plan.plan);
+        }
+    }
+
+    return null;
 };
 
 export default function Professionals() {
@@ -403,8 +431,21 @@ export default function Professionals() {
             const subscriptionByUser: Record<string, { planName: string; expiresAt?: string; isActive?: boolean }> = {};
 
             subscriptionsArray.forEach((subscription: any) => {
-                const userId = subscription?.userId || subscription?.user?._id || subscription?.user?._id?.toString?.();
-                const planName = subscription?.planName || subscription?.plan?.name || subscription?.plan || subscription?.subscriptionPlan;
+                const rawUser =
+                    subscription?.userId ??
+                    subscription?.user?._id ??
+                    subscription?.user?.id ??
+                    subscription?.user ??
+                    subscription?.userID;
+                const userId = typeof rawUser === 'object' && rawUser?._id ? rawUser._id?.toString?.() : rawUser?.toString?.();
+
+                const planNameCandidate =
+                    subscription?.planName ??
+                    subscription?.plan?.name ??
+                    subscription?.plan ??
+                    subscription?.subscriptionPlan;
+
+                const planName = normalizeSubscriptionPlanValue(planNameCandidate);
 
                 if (!userId || !planName) {
                     return;
@@ -435,27 +476,61 @@ export default function Professionals() {
                 }
             });
 
-            const professionalsWithPlans = professionalsList.map((professional: any) => {
-                const currentPlan = professional?.subscriptionPlan;
-                if (currentPlan) {
-                    return {
-                        ...professional,
-                        subscriptionPlan: formatSubscriptionPlanLabel(currentPlan),
-                    };
-                }
+            const professionalsWithPlans = await Promise.all(
+                professionalsList.map(async (professional: any) => {
+                    const normalizedId =
+                        professional?._id ??
+                        professional?.id ??
+                        professional?.userId ??
+                        professional?.user?._id ??
+                        professional?.userId?._id;
+                    const userId = normalizedId?.toString?.();
 
-                const subscriptionInfo = subscriptionByUser[professional?._id];
-                if (!subscriptionInfo) {
+                    const directPlan = normalizeSubscriptionPlanValue(professional?.subscriptionPlan);
+                    if (directPlan) {
+                        return {
+                            ...professional,
+                            subscriptionPlan: formatSubscriptionPlanLabel(directPlan),
+                        };
+                    }
+
+                    if (userId) {
+                        const subscriptionInfo = subscriptionByUser[userId];
+                        if (subscriptionInfo?.planName) {
+                            return {
+                                ...professional,
+                                subscriptionPlan: formatSubscriptionPlanLabel(subscriptionInfo.planName),
+                                subscriptionPlanExpiresAt: subscriptionInfo.expiresAt,
+                                subscriptionPlanIsActive: subscriptionInfo.isActive,
+                            };
+                        }
+                    }
+
+                    if (!userId) {
+                        return professional;
+                    }
+
+                    try {
+                        const userDetails = await UserAPI.findById(userId);
+                        const userPayload = userDetails?.user ?? userDetails?.data ?? userDetails;
+                        const fallbackPlan =
+                            normalizeSubscriptionPlanValue(userPayload?.subscriptionPlan) ??
+                            normalizeSubscriptionPlanValue(userDetails?.subscriptionPlan) ??
+                            normalizeSubscriptionPlanValue(userDetails?.data?.subscriptionPlan);
+
+                        if (fallbackPlan) {
+                            return {
+                                ...professional,
+                                subscriptionPlan: formatSubscriptionPlanLabel(fallbackPlan),
+                            };
+                        }
+                    } catch (error) {
+                        console.warn(`⚠️ Unable to fetch full user details for subscription plan of user ${userId}`, error);
+                    }
+
                     return professional;
-                }
-
-                return {
-                    ...professional,
-                    subscriptionPlan: formatSubscriptionPlanLabel(subscriptionInfo.planName),
-                    subscriptionPlanExpiresAt: subscriptionInfo.expiresAt,
-                    subscriptionPlanIsActive: subscriptionInfo.isActive,
-                };
-            });
+                })
+            );
             
             console.log(`📋 Total professionals to display: ${professionalsWithPlans.length}`);
             const verifiedCount = professionalsWithPlans.filter((p: any) => p?.isVerified === true).length;
