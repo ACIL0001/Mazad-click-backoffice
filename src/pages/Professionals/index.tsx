@@ -74,8 +74,9 @@ const COLUMNS = [
     { id: 'firstName', label: 'Nom', alignRight: false, searchable: true },
     { id: 'phone', label: 'Tel', alignRight: false, searchable: true },
     { id: 'secteur', label: 'Secteur', alignRight: false, searchable: true },
-    { id: 'entreprise', label: 'Entreprise', alignRight: false, searchable: true },
-    { id: 'postOccupé', label: 'Post occupé', alignRight: false, searchable: true },
+    { id: 'entreprise', label: 'Entreprise', alignRight: false, searchable: false },
+    { id: 'postOccupé', label: 'Post occupé', alignRight: false, searchable: false },
+    { id: 'subscriptionPlan', label: 'Abonnement', alignRight: false, searchable: true },
     { id: 'isVerified', label: 'Vérifié', alignRight: false, searchable: false },
     { id: 'isCertified', label: 'Certifié', alignRight: false, searchable: false },
     { id: 'isActive', label: 'Activé', alignRight: false, searchable: false },
@@ -255,6 +256,45 @@ const AnimatedButton = styled(Button)(({ theme }) => ({
         left: '100%',
     },
 }));
+
+// Helper function to get subscription plan color
+const getSubscriptionPlanColor = (plan: string | null | undefined): { color: 'default' | 'primary' | 'secondary' | 'error' | 'info' | 'success' | 'warning', bgColor: string } => {
+    if (!plan) {
+        return { color: 'default', bgColor: '#e0e0e0' };
+    }
+    
+    const planUpper = plan.toUpperCase();
+    
+    // Color mapping for different subscription plans
+    const colorMap: { [key: string]: { color: 'default' | 'primary' | 'secondary' | 'error' | 'info' | 'success' | 'warning', bgColor: string } } = {
+        'BASIC': { color: 'info', bgColor: '#2196f3' },
+        'BASIQUE': { color: 'info', bgColor: '#2196f3' },
+        'PREMIUM': { color: 'warning', bgColor: '#ff9800' },
+        'PRO': { color: 'success', bgColor: '#4caf50' },
+        'PROFESSIONAL': { color: 'success', bgColor: '#4caf50' },
+        'PROFESSIONNEL': { color: 'success', bgColor: '#4caf50' },
+        'ENTERPRISE': { color: 'primary', bgColor: '#9c27b0' },
+        'BUSINESS': { color: 'primary', bgColor: '#9c27b0' },
+        'GOLD': { color: 'warning', bgColor: '#ffc107' },
+        'PLATINUM': { color: 'secondary', bgColor: '#607d8b' },
+        'DIAMOND': { color: 'error', bgColor: '#f44336' },
+    };
+    
+    // Check for exact match
+    if (colorMap[planUpper]) {
+        return colorMap[planUpper];
+    }
+    
+    // Check for partial matches (e.g., "PREMIUM_PLUS" contains "PREMIUM")
+    for (const [key, value] of Object.entries(colorMap)) {
+        if (planUpper.includes(key)) {
+            return value;
+        }
+    }
+    
+    // Default color for unknown plans
+    return { color: 'default', bgColor: '#9e9e9e' };
+};
 
 export default function Professionals() {
     const theme = useTheme();
@@ -690,9 +730,12 @@ export default function Professionals() {
         return (
             <TableBody>
                 {displayedData.map((row, index) => {
-                    const { _id, firstName, lastName, phone, secteur, entreprise, postOccupé, isVerified, isCertified, isActive, isBanned, isRecommended, createdAt, rate } = row;
+                    const { _id, firstName, lastName, phone, secteur, entreprise, postOccupé, subscriptionPlan, isVerified, isCertified, isActive, isBanned, isRecommended, createdAt, rate } = row;
                     const professionalFullName = `${firstName} ${lastName}`;
                     const isItemSelected = selected.indexOf(professionalFullName) !== -1;
+                    
+                    // Get subscription plan color
+                    const planColor = getSubscriptionPlanColor(subscriptionPlan);
 
                     let rateColor: 'success' | 'warning' | 'error' | 'info' = 'info';
                     if (rate !== undefined && rate !== null) {
@@ -765,6 +808,28 @@ export default function Professionals() {
                                 <Typography variant="body2" sx={{ fontSize: isMobile ? '0.75rem' : '0.875rem' }}>
                                     {postOccupé || 'N/A'}
                                 </Typography>
+                            </TableCell>
+
+                            <TableCell align="left">
+                                {subscriptionPlan ? (
+                                    <Label 
+                                        variant="ghost" 
+                                        color={planColor.color}
+                                        sx={{ 
+                                            fontSize: isMobile ? '0.7rem' : '0.75rem',
+                                            backgroundColor: `${planColor.bgColor}20`,
+                                            color: planColor.bgColor,
+                                            fontWeight: 600,
+                                            border: `1px solid ${planColor.bgColor}40`
+                                        }}
+                                    >
+                                        {subscriptionPlan}
+                                    </Label>
+                                ) : (
+                                    <Label variant="ghost" color="default" sx={{ fontSize: isMobile ? '0.7rem' : '0.75rem' }}>
+                                        Aucun
+                                    </Label>
+                                )}
                             </TableCell>
 
                             <TableCell align="left">
@@ -1021,6 +1086,12 @@ export default function Professionals() {
                         filteredByVerification = professionals.filter((p: any) => p.isVerified !== true);
                     }
 
+                    // Calculate numSelected based on filtered data only
+                    // This ensures the checkbox state reflects only the filtered items
+                    const filteredSelectedCount = filteredByVerification.filter((p: any) => 
+                        selected.includes(`${p.firstName} ${p.lastName}`)
+                    ).length;
+
                     return (
                     <MuiTable
                             data={filteredByVerification}
@@ -1038,10 +1109,10 @@ export default function Professionals() {
                         rowsPerPage={rowsPerPage}
                         setRowsPerPage={setRowsPerPage}
                         TableBodyComponent={TableBodyComponent}
-                        searchFields={['firstName', 'lastName', 'phone', 'secteur', 'entreprise', 'postOccupé']}
-                        numSelected={selected.length}
+                        numSelected={filteredSelectedCount}
                         onDeleteSelected={handleDeleteSelected}
                         loading={loading}
+                        getRowId={(row) => `${row.firstName} ${row.lastName}`}
                     />
                     );
                 })()}
