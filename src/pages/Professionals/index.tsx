@@ -67,6 +67,7 @@ import CloseIcon from '@mui/icons-material/Close';
 import { UserAPI } from '@/api/user';
 import { ReviewAPI } from '@/api/review';
 import { IdentityAPI, UserDocuments, UserDocument } from '@/api/identity';
+import { SubscriptionAPI } from '@/api/subscription';
 import app from '@/config';
 import { ChangeEvent, MouseEvent } from 'react';
 
@@ -278,6 +279,10 @@ const getSubscriptionPlanColor = (plan: string | null | undefined): { color: 'de
         'GOLD': { color: 'warning', bgColor: '#ffc107' },
         'PLATINUM': { color: 'secondary', bgColor: '#607d8b' },
         'DIAMOND': { color: 'error', bgColor: '#f44336' },
+        '6MOIS': { color: 'info', bgColor: '#0288d1' },
+        '6 MOIS': { color: 'info', bgColor: '#0288d1' },
+        '1AN': { color: 'primary', bgColor: '#7b1fa2' },
+        '1 AN': { color: 'primary', bgColor: '#7b1fa2' },
     };
     
     // Check for exact match
@@ -294,6 +299,24 @@ const getSubscriptionPlanColor = (plan: string | null | undefined): { color: 'de
     
     // Default color for unknown plans
     return { color: 'default', bgColor: '#9e9e9e' };
+};
+
+const formatSubscriptionPlanLabel = (plan: string | null | undefined) => {
+    if (!plan) {
+        return plan;
+    }
+
+    const trimmed = plan.trim();
+    const lower = trimmed.toLowerCase();
+
+    if (lower === '6mois') {
+        return '6 mois';
+    }
+    if (lower === '1an') {
+        return '1 an';
+    }
+
+    return trimmed;
 };
 
 export default function Professionals() {
@@ -340,48 +363,117 @@ export default function Professionals() {
         return () => { };
     }, []);
 
-    const fetchProfessionals = () => {
+    const fetchProfessionals = async () => {
         setLoading(true);
         console.log('🔄 Fetching ALL professionals (verified and unverified)...');
-        UserAPI.getProfessionals()
-            .then((data) => {
-                console.log("✅ Fetched professionals response:", data);
-                console.log("📊 Response type:", Array.isArray(data) ? 'array' : typeof data);
-                console.log("📊 Response length:", Array.isArray(data) ? data.length : 'N/A');
-                
-                // Handle different response structures
-                let professionalsList = data;
-                if (data && !Array.isArray(data)) {
-                    // If response is an object, try to extract the array
-                    if (data.users && Array.isArray(data.users)) {
-                        professionalsList = data.users;
-                    } else if (data.data && Array.isArray(data.data)) {
-                        professionalsList = data.data;
-                    } else {
-                        console.warn("⚠️ Unexpected response structure:", data);
-                        professionalsList = [];
+        try {
+            const [usersResponse, subscriptionsResponse] = await Promise.all([
+                UserAPI.getProfessionals(),
+                SubscriptionAPI.getAllSubscriptions().catch((error) => {
+                    console.warn('⚠️ Failed to fetch subscriptions list, continuing without them.', error);
+                    return [];
+                })
+            ]);
+
+            console.log("✅ Fetched professionals response:", usersResponse);
+            console.log("📊 Response type:", Array.isArray(usersResponse) ? 'array' : typeof usersResponse);
+            console.log("📊 Response length:", Array.isArray(usersResponse) ? usersResponse.length : 'N/A');
+            
+            // Handle different response structures
+            let professionalsList = usersResponse;
+            if (usersResponse && !Array.isArray(usersResponse)) {
+                // If response is an object, try to extract the array
+                if (usersResponse.users && Array.isArray(usersResponse.users)) {
+                    professionalsList = usersResponse.users;
+                } else if (usersResponse.data && Array.isArray(usersResponse.data)) {
+                    professionalsList = usersResponse.data;
+                } else {
+                    console.warn("⚠️ Unexpected response structure:", usersResponse);
+                    professionalsList = [];
+                }
+            }
+
+            // Build subscription map keyed by userId -> latest active plan
+            const subscriptionsArray = Array.isArray(subscriptionsResponse)
+                ? subscriptionsResponse
+                : (subscriptionsResponse?.data && Array.isArray(subscriptionsResponse.data)
+                    ? subscriptionsResponse.data
+                    : []);
+
+            const subscriptionByUser: Record<string, { planName: string; expiresAt?: string; isActive?: boolean }> = {};
+
+            subscriptionsArray.forEach((subscription: any) => {
+                const userId = subscription?.userId || subscription?.user?._id || subscription?.user?._id?.toString?.();
+                const planName = subscription?.planName || subscription?.plan?.name || subscription?.plan || subscription?.subscriptionPlan;
+
+                if (!userId || !planName) {
+                    return;
+                }
+
+                const expiresAt = subscription?.endDate || subscription?.expiresAt;
+                const existing = subscriptionByUser[userId];
+
+                if (!existing) {
+                    subscriptionByUser[userId] = {
+                        planName,
+                        expiresAt,
+                        isActive: subscription?.isActive ?? (expiresAt ? new Date(expiresAt) > new Date() : undefined),
+                    };
+                    return;
+                }
+
+                if (expiresAt) {
+                    const existingDate = existing.expiresAt ? new Date(existing.expiresAt).getTime() : 0;
+                    const newDate = new Date(expiresAt).getTime();
+                    if (newDate > existingDate) {
+                        subscriptionByUser[userId] = {
+                            planName,
+                            expiresAt,
+                            isActive: subscription?.isActive ?? (new Date(expiresAt) > new Date()),
+                        };
                     }
                 }
-                
-                console.log(`📋 Total professionals to display: ${professionalsList.length}`);
-                const verifiedCount = professionalsList.filter((p: any) => p?.isVerified === true).length;
-                const unverifiedCount = professionalsList.length - verifiedCount;
-                console.log(`✅ Verified: ${verifiedCount}, ❌ Unverified: ${unverifiedCount}`);
-                
-                setProfessionals(professionalsList);
-                enqueueSnackbar(
-                    `${professionalsList.length} professionnel${professionalsList.length > 1 ? 's' : ''} chargé${professionalsList.length > 1 ? 's' : ''} avec succès (${verifiedCount} vérifié${verifiedCount > 1 ? 's' : ''}, ${unverifiedCount} non vérifié${unverifiedCount > 1 ? 's' : ''}).`, 
-                    { variant: 'success' }
-                );
-            })
-            .catch((e) => {
-                console.error("❌ Failed to load professionals:", e);
-                console.error("❌ Error details:", e.response?.data || e.message);
-                enqueueSnackbar('Chargement des professionnels échoué.', { variant: 'error' });
-            })
-            .finally(() => {
-                setLoading(false);
             });
+
+            const professionalsWithPlans = professionalsList.map((professional: any) => {
+                const currentPlan = professional?.subscriptionPlan;
+                if (currentPlan) {
+                    return {
+                        ...professional,
+                        subscriptionPlan: formatSubscriptionPlanLabel(currentPlan),
+                    };
+                }
+
+                const subscriptionInfo = subscriptionByUser[professional?._id];
+                if (!subscriptionInfo) {
+                    return professional;
+                }
+
+                return {
+                    ...professional,
+                    subscriptionPlan: formatSubscriptionPlanLabel(subscriptionInfo.planName),
+                    subscriptionPlanExpiresAt: subscriptionInfo.expiresAt,
+                    subscriptionPlanIsActive: subscriptionInfo.isActive,
+                };
+            });
+            
+            console.log(`📋 Total professionals to display: ${professionalsWithPlans.length}`);
+            const verifiedCount = professionalsWithPlans.filter((p: any) => p?.isVerified === true).length;
+            const unverifiedCount = professionalsWithPlans.length - verifiedCount;
+            console.log(`✅ Verified: ${verifiedCount}, ❌ Unverified: ${unverifiedCount}`);
+            
+            setProfessionals(professionalsWithPlans);
+            enqueueSnackbar(
+                `${professionalsWithPlans.length} professionnel${professionalsWithPlans.length > 1 ? 's' : ''} chargé${professionalsWithPlans.length > 1 ? 's' : ''} avec succès (${verifiedCount} vérifié${verifiedCount > 1 ? 's' : ''}, ${unverifiedCount} non vérifié${unverifiedCount > 1 ? 's' : ''}).`, 
+                { variant: 'success' }
+            );
+        } catch (e: any) {
+            console.error("❌ Failed to load professionals:", e);
+            console.error("❌ Error details:", e.response?.data || e.message);
+            enqueueSnackbar('Chargement des professionnels échoué.', { variant: 'error' });
+        } finally {
+            setLoading(false);
+        }
     };
 
     const handleOpenConfirmDialog = (id: string | string[], name: string, type: string, message: string) => {
@@ -823,7 +915,7 @@ export default function Professionals() {
                                             border: `1px solid ${planColor.bgColor}40`
                                         }}
                                     >
-                                        {subscriptionPlan}
+                                        {formatSubscriptionPlanLabel(subscriptionPlan)}
                                     </Label>
                                 ) : (
                                     <Label variant="ghost" color="default" sx={{ fontSize: isMobile ? '0.7rem' : '0.75rem' }}>
