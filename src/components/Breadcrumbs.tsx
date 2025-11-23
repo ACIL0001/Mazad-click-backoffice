@@ -54,43 +54,57 @@ function translateToFrench(name: string): string {
 /// </devdoc>
 
 
-export default function Breadcrumb() {
+export interface BreadcrumbLink {
+    name: string;
+    href?: string;
+}
+
+export interface BreadcrumbProps {
+    links?: BreadcrumbLink[];
+}
+
+export default function Breadcrumb({ links }: BreadcrumbProps = {}) {
     const navigate = useNavigate();
 
-    let paths: any[] = window.location.pathname.split('/').filter(x => x).slice()
+    let displayLinks: any[] = [];
 
-
-    /// <summary>
-    /// reformat data
-    /// </summary>
-
-
-    paths = paths.map((name, i) => {
-        return {
-            name: translateToFrench(name),
-            href: window.location.origin + "/" + paths.slice(0, i + 1).join('/'),
-            path: paths.slice(0, i + 1).join('/')
-        }
-    })
-
-
-    /// <summary>
-    /// redirect to page
-    /// </summary>
-
-
-    const redirect = (p) => {
-        if (p.name == "Tableau de bord") navigate("/dashboard/app")
-        else navigate("/" + p.path)
+    if (links) {
+        displayLinks = links;
+    } else {
+        const rawPaths = window.location.pathname.split('/').filter(x => x);
+        displayLinks = rawPaths.map((name, i) => {
+            return {
+                name: translateToFrench(name),
+                href: "/" + rawPaths.slice(0, i + 1).join('/'),
+                path: rawPaths.slice(0, i + 1).join('/')
+            };
+        });
     }
 
+    const redirect = (p: any) => {
+        if (!p.href && !p.path) return;
+        
+        if (p.name === "Tableau de bord") {
+            navigate("/dashboard/app");
+        } else if (p.href) {
+            navigate(p.href);
+        } else if (p.path) {
+            navigate("/" + p.path);
+        }
+    }
 
     return (
         <div role="presentation" onClick={handleClick}>
             <Breadcrumbs aria-label="breadcrumb">
-                {paths.map((p: any, i) => (
-                    <Link key={i} underline="hover" href={p.href} onClick={() => redirect(p)}
-                        color={i == paths.length - 1 ? "text.primary" : "inherit"}>
+                {displayLinks.map((p, i) => (
+                    <Link 
+                        key={i} 
+                        underline="hover" 
+                        href={p.href || '#'} 
+                        onClick={() => redirect(p)}
+                        color={i == displayLinks.length - 1 ? "text.primary" : "inherit"}
+                        sx={{ cursor: (p.href || p.path) ? 'pointer' : 'default' }}
+                    >
                         {p.name}
                     </Link>
                 ))}

@@ -70,6 +70,11 @@ const navConfig = [
     icon: getIcon('mdi:gavel'),
   },
   {
+    title: 'Ventes Directes',
+    path: '/dashboard/direct-sales',
+    icon: getIcon('mdi:store'),
+  },
+  {
     title: 'Categories',
     path: '/dashboard/categories',
     icon: getIcon('material-symbols:category'),

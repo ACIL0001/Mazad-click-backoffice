@@ -367,6 +367,12 @@ export default function NavSection({ ...other }) {
         ],
       },
       {
+  title: 'Ventes Directes',
+  path: '/dashboard/direct-sales',
+  icon: getIcon('mdi:store'),
+  requiresAdmin: true,
+},
+      {
         title: 'Enchères',
         path: '/dashboard/auctions',
         icon: getIcon('mdi:gavel'),

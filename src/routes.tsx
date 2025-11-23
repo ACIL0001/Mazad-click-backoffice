@@ -12,6 +12,10 @@ import AuctionDetail from './pages/Auctions/AuctionDetail';
 import Tenders from './pages/Tenders/index';
 import TenderDetail from './pages/Tenders/TendersDetail';
 
+// DirectSales imports
+import DirectSales from './pages/DirectSales/index';
+import DirectSaleDetail from './pages/DirectSales/DirectSaleDetail';
+
 import Login from './pages/Login';
 import NotFound from './pages/Page404';
 import Register from './pages/Register';
@@ -93,6 +97,10 @@ export default function Router() {
                 // Tenders routes
                 { path: 'tenders', element: <RequirePhoneVerification><Tenders /></RequirePhoneVerification> },
                 { path: 'tenders/:id', element: <RequirePhoneVerification><TenderDetail /></RequirePhoneVerification> },
+                
+                // DirectSales routes
+                { path: 'direct-sales', element: <RequirePhoneVerification><DirectSales /></RequirePhoneVerification> },
+                { path: 'direct-sales/:id', element: <RequirePhoneVerification><DirectSaleDetail /></RequirePhoneVerification> },
                 
                 { path: 'identities', element: <RequirePhoneVerification><Identity /></RequirePhoneVerification> },
                 { path: 'identities/:id', element: <RequirePhoneVerification><IdentityVerificationDetailsPage /></RequirePhoneVerification> },
