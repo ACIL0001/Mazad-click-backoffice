@@ -371,14 +371,14 @@ export default function Professionals() {
     const [selected, setSelected] = useState<string[]>([]);
     const [orderBy, setOrderBy] = useState('createdAt');
     const [filterName, setFilterName] = useState(() => {
-        return searchParams.get('filterName') || '';
+        return initialSearchParams.get('filterName') || '';
     });
     const [rowsPerPage, setRowsPerPage] = useState(() => {
-        const rowsParam = searchParams.get('rowsPerPage');
+        const rowsParam = initialSearchParams.get('rowsPerPage');
         return rowsParam ? parseInt(rowsParam, 10) : 10;
     });
     const [verifiedFilter, setVerifiedFilter] = useState<'all' | 'verified' | 'unverified'>(() => {
-        const filterParam = searchParams.get('verifiedFilter');
+        const filterParam = initialSearchParams.get('verifiedFilter');
         return (filterParam === 'verified' || filterParam === 'unverified') ? filterParam : 'all';
     });
 
