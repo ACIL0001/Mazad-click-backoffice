@@ -8,3 +8,5 @@ export const DirectSaleAPI = {
   delete: (id: string): Promise<any> => requests.delete(`direct-sale/${id}`),
 };
 
+
+

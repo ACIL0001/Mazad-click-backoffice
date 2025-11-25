@@ -1,6 +1,6 @@
 // ProfessionalsDetailsPage.tsx
 import { useEffect, useState, useCallback } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import {
     Container,
     Typography,
@@ -102,6 +102,7 @@ const StatusButton = styled(Button)(({ theme }) => ({
 export default function ProfessionalsDetailsPage() {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
+    const location = useLocation();
     const { enqueueSnackbar } = useSnackbar();
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
@@ -170,7 +171,22 @@ export default function ProfessionalsDetailsPage() {
     }, [fetchProfessionalDetails]);
 
     const handleGoBack = () => {
-        navigate(-1);
+        // Restore pagination state from URL params
+        const searchParams = new URLSearchParams(location.search);
+        const page = searchParams.get('page') || '0';
+        const rowsPerPage = searchParams.get('rowsPerPage') || '10';
+        const filterName = searchParams.get('filterName') || '';
+        const verifiedFilter = searchParams.get('verifiedFilter') || 'all';
+        
+        // Navigate back with pagination params
+        const params = new URLSearchParams();
+        if (page !== '0') params.set('page', page);
+        if (rowsPerPage !== '10') params.set('rowsPerPage', rowsPerPage);
+        if (filterName) params.set('filterName', filterName);
+        if (verifiedFilter !== 'all') params.set('verifiedFilter', verifiedFilter);
+        
+        const queryString = params.toString();
+        navigate(`/dashboard/users/professionals${queryString ? `?${queryString}` : ''}`);
     };
 
     const openConfirmDialog = (title: string, message: string, action: () => void, actionText: string = 'Confirmer', color: 'primary' | 'error' | 'success' = 'primary') => {
@@ -496,6 +512,19 @@ export default function ProfessionalsDetailsPage() {
                                     </Typography>
                                     <Typography variant={isMobile ? "body1" : "body1"} sx={{ fontWeight: 600, fontSize: isMobile ? '0.85rem' : 'inherit' }}>
                                         {user.entreprise}
+                                    </Typography>
+                                </InfoRow>
+                            )}
+                            
+                            {(user?.category || user?.productCategory) && (
+                                <InfoRow>
+                                    <Typography variant={isMobile ? "body2" : "body1"} color="text.secondary" sx={{ fontWeight: 500 }}>
+                                        Catégorie
+                                    </Typography>
+                                    <Typography variant={isMobile ? "body1" : "body1"} sx={{ fontWeight: 600, fontSize: isMobile ? '0.85rem' : 'inherit' }}>
+                                        {typeof (user?.category || user?.productCategory) === 'object' 
+                                            ? (user?.category?.name || user?.productCategory?.name || 'N/A')
+                                            : (user?.category || user?.productCategory || 'Non renseigné')}
                                     </Typography>
                                 </InfoRow>
                             )}

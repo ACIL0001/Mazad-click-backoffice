@@ -1,6 +1,6 @@
 import { sentenceCase } from 'change-case';
 import { useState, useEffect } from 'react';
-import { Link as RouterLink, useNavigate } from 'react-router-dom';
+import { Link as RouterLink, useNavigate, useLocation } from 'react-router-dom';
 // material
 import {
     Stack,
@@ -354,16 +354,31 @@ export default function Professionals() {
 
     const { enqueueSnackbar } = useSnackbar();
     const navigate = useNavigate();
+    const location = useLocation();
 
     const [professionals, setProfessionals] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
-    const [page, setPage] = useState(0);
+    
+    // Initialize state from URL params if available
+    const searchParams = new URLSearchParams(location.search);
+    const [page, setPage] = useState(() => {
+        const pageParam = searchParams.get('page');
+        return pageParam ? parseInt(pageParam, 10) : 0;
+    });
     const [order, setOrder] = useState<'asc' | 'desc'>('asc');
     const [selected, setSelected] = useState<string[]>([]);
     const [orderBy, setOrderBy] = useState('createdAt');
-    const [filterName, setFilterName] = useState('');
-    const [rowsPerPage, setRowsPerPage] = useState(10);
-    const [verifiedFilter, setVerifiedFilter] = useState<'all' | 'verified' | 'unverified'>('all');
+    const [filterName, setFilterName] = useState(() => {
+        return searchParams.get('filterName') || '';
+    });
+    const [rowsPerPage, setRowsPerPage] = useState(() => {
+        const rowsParam = searchParams.get('rowsPerPage');
+        return rowsParam ? parseInt(rowsParam, 10) : 10;
+    });
+    const [verifiedFilter, setVerifiedFilter] = useState<'all' | 'verified' | 'unverified'>(() => {
+        const filterParam = searchParams.get('verifiedFilter');
+        return (filterParam === 'verified' || filterParam === 'unverified') ? filterParam : 'all';
+    });
 
     const [openConfirmDialog, setOpenConfirmDialog] = useState(false);
     const [userToConfirmId, setUserToConfirmId] = useState('');
@@ -799,7 +814,13 @@ export default function Professionals() {
     };
 
     const goToProfile = (user: { _id: string }) => {
-        navigate(`/dashboard/users/professionals/${user._id}`);
+        // Preserve pagination state in URL
+        const params = new URLSearchParams();
+        params.set('page', page.toString());
+        params.set('rowsPerPage', rowsPerPage.toString());
+        if (filterName) params.set('filterName', filterName);
+        if (verifiedFilter !== 'all') params.set('verifiedFilter', verifiedFilter);
+        navigate(`/dashboard/users/professionals/${user._id}?${params.toString()}`);
     };
 
     const handleViewDocuments = async (userId: string, professionalName: string) => {
@@ -1218,6 +1239,15 @@ export default function Professionals() {
                             if (newValue !== null) {
                                 setVerifiedFilter(newValue);
                                 setPage(0); // Reset to first page when filter changes
+                                // Update URL params when filter changes
+                                const params = new URLSearchParams(location.search);
+                                params.delete('page');
+                                if (value === 'all') {
+                                    params.delete('verifiedFilter');
+                                } else {
+                                    params.set('verifiedFilter', value);
+                                }
+                                navigate({ search: params.toString() }, { replace: true });
                             }
                         }}
                         size="small"
@@ -1270,7 +1300,17 @@ export default function Professionals() {
                             data={filteredByVerification}
                         columns={COLUMNS}
                         page={page}
-                        setPage={setPage}
+                        setPage={(newPage) => {
+                            setPage(newPage);
+                            // Update URL params when page changes
+                            const params = new URLSearchParams(location.search);
+                            if (newPage === 0) {
+                                params.delete('page');
+                            } else {
+                                params.set('page', newPage.toString());
+                            }
+                            navigate({ search: params.toString() }, { replace: true });
+                        }}
                         order={order}
                         setOrder={setOrder}
                         orderBy={orderBy}
@@ -1278,9 +1318,31 @@ export default function Professionals() {
                         selected={selected}
                         setSelected={setSelected}
                         filterName={filterName}
-                        setFilterName={setFilterName}
+                        setFilterName={(newFilter) => {
+                            setFilterName(newFilter);
+                            // Update URL params when filter changes
+                            const params = new URLSearchParams(location.search);
+                            params.delete('page'); // Reset to first page when filter changes
+                            if (newFilter) {
+                                params.set('filterName', newFilter);
+                            } else {
+                                params.delete('filterName');
+                            }
+                            navigate({ search: params.toString() }, { replace: true });
+                        }}
                         rowsPerPage={rowsPerPage}
-                        setRowsPerPage={setRowsPerPage}
+                        setRowsPerPage={(newRowsPerPage) => {
+                            setRowsPerPage(newRowsPerPage);
+                            // Update URL params when rows per page changes
+                            const params = new URLSearchParams(location.search);
+                            params.delete('page'); // Reset to first page when rows per page changes
+                            if (newRowsPerPage === 10) {
+                                params.delete('rowsPerPage');
+                            } else {
+                                params.set('rowsPerPage', newRowsPerPage.toString());
+                            }
+                            navigate({ search: params.toString() }, { replace: true });
+                        }}
                         TableBodyComponent={TableBodyComponent}
                         numSelected={filteredSelectedCount}
                         onDeleteSelected={handleDeleteSelected}
