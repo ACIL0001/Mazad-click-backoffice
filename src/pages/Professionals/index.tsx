@@ -1242,10 +1242,10 @@ export default function Professionals() {
                                 // Update URL params when filter changes
                                 const params = new URLSearchParams(location.search);
                                 params.delete('page');
-                                if (value === 'all') {
+                                if (newValue === 'all') {
                                     params.delete('verifiedFilter');
                                 } else {
-                                    params.set('verifiedFilter', value);
+                                    params.set('verifiedFilter', newValue);
                                 }
                                 navigate({ search: params.toString() }, { replace: true });
                             }
