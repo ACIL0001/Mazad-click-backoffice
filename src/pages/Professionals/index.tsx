@@ -1,5 +1,5 @@
 import { sentenceCase } from 'change-case';
-import { useState, useEffect, useLayoutEffect } from 'react';
+import { useState, useEffect, useLayoutEffect, useRef } from 'react';
 import { Link as RouterLink, useNavigate, useLocation } from 'react-router-dom';
 // material
 import {
@@ -354,6 +354,8 @@ export default function Professionals() {
     const { enqueueSnackbar } = useSnackbar();
     const navigate = useNavigate();
     const location = useLocation();
+    const scrollToUserIdRef = useRef<string | null>(null);
+    const hasScrolledRef = useRef(false);
 
     const [professionals, setProfessionals] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
@@ -462,6 +464,65 @@ export default function Professionals() {
             setVerifiedFilter('all');
         }
     }, [location.search]);
+
+    // Check for returnUserId in URL and set it up for scrolling
+    useEffect(() => {
+        const searchParams = new URLSearchParams(location.search);
+        const returnUserId = searchParams.get('returnUserId');
+        if (returnUserId) {
+            scrollToUserIdRef.current = returnUserId;
+            hasScrolledRef.current = false;
+        } else {
+            scrollToUserIdRef.current = null;
+            hasScrolledRef.current = false;
+        }
+    }, [location.search]);
+
+    // Scroll to the user row when returning from details page
+    useEffect(() => {
+        if (!loading && professionals.length > 0 && scrollToUserIdRef.current && !hasScrolledRef.current) {
+            // Wait for table to render on the correct page - use a longer delay to ensure pagination is applied
+            const timer = setTimeout(() => {
+                const userId = scrollToUserIdRef.current;
+                if (userId) {
+                    const rowElement = document.getElementById(`professional-row-${userId}`);
+                    if (rowElement) {
+                        rowElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        // Highlight the row briefly
+                        rowElement.style.backgroundColor = 'rgba(25, 118, 210, 0.08)';
+                        setTimeout(() => {
+                            rowElement.style.backgroundColor = '';
+                        }, 2000);
+                        console.log('Scrolled to user row:', userId);
+                        hasScrolledRef.current = true;
+                        // Remove returnUserId from URL after scrolling
+                        const params = new URLSearchParams(location.search);
+                        params.delete('returnUserId');
+                        navigate({ search: params.toString() }, { replace: true });
+                    } else {
+                        console.warn('Could not find row element for user:', userId, '- row may be on a different page');
+                        // If row not found, it might be on a different page - try again after a longer delay
+                        const retryTimer = setTimeout(() => {
+                            const retryElement = document.getElementById(`professional-row-${userId}`);
+                            if (retryElement) {
+                                retryElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                retryElement.style.backgroundColor = 'rgba(25, 118, 210, 0.08)';
+                                setTimeout(() => {
+                                    retryElement.style.backgroundColor = '';
+                                }, 2000);
+                                hasScrolledRef.current = true;
+                                const params = new URLSearchParams(location.search);
+                                params.delete('returnUserId');
+                                navigate({ search: params.toString() }, { replace: true });
+                            }
+                        }, 1000);
+                        return () => clearTimeout(retryTimer);
+                    }
+                }
+            }, 500);
+            return () => clearTimeout(timer);
+        }
+    }, [loading, professionals, page, navigate, location.search]);
 
     const fetchProfessionals = async () => {
         setLoading(true);
@@ -1026,6 +1087,7 @@ export default function Professionals() {
                         <TableRow
                             hover
                             key={_id}
+                            id={`professional-row-${_id}`}
                             tabIndex={-1}
                             role="checkbox"
                             selected={isItemSelected}

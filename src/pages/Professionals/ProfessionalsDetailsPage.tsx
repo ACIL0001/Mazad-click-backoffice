@@ -177,12 +177,14 @@ export default function ProfessionalsDetailsPage() {
         const rowsPerPage = searchParams.get('rowsPerPage');
         const filterName = searchParams.get('filterName');
         const verifiedFilter = searchParams.get('verifiedFilter');
+        const returnUserId = searchParams.get('returnUserId');
         
         console.log('Navigating back - restoring state:', { 
             page: page || '0 (default)', 
             rowsPerPage: rowsPerPage || '10 (default)',
             filterName: filterName || '(empty)',
             verifiedFilter: verifiedFilter || 'all (default)',
+            returnUserId: returnUserId || '(none)',
             allParams: location.search
         });
         
@@ -193,6 +195,8 @@ export default function ProfessionalsDetailsPage() {
         params.set('rowsPerPage', rowsPerPage || '10');
         if (filterName) params.set('filterName', filterName);
         if (verifiedFilter && verifiedFilter !== 'all') params.set('verifiedFilter', verifiedFilter);
+        // Preserve returnUserId so we can scroll to the user's row
+        if (returnUserId) params.set('returnUserId', returnUserId);
         
         const backUrl = `/dashboard/users/professionals?${params.toString()}`;
         console.log('Navigating to:', backUrl);
