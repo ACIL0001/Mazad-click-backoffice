@@ -414,30 +414,37 @@ export default function Professionals() {
         const filterNameParam = searchParams.get('filterName');
         const verifiedFilterParam = searchParams.get('verifiedFilter');
 
+        console.log('URL params changed:', { pageParam, rowsPerPageParam, filterNameParam, verifiedFilterParam, currentPage: page });
+
+        // Update page if it exists in URL - always update to ensure we're on the right page
         if (pageParam !== null) {
             const pageNum = parseInt(pageParam, 10);
-            if (!isNaN(pageNum) && pageNum !== page) {
+            if (!isNaN(pageNum)) {
+                console.log('Setting page to:', pageNum, 'current page:', page);
                 setPage(pageNum);
             }
         }
 
+        // Update rowsPerPage if it exists in URL
         if (rowsPerPageParam !== null) {
             const rowsNum = parseInt(rowsPerPageParam, 10);
-            if (!isNaN(rowsNum) && rowsNum !== rowsPerPage) {
+            if (!isNaN(rowsNum)) {
                 setRowsPerPage(rowsNum);
             }
         }
 
-        if (filterNameParam !== null && filterNameParam !== filterName) {
+        // Update filterName
+        if (filterNameParam !== null) {
             setFilterName(filterNameParam);
+        } else if (filterName !== '') {
+            setFilterName('');
         }
 
-        if (verifiedFilterParam !== null) {
-            if ((verifiedFilterParam === 'verified' || verifiedFilterParam === 'unverified') && verifiedFilterParam !== verifiedFilter) {
-                setVerifiedFilter(verifiedFilterParam);
-            } else if (verifiedFilterParam === null && verifiedFilter !== 'all') {
-                setVerifiedFilter('all');
-            }
+        // Update verifiedFilter
+        if (verifiedFilterParam === 'verified' || verifiedFilterParam === 'unverified') {
+            setVerifiedFilter(verifiedFilterParam);
+        } else if (verifiedFilter !== 'all') {
+            setVerifiedFilter('all');
         }
     }, [location.search]);
 
@@ -850,6 +857,7 @@ export default function Professionals() {
 
     const goToProfile = (user: { _id: string }) => {
         // Preserve pagination state in URL - always include page and rowsPerPage
+        // Note: page is 0-indexed in Material-UI tables
         const params = new URLSearchParams();
         params.set('page', page.toString());
         params.set('rowsPerPage', rowsPerPage.toString());
@@ -857,6 +865,7 @@ export default function Professionals() {
         if (verifiedFilter !== 'all') params.set('verifiedFilter', verifiedFilter);
         // Also save the user ID so we can potentially scroll to it later
         params.set('returnUserId', user._id);
+        console.log('Navigating to profile with page:', page, 'rowsPerPage:', rowsPerPage);
         navigate(`/dashboard/users/professionals/${user._id}?${params.toString()}`);
     };
 
@@ -1339,13 +1348,9 @@ export default function Professionals() {
                         page={page}
                         setPage={(newPage) => {
                             setPage(newPage);
-                            // Update URL params when page changes
+                            // Update URL params when page changes - always include page for consistency
                             const params = new URLSearchParams(location.search);
-                            if (newPage === 0) {
-                                params.delete('page');
-                            } else {
-                                params.set('page', newPage.toString());
-                            }
+                            params.set('page', newPage.toString());
                             navigate({ search: params.toString() }, { replace: true });
                         }}
                         order={order}

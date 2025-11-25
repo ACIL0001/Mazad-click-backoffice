@@ -178,6 +178,8 @@ export default function ProfessionalsDetailsPage() {
         const filterName = searchParams.get('filterName') || '';
         const verifiedFilter = searchParams.get('verifiedFilter') || 'all';
         
+        console.log('Navigating back with page:', page, 'rowsPerPage:', rowsPerPage);
+        
         // Navigate back with pagination params - always include page and rowsPerPage to ensure state is restored
         const params = new URLSearchParams();
         params.set('page', page);
