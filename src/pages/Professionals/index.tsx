@@ -74,7 +74,6 @@ import { ChangeEvent, MouseEvent } from 'react';
 const COLUMNS = [
     { id: 'firstName', label: 'Nom', alignRight: false, searchable: true },
     { id: 'phone', label: 'Tel', alignRight: false, searchable: true },
-    { id: 'secteur', label: 'Secteur', alignRight: false, searchable: true },
     { id: 'entreprise', label: 'Entreprise', alignRight: false, searchable: false },
     { id: 'postOccupé', label: 'Post occupé', alignRight: false, searchable: false },
     { id: 'promoCode', label: 'Code promo', alignRight: false, searchable: true },
@@ -966,7 +965,7 @@ export default function Professionals() {
     };
 
     const TableBodyComponent = ({ data = [], selected, setSelected, onDeleteSingle }: { data: any[], selected: string[], setSelected: (selected: string[]) => void, onDeleteSingle?: (id: string) => void }) => {
-        const emptyRows = page > 0 ? Math.max(0, (1 + page) * rowsPerPage - data.length) : 0;
+        // data is already paginated by MuiTable
         const displayedData = data;
 
         if (loading) {
@@ -1004,7 +1003,7 @@ export default function Professionals() {
         return (
             <TableBody>
                 {displayedData.map((row, index) => {
-                    const { _id, firstName, lastName, phone, secteur, entreprise, postOccupé, promoCode, isVerified, isCertified, isActive, isBanned, isRecommended, createdAt, rate, category, productCategory } = row;
+                    const { _id, firstName, lastName, phone, entreprise, postOccupé, promoCode, isVerified, isCertified, isActive, isBanned, isRecommended, createdAt, rate, category, productCategory } = row;
                     const normalizedPromoCode = promoCode || row?.promo_code || row?.promotionCode || row?.promotion_code;
 
                     const professionalFullName = `${firstName} ${lastName}`;
@@ -1066,12 +1065,6 @@ export default function Professionals() {
                             </TableCell>
 
                             <TableCell align="left" sx={{ display: isMobile ? 'none' : 'table-cell' }}>{phone}</TableCell>
-
-                            <TableCell align="left" sx={{ display: isMobile ? 'none' : 'table-cell' }}>
-                                <Typography variant="body2" sx={{ fontSize: isMobile ? '0.75rem' : '0.875rem' }}>
-                                    {secteur || 'N/A'}
-                                </Typography>
-                            </TableCell>
 
                             <TableCell align="left" sx={{ display: isMobile ? 'none' : 'table-cell' }}>
                                 <Typography variant="body2" sx={{ fontSize: isMobile ? '0.75rem' : '0.875rem' }}>
@@ -1171,11 +1164,6 @@ export default function Professionals() {
                         </TableRow>
                     );
                 })}
-                {emptyRows > 0 && (
-                    <TableRow style={{ height: 53 * emptyRows }}>
-                        <TableCell colSpan={COLUMNS.length} />
-                    </TableRow>
-                )}
             </TableBody>
         );
     };
