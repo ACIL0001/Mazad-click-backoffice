@@ -542,6 +542,17 @@ export default function ProfessionalsDetailsPage() {
                                 </Typography>
                             </InfoRow>
                             
+                            {user?.section && (
+                                <InfoRow>
+                                    <Typography variant={isMobile ? "body2" : "body1"} color="text.secondary" sx={{ fontWeight: 500 }}>
+                                        Section
+                                    </Typography>
+                                    <Typography variant={isMobile ? "body1" : "body1"} sx={{ fontWeight: 600, fontSize: isMobile ? '0.85rem' : 'inherit' }}>
+                                        {user.section}
+                                    </Typography>
+                                </InfoRow>
+                            )}
+                            
                             <InfoRow>
                                 <Typography variant={isMobile ? "body2" : "body1"} color="text.secondary" sx={{ fontWeight: 500 }}>
                                     Date de création
