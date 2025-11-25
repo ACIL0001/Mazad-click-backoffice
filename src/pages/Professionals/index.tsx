@@ -1,5 +1,5 @@
 import { sentenceCase } from 'change-case';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useLayoutEffect } from 'react';
 import { Link as RouterLink, useNavigate, useLocation } from 'react-router-dom';
 // material
 import {
@@ -407,30 +407,39 @@ export default function Professionals() {
     }, []);
 
     // Sync state with URL params when they change (e.g., when returning from details page)
-    useEffect(() => {
+    // Use useLayoutEffect to ensure state is updated before render
+    useLayoutEffect(() => {
         const searchParams = new URLSearchParams(location.search);
         const pageParam = searchParams.get('page');
         const rowsPerPageParam = searchParams.get('rowsPerPage');
         const filterNameParam = searchParams.get('filterName');
         const verifiedFilterParam = searchParams.get('verifiedFilter');
 
-        console.log('URL params changed:', { pageParam, rowsPerPageParam, filterNameParam, verifiedFilterParam, currentPage: page });
-
         // Update page if it exists in URL - always update to ensure we're on the right page
         if (pageParam !== null) {
             const pageNum = parseInt(pageParam, 10);
-            if (!isNaN(pageNum)) {
-                console.log('Setting page to:', pageNum, 'current page:', page);
-                setPage(pageNum);
+            if (!isNaN(pageNum) && pageNum >= 0) {
+                // Only update if different to avoid unnecessary re-renders
+                if (page !== pageNum) {
+                    console.log('Restoring page from URL:', pageNum, 'was:', page);
+                    setPage(pageNum);
+                }
+            }
+        } else {
+            // If no page param and we're not on page 0, reset to 0
+            if (page !== 0) {
+                setPage(0);
             }
         }
 
         // Update rowsPerPage if it exists in URL
         if (rowsPerPageParam !== null) {
             const rowsNum = parseInt(rowsPerPageParam, 10);
-            if (!isNaN(rowsNum)) {
+            if (!isNaN(rowsNum) && rowsNum > 0) {
                 setRowsPerPage(rowsNum);
             }
+        } else if (rowsPerPage !== 10) {
+            setRowsPerPage(10);
         }
 
         // Update filterName
@@ -857,7 +866,7 @@ export default function Professionals() {
 
     const goToProfile = (user: { _id: string }) => {
         // Preserve pagination state in URL - always include page and rowsPerPage
-        // Note: page is 0-indexed in Material-UI tables
+        // Note: page is 0-indexed in Material-UI tables (page 0 = rows 1-10, page 1 = rows 11-20, page 2 = rows 21-30)
         const params = new URLSearchParams();
         params.set('page', page.toString());
         params.set('rowsPerPage', rowsPerPage.toString());
@@ -865,7 +874,13 @@ export default function Professionals() {
         if (verifiedFilter !== 'all') params.set('verifiedFilter', verifiedFilter);
         // Also save the user ID so we can potentially scroll to it later
         params.set('returnUserId', user._id);
-        console.log('Navigating to profile with page:', page, 'rowsPerPage:', rowsPerPage);
+        console.log('Navigating to profile - saving state:', { 
+            page, 
+            rowsPerPage, 
+            filterName, 
+            verifiedFilter,
+            url: `/dashboard/users/professionals/${user._id}?${params.toString()}`
+        });
         navigate(`/dashboard/users/professionals/${user._id}?${params.toString()}`);
     };
 
@@ -1282,7 +1297,8 @@ export default function Professionals() {
                         value={verifiedFilter}
                         exclusive
                         onChange={(event, newValue) => {
-                            if (newValue !== null) {
+                            if (newValue !== null && newValue !== verifiedFilter) {
+                                // Only reset page if filter is actually changing (not when restoring from URL)
                                 setVerifiedFilter(newValue);
                                 setPage(0); // Reset to first page when filter changes
                                 // Update URL params when filter changes
@@ -1343,10 +1359,12 @@ export default function Professionals() {
 
                     return (
                     <MuiTable
+                            key={`table-${page}-${rowsPerPage}-${verifiedFilter}`} // Force re-render when page/rowsPerPage/filter changes
                             data={filteredByVerification}
                         columns={COLUMNS}
                         page={page}
                         setPage={(newPage) => {
+                            console.log('MuiTable setPage called with:', newPage);
                             setPage(newPage);
                             // Update URL params when page changes - always include page for consistency
                             const params = new URLSearchParams(location.search);

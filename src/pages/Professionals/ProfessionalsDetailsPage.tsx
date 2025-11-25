@@ -173,21 +173,30 @@ export default function ProfessionalsDetailsPage() {
     const handleGoBack = () => {
         // Restore pagination state from URL params
         const searchParams = new URLSearchParams(location.search);
-        const page = searchParams.get('page') || '0';
-        const rowsPerPage = searchParams.get('rowsPerPage') || '10';
-        const filterName = searchParams.get('filterName') || '';
-        const verifiedFilter = searchParams.get('verifiedFilter') || 'all';
+        const page = searchParams.get('page');
+        const rowsPerPage = searchParams.get('rowsPerPage');
+        const filterName = searchParams.get('filterName');
+        const verifiedFilter = searchParams.get('verifiedFilter');
         
-        console.log('Navigating back with page:', page, 'rowsPerPage:', rowsPerPage);
+        console.log('Navigating back - restoring state:', { 
+            page: page || '0 (default)', 
+            rowsPerPage: rowsPerPage || '10 (default)',
+            filterName: filterName || '(empty)',
+            verifiedFilter: verifiedFilter || 'all (default)',
+            allParams: location.search
+        });
         
         // Navigate back with pagination params - always include page and rowsPerPage to ensure state is restored
         const params = new URLSearchParams();
-        params.set('page', page);
-        params.set('rowsPerPage', rowsPerPage);
+        // Always include page and rowsPerPage, even if they're default values, to ensure restoration works
+        params.set('page', page || '0');
+        params.set('rowsPerPage', rowsPerPage || '10');
         if (filterName) params.set('filterName', filterName);
-        if (verifiedFilter !== 'all') params.set('verifiedFilter', verifiedFilter);
+        if (verifiedFilter && verifiedFilter !== 'all') params.set('verifiedFilter', verifiedFilter);
         
-        navigate(`/dashboard/users/professionals?${params.toString()}`);
+        const backUrl = `/dashboard/users/professionals?${params.toString()}`;
+        console.log('Navigating to:', backUrl);
+        navigate(backUrl);
     };
 
     const openConfirmDialog = (title: string, message: string, action: () => void, actionText: string = 'Confirmer', color: 'primary' | 'error' | 'success' = 'primary') => {
