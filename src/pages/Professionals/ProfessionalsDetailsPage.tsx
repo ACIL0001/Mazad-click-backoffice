@@ -526,18 +526,21 @@ export default function ProfessionalsDetailsPage() {
                                 </InfoRow>
                             )}
                             
-                            {(user?.category || user?.productCategory) && (
-                                <InfoRow>
-                                    <Typography variant={isMobile ? "body2" : "body1"} color="text.secondary" sx={{ fontWeight: 500 }}>
-                                        Catégorie
-                                    </Typography>
-                                    <Typography variant={isMobile ? "body1" : "body1"} sx={{ fontWeight: 600, fontSize: isMobile ? '0.85rem' : 'inherit' }}>
-                                        {typeof (user?.category || user?.productCategory) === 'object' 
-                                            ? (user?.category?.name || user?.productCategory?.name || 'N/A')
-                                            : (user?.category || user?.productCategory || 'Non renseigné')}
-                                    </Typography>
-                                </InfoRow>
-                            )}
+                            <InfoRow>
+                                <Typography variant={isMobile ? "body2" : "body1"} color="text.secondary" sx={{ fontWeight: 500 }}>
+                                    Catégorie
+                                </Typography>
+                                <Typography variant={isMobile ? "body1" : "body1"} sx={{ fontWeight: 600, fontSize: isMobile ? '0.85rem' : 'inherit' }}>
+                                    {(() => {
+                                        const category = user?.category || user?.productCategory;
+                                        if (!category) return 'Non renseigné';
+                                        if (typeof category === 'object') {
+                                            return category?.name || category?.title || 'N/A';
+                                        }
+                                        return category;
+                                    })()}
+                                </Typography>
+                            </InfoRow>
                             
                             <InfoRow>
                                 <Typography variant={isMobile ? "body2" : "body1"} color="text.secondary" sx={{ fontWeight: 500 }}>

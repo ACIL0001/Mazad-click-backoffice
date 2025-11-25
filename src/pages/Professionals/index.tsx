@@ -360,10 +360,13 @@ export default function Professionals() {
     const [loading, setLoading] = useState(true);
     
     // Initialize state from URL params if available
-    const searchParams = new URLSearchParams(location.search);
+    // Use a ref to track if we've initialized to prevent resetting on remount
+    const initialSearchParams = new URLSearchParams(location.search);
     const [page, setPage] = useState(() => {
-        const pageParam = searchParams.get('page');
-        return pageParam ? parseInt(pageParam, 10) : 0;
+        const pageParam = initialSearchParams.get('page');
+        const pageNum = pageParam ? parseInt(pageParam, 10) : 0;
+        console.log('Initializing page state from URL:', pageNum, 'URL:', location.search);
+        return isNaN(pageNum) ? 0 : pageNum;
     });
     const [order, setOrder] = useState<'asc' | 'desc'>('asc');
     const [selected, setSelected] = useState<string[]>([]);
@@ -415,44 +418,48 @@ export default function Professionals() {
         const filterNameParam = searchParams.get('filterName');
         const verifiedFilterParam = searchParams.get('verifiedFilter');
 
-        // Update page if it exists in URL - always update to ensure we're on the right page
+        // Always update page from URL - force update to ensure correct page is displayed
         if (pageParam !== null) {
             const pageNum = parseInt(pageParam, 10);
             if (!isNaN(pageNum) && pageNum >= 0) {
-                // Only update if different to avoid unnecessary re-renders
-                if (page !== pageNum) {
-                    console.log('Restoring page from URL:', pageNum, 'was:', page);
-                    setPage(pageNum);
-                }
-            }
-        } else {
-            // If no page param and we're not on page 0, reset to 0
-            if (page !== 0) {
-                setPage(0);
+                // Force update by always calling setPage, even if value seems the same
+                // This ensures the table component receives the correct page prop
+                setPage(prevPage => {
+                    if (prevPage !== pageNum) {
+                        console.log('useLayoutEffect: Updating page from', prevPage, 'to', pageNum);
+                        return pageNum;
+                    }
+                    return prevPage;
+                });
             }
         }
 
-        // Update rowsPerPage if it exists in URL
+        // Always update rowsPerPage from URL
         if (rowsPerPageParam !== null) {
             const rowsNum = parseInt(rowsPerPageParam, 10);
             if (!isNaN(rowsNum) && rowsNum > 0) {
-                setRowsPerPage(rowsNum);
+                setRowsPerPage(prevRows => {
+                    if (prevRows !== rowsNum) {
+                        return rowsNum;
+                    }
+                    return prevRows;
+                });
             }
-        } else if (rowsPerPage !== 10) {
-            setRowsPerPage(10);
         }
 
         // Update filterName
-        if (filterNameParam !== null) {
+        if (filterNameParam !== null && filterNameParam !== filterName) {
             setFilterName(filterNameParam);
-        } else if (filterName !== '') {
+        } else if (filterNameParam === null && filterName !== '') {
             setFilterName('');
         }
 
         // Update verifiedFilter
         if (verifiedFilterParam === 'verified' || verifiedFilterParam === 'unverified') {
-            setVerifiedFilter(verifiedFilterParam);
-        } else if (verifiedFilter !== 'all') {
+            if (verifiedFilter !== verifiedFilterParam) {
+                setVerifiedFilter(verifiedFilterParam);
+            }
+        } else if (verifiedFilterParam === null && verifiedFilter !== 'all') {
             setVerifiedFilter('all');
         }
     }, [location.search]);
@@ -997,7 +1004,7 @@ export default function Professionals() {
         return (
             <TableBody>
                 {displayedData.map((row, index) => {
-                    const { _id, firstName, lastName, phone, secteur, entreprise, postOccupé, promoCode, isVerified, isCertified, isActive, isBanned, isRecommended, createdAt, rate } = row;
+                    const { _id, firstName, lastName, phone, secteur, entreprise, postOccupé, promoCode, isVerified, isCertified, isActive, isBanned, isRecommended, createdAt, rate, category, productCategory } = row;
                     const normalizedPromoCode = promoCode || row?.promo_code || row?.promotionCode || row?.promotion_code;
 
                     const professionalFullName = `${firstName} ${lastName}`;
@@ -1357,14 +1364,28 @@ export default function Professionals() {
                         selected.includes(`${p.firstName} ${p.lastName}`)
                     ).length;
 
+                    // Get page from URL params to ensure we're always in sync
+                    const urlSearchParams = new URLSearchParams(location.search);
+                    const urlPageParam = urlSearchParams.get('page');
+                    const urlPage = urlPageParam ? parseInt(urlPageParam, 10) : page;
+                    const displayPage = !isNaN(urlPage) && urlPage >= 0 ? urlPage : page;
+                    
+                    // If URL has different page than state, update state
+                    if (displayPage !== page) {
+                        console.log('Page mismatch detected - URL page:', displayPage, 'State page:', page, 'Updating state...');
+                        setPage(displayPage);
+                    }
+                    
+                    console.log('Rendering MuiTable - URL page:', displayPage, 'State page:', page, 'Using:', displayPage);
+                    
                     return (
                     <MuiTable
-                            key={`table-${page}-${rowsPerPage}-${verifiedFilter}`} // Force re-render when page/rowsPerPage/filter changes
+                            key={`table-${displayPage}-${rowsPerPage}-${verifiedFilter}`} // Force re-render when page/rowsPerPage/filter changes
                             data={filteredByVerification}
                         columns={COLUMNS}
-                        page={page}
+                        page={displayPage}
                         setPage={(newPage) => {
-                            console.log('MuiTable setPage called with:', newPage);
+                            console.log('MuiTable setPage called with:', newPage, 'current displayPage:', displayPage);
                             setPage(newPage);
                             // Update URL params when page changes - always include page for consistency
                             const params = new URLSearchParams(location.search);
