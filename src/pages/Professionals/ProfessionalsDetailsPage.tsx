@@ -178,15 +178,14 @@ export default function ProfessionalsDetailsPage() {
         const filterName = searchParams.get('filterName') || '';
         const verifiedFilter = searchParams.get('verifiedFilter') || 'all';
         
-        // Navigate back with pagination params
+        // Navigate back with pagination params - always include page and rowsPerPage to ensure state is restored
         const params = new URLSearchParams();
-        if (page !== '0') params.set('page', page);
-        if (rowsPerPage !== '10') params.set('rowsPerPage', rowsPerPage);
+        params.set('page', page);
+        params.set('rowsPerPage', rowsPerPage);
         if (filterName) params.set('filterName', filterName);
         if (verifiedFilter !== 'all') params.set('verifiedFilter', verifiedFilter);
         
-        const queryString = params.toString();
-        navigate(`/dashboard/users/professionals${queryString ? `?${queryString}` : ''}`);
+        navigate(`/dashboard/users/professionals?${params.toString()}`);
     };
 
     const openConfirmDialog = (title: string, message: string, action: () => void, actionText: string = 'Confirmer', color: 'primary' | 'error' | 'success' = 'primary') => {

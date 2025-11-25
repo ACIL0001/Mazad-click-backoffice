@@ -406,6 +406,41 @@ export default function Professionals() {
         return () => { };
     }, []);
 
+    // Sync state with URL params when they change (e.g., when returning from details page)
+    useEffect(() => {
+        const searchParams = new URLSearchParams(location.search);
+        const pageParam = searchParams.get('page');
+        const rowsPerPageParam = searchParams.get('rowsPerPage');
+        const filterNameParam = searchParams.get('filterName');
+        const verifiedFilterParam = searchParams.get('verifiedFilter');
+
+        if (pageParam !== null) {
+            const pageNum = parseInt(pageParam, 10);
+            if (!isNaN(pageNum) && pageNum !== page) {
+                setPage(pageNum);
+            }
+        }
+
+        if (rowsPerPageParam !== null) {
+            const rowsNum = parseInt(rowsPerPageParam, 10);
+            if (!isNaN(rowsNum) && rowsNum !== rowsPerPage) {
+                setRowsPerPage(rowsNum);
+            }
+        }
+
+        if (filterNameParam !== null && filterNameParam !== filterName) {
+            setFilterName(filterNameParam);
+        }
+
+        if (verifiedFilterParam !== null) {
+            if ((verifiedFilterParam === 'verified' || verifiedFilterParam === 'unverified') && verifiedFilterParam !== verifiedFilter) {
+                setVerifiedFilter(verifiedFilterParam);
+            } else if (verifiedFilterParam === null && verifiedFilter !== 'all') {
+                setVerifiedFilter('all');
+            }
+        }
+    }, [location.search]);
+
     const fetchProfessionals = async () => {
         setLoading(true);
         console.log('🔄 Fetching ALL professionals (verified and unverified)...');
@@ -814,12 +849,14 @@ export default function Professionals() {
     };
 
     const goToProfile = (user: { _id: string }) => {
-        // Preserve pagination state in URL
+        // Preserve pagination state in URL - always include page and rowsPerPage
         const params = new URLSearchParams();
         params.set('page', page.toString());
         params.set('rowsPerPage', rowsPerPage.toString());
         if (filterName) params.set('filterName', filterName);
         if (verifiedFilter !== 'all') params.set('verifiedFilter', verifiedFilter);
+        // Also save the user ID so we can potentially scroll to it later
+        params.set('returnUserId', user._id);
         navigate(`/dashboard/users/professionals/${user._id}?${params.toString()}`);
     };
 
