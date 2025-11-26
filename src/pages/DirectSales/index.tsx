@@ -35,6 +35,7 @@ import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
 import { useTheme } from '@mui/material/styles';
 import useMediaQuery from '@mui/material/useMediaQuery';
+import { useTranslation } from 'react-i18next';
 
 interface DirectSale {
   _id: string;
@@ -56,6 +57,7 @@ interface DirectSale {
 }
 
 export default function DirectSales() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { enqueueSnackbar } = useSnackbar();
   const theme = useTheme();
@@ -63,13 +65,13 @@ export default function DirectSales() {
 
   const COLUMNS = [
     { id: 'expand', label: '', alignRight: false, searchable: false },
-    { id: 'title', label: 'Titre', alignRight: false, searchable: true, sortable: true },
-    { id: 'saleType', label: 'Type', alignRight: false, searchable: false },
-    { id: 'price', label: 'Prix', alignRight: false, searchable: false, sortable: true },
-    { id: 'quantity', label: 'Quantité', alignRight: false, searchable: false },
-    { id: 'status', label: 'Statut', alignRight: false, searchable: false },
-    { id: 'owner', label: 'Vendeur', alignRight: false, searchable: false },
-    { id: 'createdAt', label: 'Date de création', alignRight: false, searchable: false, sortable: true },
+    { id: 'title', label: t('directSales.titre'), alignRight: false, searchable: true, sortable: true },
+    { id: 'saleType', label: t('directSales.type'), alignRight: false, searchable: false },
+    { id: 'price', label: t('directSales.price'), alignRight: false, searchable: false, sortable: true },
+    { id: 'quantity', label: t('directSales.quantity'), alignRight: false, searchable: false },
+    { id: 'status', label: t('directSales.status'), alignRight: false, searchable: false },
+    { id: 'owner', label: t('directSales.seller'), alignRight: false, searchable: false },
+    { id: 'createdAt', label: t('directSales.createdAt'), alignRight: false, searchable: false, sortable: true },
     { id: 'actions', label: '', alignRight: true, searchable: false },
   ];
 
@@ -96,7 +98,7 @@ export default function DirectSales() {
       setDirectSales(Array.isArray(data) ? data : []);
     } catch (error: any) {
       console.error('Error fetching direct sales:', error);
-      enqueueSnackbar('Erreur lors du chargement des ventes directes', { variant: 'error' });
+      enqueueSnackbar(t('directSales.errors.loading'), { variant: 'error' });
     } finally {
       setLoading(false);
     }
@@ -150,13 +152,13 @@ export default function DirectSales() {
   const getStatusLabel = (status: string) => {
     switch (status) {
       case 'ACTIVE':
-        return 'Active';
+        return t('directSales.active');
       case 'SOLD_OUT':
-        return 'Épuisé';
+        return t('directSales.soldOut');
       case 'INACTIVE':
-        return 'Inactif';
+        return t('directSales.inactive');
       case 'ARCHIVED':
-        return 'Archivé';
+        return t('directSales.archived');
       default:
         return status;
     }
@@ -248,7 +250,7 @@ export default function DirectSales() {
 
                 <TableCell align="left">
                   <Chip
-                    label={row.saleType === 'PRODUCT' ? 'Produit' : 'Service'}
+                    label={row.saleType === 'PRODUCT' ? t('directSales.product') : t('directSales.service')}
                     size="small"
                     color={row.saleType === 'PRODUCT' ? 'primary' : 'secondary'}
                   />
@@ -261,7 +263,7 @@ export default function DirectSales() {
                 <TableCell align="left">
                   {row.quantity === 0 ? (
                     <Typography variant="body2" color="text.secondary">
-                      Illimité
+                      {t('directSales.unlimited')}
                     </Typography>
                   ) : (
                     <Typography variant="body2">
@@ -283,7 +285,7 @@ export default function DirectSales() {
                     </Typography>
                   ) : (
                     <Typography variant="body2" color="text.secondary">
-                      N/A
+                      {t('common.na')}
                     </Typography>
                   )}
                 </TableCell>
@@ -302,7 +304,7 @@ export default function DirectSales() {
                     variant="outlined"
                     startIcon={<Iconify icon="eva:eye-outline" />}
                   >
-                    Détails
+                    {t('directSales.details')}
                   </Button>
                 </TableCell>
               </TableRow>
@@ -311,7 +313,7 @@ export default function DirectSales() {
                   <Collapse in={isExpanded} timeout="auto" unmountOnExit>
                     <Box sx={{ margin: 2 }}>
                       <Typography variant="h6" gutterBottom component="div" sx={{ mb: 2 }}>
-                        Achats
+                        {t('directSales.purchases')}
                       </Typography>
                       {isLoadingPurchases ? (
                         <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
@@ -354,7 +356,7 @@ export default function DirectSales() {
                                         variant="body2"
                                         color="text.secondary"
                                       >
-                                        Acheté le {format(new Date(purchase.createdAt), 'dd MMM yyyy à HH:mm')}
+                                        {t('directSales.purchasedOn')} {format(new Date(purchase.createdAt), 'dd MMM yyyy à HH:mm')}
                                       </Typography>
                                       <Typography
                                         sx={{ display: 'block' }}
@@ -362,7 +364,7 @@ export default function DirectSales() {
                                         variant="body2"
                                         color="text.primary"
                                       >
-                                        Quantité: {purchase.quantity}
+                                        {t('directSales.quantityLabel')}: {purchase.quantity}
                                       </Typography>
                                     </>
                                   }
@@ -374,7 +376,7 @@ export default function DirectSales() {
                         </List>
                       ) : (
                         <Typography variant="body2" color="text.secondary" align="center" sx={{ py: 3 }}>
-                          Aucun achat pour cette vente
+                          {t('directSales.noPurchases')}
                         </Typography>
                       )}
                     </Box>
@@ -394,13 +396,13 @@ export default function DirectSales() {
   };
 
   return (
-    <Page title="Ventes Directes">
+    <Page title={t('directSales.title')}>
       <Container maxWidth="xl">
-        <Breadcrumb links={[{ name: 'Ventes Directes' }]} />
+        <Breadcrumb links={[{ name: t('navigation.directSales') }]} />
 
         <Stack direction="row" alignItems="center" justifyContent="space-between" mb={5}>
           <Typography variant="h4" gutterBottom>
-            Ventes Directes
+            {t('directSales.title')}
           </Typography>
         </Stack>
 

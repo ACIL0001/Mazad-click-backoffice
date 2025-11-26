@@ -23,7 +23,25 @@
     "export": "Exporter",
     "import": "Importer",
     "download": "Télécharger",
-    "upload": "Téléverser"
+    "upload": "Téléverser",
+    "details": "Détails",
+    "notFound": "Introuvable",
+    "na": "N/A",
+    "buyer": "Acheteur",
+    "contact": "Contact",
+    "date": "Date",
+    "total": "Total",
+    "information": "Information",
+    "updatedAt": "Dernière mise à jour",
+    "timeline": "Chronologie",
+    "professional": "Professionnel",
+    "individual": "Particulier",
+    "address": "Adresse",
+    "email": "Email",
+    "phone": "Téléphone",
+    "role": "Rôle",
+    "unexpectedFormat": "Format de réponse inattendu.",
+    "loadingFailed": "Chargement échoué."
   },
   "auctions": {
     "title": "Enchères",
@@ -31,6 +49,11 @@
     "edit": "Modifier l'enchère",
     "delete": "Supprimer l'enchère",
     "details": "Détails de l'enchère",
+    "mode": "Mode",
+    "startingPrice": "Prix Initial",
+    "currentPrice": "Prix Actuel",
+    "participants": "Participants",
+    "endingAt": "Se Termine Le",
     "status": {
       "active": "Actif",
       "inactive": "Inactif",
@@ -50,6 +73,11 @@
       "deleted": "Enchère supprimée avec succès"
     }
   },
+  "tenders": {
+    "title": "Appels d'Offres",
+    "participants": "Participants",
+    "endingAt": "Se Termine Le"
+  },
   "bids": {
     "title": "Offres",
     "status": {
@@ -62,7 +90,17 @@
   "users": {
     "title": "Utilisateurs",
     "profile": "Profil utilisateur",
-    "settings": "Paramètres utilisateur"
+    "settings": "Paramètres utilisateur",
+    "name": "Nom",
+    "verified": "Vérifié",
+    "enabled": "Activé",
+    "createdAt": "Créé Le",
+    "confirmEnable": "Êtes-vous sur de vouloir l'activer?",
+    "confirmDisable": "Êtes-vous sur de vouloir le désactiver?",
+    "userEnabled": "Utilisateur activé.",
+    "userDisabled": "Utilisateur désactivé.",
+    "enable": "Activer",
+    "disable": "Désactiver"
   },
   "dashboard": {
     "title": "Tableau de bord",
@@ -72,9 +110,75 @@
   },
   "navigation": {
     "dashboard": "Tableau de bord",
-    "auctions": "Enchères",
     "users": "Utilisateurs",
-    "reports": "Rapports",
-    "settings": "Paramètres"
+    "clients": "Clients",
+    "professionals": "Professionnels",
+    "resellers": "Revendeurs",
+    "sellers": "Vendeurs",
+    "administration": "Administration",
+    "adminManagement": "Gestion des Admins",
+    "adminProfile": "Profil Admin",
+    "permissions": "Permissions",
+    "auctions": "Enchères",
+    "directSales": "Ventes Directes",
+    "categories": "Catégories",
+    "subCategories": "Sous Catégories",
+    "subSubCategories": "Sous-Sous Catégories",
+    "subscriptions": "Abonnements",
+    "terms": "Conditions Générales",
+    "communicationCenter": "Centre de Communication",
+    "identities": "Identités",
+    "configuration": "Configuration",
+    "communication": "Communication",
+    "notification": "Notification",
+    "sms": "SMS",
+    "email": "Email",
+    "comingSoon": "Bientôt disponible",
+    "reports": "Réclamations",
+    "reviews": "Avis"
+  },
+  "directSales": {
+    "title": "Ventes Directes",
+    "details": "Détails",
+    "titre": "Titre",
+    "type": "Type",
+    "price": "Prix",
+    "quantity": "Quantité",
+    "status": "Statut",
+    "seller": "Vendeur",
+    "createdAt": "Date de création",
+    "product": "Produit",
+    "service": "Service",
+    "active": "Active",
+    "soldOut": "Épuisé",
+    "inactive": "Inactif",
+    "archived": "Archivé",
+    "sold": "Vendu",
+    "paused": "En Pause",
+    "unlimited": "Illimité",
+    "purchases": "Achats",
+    "noPurchases": "Aucun achat pour cette vente",
+    "purchasedOn": "Acheté le",
+    "quantityLabel": "Quantité",
+    "errors": {
+      "loading": "Erreur lors du chargement des ventes directes",
+      "loadingDetails": "Erreur lors du chargement de la vente directe",
+      "loadingOrders": "Erreur lors du chargement des commandes"
+    },
+    "notFound": "Vente directe introuvable",
+    "detailsTitle": "Détails de la vente directe",
+    "description": "Description",
+    "category": "Catégorie",
+    "availableQuantity": "Quantité disponible",
+    "totalSold": "Total vendu",
+    "totalRevenue": "Revenu total",
+    "averagePurchase": "Moyenne par achat",
+    "purchaseStatus": {
+      "confirmed": "Confirmé",
+      "pending": "En attente",
+      "cancelled": "Annulé",
+      "refunded": "Remboursé"
+    },
+    "purchasesWillAppear": "Les commandes apparaîtront ici une fois que les acheteurs auront effectué des achats"
   }
 }

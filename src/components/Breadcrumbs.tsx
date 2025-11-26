@@ -9,6 +9,7 @@ import * as React from 'react';
 import Breadcrumbs from '@mui/material/Breadcrumbs';
 import Link from '@mui/material/Link';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 
 
 /// <summary>
@@ -18,35 +19,6 @@ import { useNavigate } from 'react-router-dom';
 
 function handleClick(event: React.MouseEvent<HTMLDivElement, MouseEvent>) {
     event.preventDefault();
-}
-
-function translateToFrench(name: string): string {
-    switch (name) {
-        case "dashboard":
-            return "Tableau de bord";
-        case "users":
-            return "Utilisateurs";
-        case "categories":
-            return "Categories";
-        case "add":
-            return "Ajouter";
-        case "clients":
-            return "Clients";
-        case "riders":
-            return "Livreurs";
-        case "restaurants":
-            return "Restaurants";
-        case "identities":
-            return "Identités";
-        case "configuration":
-            return "Configuration";
-        case "update":
-            return "Mettre à jour";
-        case "deliveries":
-            return "Livraisons";
-        default:
-            return name;
-    }
 }
 
 /// <devdoc>
@@ -65,6 +37,26 @@ export interface BreadcrumbProps {
 
 export default function Breadcrumb({ links }: BreadcrumbProps = {}) {
     const navigate = useNavigate();
+    const { t } = useTranslation();
+
+    const translatePath = (name: string): string => {
+        // Try to get translation from navigation namespace first
+        const navKey = `navigation.${name}`;
+        const translation = t(navKey, { defaultValue: '' });
+        if (translation && translation !== navKey) {
+            return translation;
+        }
+        
+        // Fallback to common translations
+        const commonKey = `common.${name}`;
+        const commonTranslation = t(commonKey, { defaultValue: '' });
+        if (commonTranslation && commonTranslation !== commonKey) {
+            return commonTranslation;
+        }
+        
+        // If no translation found, return capitalized name
+        return name.charAt(0).toUpperCase() + name.slice(1);
+    };
 
     let displayLinks: any[] = [];
 
@@ -74,7 +66,7 @@ export default function Breadcrumb({ links }: BreadcrumbProps = {}) {
         const rawPaths = window.location.pathname.split('/').filter(x => x);
         displayLinks = rawPaths.map((name, i) => {
             return {
-                name: translateToFrench(name),
+                name: translatePath(name),
                 href: "/" + rawPaths.slice(0, i + 1).join('/'),
                 path: rawPaths.slice(0, i + 1).join('/')
             };
@@ -84,7 +76,7 @@ export default function Breadcrumb({ links }: BreadcrumbProps = {}) {
     const redirect = (p: any) => {
         if (!p.href && !p.path) return;
         
-        if (p.name === "Tableau de bord") {
+        if (p.name === t('navigation.dashboard') || p.path === 'app') {
             navigate("/dashboard/app");
         } else if (p.href) {
             navigate(p.href);

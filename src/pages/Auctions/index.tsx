@@ -43,25 +43,27 @@ import Breadcrumb from '@/components/Breadcrumbs';
 import { AuctionsAPI } from '@/api/auctions';
 import { OffersAPI } from '@/api/offers';
 import { format } from 'date-fns';
+import { useTranslation } from 'react-i18next';
 
 // ----------------------------------------------------------------------
 
-const COLUMNS = [
-  { id: 'expand', label: '', alignRight: false, searchable: false },
-  { id: 'title', label: 'Titre', alignRight: false, searchable: true, sortable: true },
-  { id: 'bidType', label: 'Type', alignRight: false, searchable: false },
-  { id: 'auctionType', label: 'Mode', alignRight: false, searchable: false },
-  { id: 'startingPrice', label: 'Prix Initial', alignRight: false, searchable: false, sortable: true },
-  { id: 'currentPrice', label: 'Prix Actuel', alignRight: false, searchable: false, sortable: true },
-  { id: 'participants', label: 'Participants', alignRight: false, searchable: false },
-  { id: 'endingAt', label: 'Se Termine Le', alignRight: false, searchable: false, sortable: true },
-  { id: 'status', label: 'Statut', alignRight: false, searchable: false },
-  { id: 'actions', label: '', alignRight: true, searchable: false }
-];
-
 export default function Auctions() {
+  const { t } = useTranslation();
   const theme = useTheme();
   const { enqueueSnackbar } = useSnackbar();
+
+  const COLUMNS = [
+    { id: 'expand', label: '', alignRight: false, searchable: false },
+    { id: 'title', label: t('auctions.title') || 'Titre', alignRight: false, searchable: true, sortable: true },
+    { id: 'bidType', label: t('common.type') || 'Type', alignRight: false, searchable: false },
+    { id: 'auctionType', label: t('auctions.mode') || 'Mode', alignRight: false, searchable: false },
+    { id: 'startingPrice', label: t('auctions.startingPrice') || 'Prix Initial', alignRight: false, searchable: false, sortable: true },
+    { id: 'currentPrice', label: t('auctions.currentPrice') || 'Prix Actuel', alignRight: false, searchable: false, sortable: true },
+    { id: 'participants', label: t('auctions.participants') || 'Participants', alignRight: false, searchable: false },
+    { id: 'endingAt', label: t('auctions.endingAt') || 'Se Termine Le', alignRight: false, searchable: false, sortable: true },
+    { id: 'status', label: t('common.status') || 'Statut', alignRight: false, searchable: false },
+    { id: 'actions', label: '', alignRight: true, searchable: false }
+  ];
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const isTablet = useMediaQuery(theme.breakpoints.down('md'));
 
@@ -95,7 +97,7 @@ export default function Auctions() {
           console.log("Auctions state (response.data):", response.data);
         } else {
           console.error("Unexpected response format:", response);
-          enqueueSnackbar('Format de réponse inattendu.', { variant: 'error' });
+          enqueueSnackbar(t('common.unexpectedFormat') || 'Format de réponse inattendu.', { variant: 'error' });
           setAuctions([]);
           setTotalAuctions(0);
           return;

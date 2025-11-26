@@ -30,25 +30,27 @@ import ActionsMenu from '@/components/Tables/ActionsMenu';
 import { UserListToolbar } from '../components/user/user-list-toolbar';
 import { useTheme } from '@mui/material/styles';
 import { UserAPI } from '@/api/user';
-
-const COLUMNS = [
-    { id: 'name', label: 'Nom', alignRight: false },
-    // { id: 'isMale', label: 'Male', alignRight: false },
-    { id: 'phone', label: 'Tel', alignRight: false },
-    // { id: 'rating', label: 'Rating', alignRight: false },
-    { id: 'role', label: 'Role', alignRight: false },
-    { id: 'verified', label: 'Vérifié', alignRight: false },
-    { id: 'enabled', label: 'Activé', alignRight: false },
-    { id: 'createdAt', label: 'Créé Le', alignRight: false },
-    { id: '' },
-];
+import { useTranslation } from 'react-i18next';
 
 /// <devdoc>
 ///    <para>  User Page for users management. </para>
 /// </devdoc>
 
 export default function User() {
+    const { t } = useTranslation();
     const theme = useTheme();
+
+    const COLUMNS = [
+        { id: 'name', label: t('users.name') || 'Nom', alignRight: false },
+        // { id: 'isMale', label: 'Male', alignRight: false },
+        { id: 'phone', label: t('common.phone'), alignRight: false },
+        // { id: 'rating', label: 'Rating', alignRight: false },
+        { id: 'role', label: t('common.role') || 'Role', alignRight: false },
+        { id: 'verified', label: t('users.verified') || 'Vérifié', alignRight: false },
+        { id: 'enabled', label: t('users.enabled') || 'Activé', alignRight: false },
+        { id: 'createdAt', label: t('users.createdAt') || 'Créé Le', alignRight: false },
+        { id: '' },
+    ];
 
     const { enqueueSnackbar } = useSnackbar();
     const navigate = useNavigate();
@@ -85,7 +87,7 @@ export default function User() {
                 setUsers(data);
                 // console.log("users", data);
             })
-            .catch((e) => enqueueSnackbar('Chargement échoué.', { variant: 'error' }))
+            .catch((e) => enqueueSnackbar(t('common.loadingFailed') || 'Chargement échoué.', { variant: 'error' }))
             .finally(() => setLoading(false));
     };
 
@@ -97,11 +99,11 @@ export default function User() {
     /// </summary>
 
     const enable = (id) => {
-        var proceed = confirm("Êtes-vous sur de vouloir l'activer?");
+        var proceed = confirm(t('users.confirmEnable') || "Êtes-vous sur de vouloir l'activer?");
         if (proceed) {
             UserAPI.enable(id)
                 .then((res) => {
-                    enqueueSnackbar('Utilisateur activé.', { variant: 'success' });
+                    enqueueSnackbar(t('users.userEnabled') || 'Utilisateur activé.', { variant: 'success' });
                     get();
                 })
                 .catch((e) => enqueueSnackbar(e.response.data.message, { variant: 'error' }));
@@ -116,11 +118,11 @@ export default function User() {
     /// </summary>
 
     const disable = (id) => {
-        var proceed = confirm('Êtes-vous sur de vouloir le désactiver?');
+        var proceed = confirm(t('users.confirmDisable') || 'Êtes-vous sur de vouloir le désactiver?');
         if (proceed) {
             UserAPI.disable(id)
                 .then((res) => {
-                    enqueueSnackbar('Utilisateur désactivé.', { variant: 'success' });
+                    enqueueSnackbar(t('users.userDisabled') || 'Utilisateur désactivé.', { variant: 'success' });
                     get();
                 })
                 .catch((e) => enqueueSnackbar(e.response.data.message, { variant: 'error' }));
@@ -216,13 +218,13 @@ export default function User() {
                                     <ActionsMenu
                                         _id={row}
                                         actions={[
-                                            { label: 'Activer', onClick: enable, icon: 'mdi:user-check-outline' },
+                                            { label: t('users.enable') || 'Activer', onClick: enable, icon: 'mdi:user-check-outline' },
                                         ]}
                                     /> :
                                     <ActionsMenu
                                         _id={row}
                                         actions={[
-                                            { label: 'Désactiver', onClick: disable, icon: 'mdi:user-block-outline' },
+                                            { label: t('users.disable') || 'Désactiver', onClick: disable, icon: 'mdi:user-block-outline' },
                                         ]}
                                     />}
                             </TableCell>
