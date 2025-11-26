@@ -38,6 +38,7 @@ import MuiTable from '../../components/Tables/MuiTable';
 import ActionsMenu from '../../components/Tables/ActionsMenu';
 import { useTheme, styled } from '@mui/material/styles';
 import useMediaQuery from '@mui/material/useMediaQuery';
+import { useTranslation } from 'react-i18next';
 
 // Import specific icons for Dialog
 import WarningIcon from '@mui/icons-material/Warning';
@@ -71,21 +72,7 @@ import { SubscriptionAPI } from '@/api/subscription';
 import app from '@/config';
 import { ChangeEvent, MouseEvent } from 'react';
 
-const COLUMNS = [
-    { id: 'firstName', label: 'Nom', alignRight: false, searchable: true },
-    { id: 'phone', label: 'Tel', alignRight: false, searchable: true },
-    { id: 'entreprise', label: 'Entreprise', alignRight: false, searchable: false },
-    { id: 'postOccupé', label: 'Post occupé', alignRight: false, searchable: false },
-    { id: 'promoCode', label: 'Code promo', alignRight: false, searchable: true },
-    { id: 'isVerified', label: 'Vérifié', alignRight: false, searchable: false },
-    { id: 'isCertified', label: 'Certifié', alignRight: false, searchable: false },
-    { id: 'isActive', label: 'Activé', alignRight: false, searchable: false },
-    { id: 'isBanned', label: 'Banni', alignRight: false, searchable: false },
-    { id: 'isRecommended', label: 'Recommandé', alignRight: false, searchable: false },
-    { id: 'rate', label: 'Rate', alignRight: false, searchable: false },
-    { id: 'createdAt', label: 'Créé Le', alignRight: false, searchable: false },
-    { id: '', searchable: false },
-];
+// COLUMNS will be defined inside the component to use translation
 
 const StyledCard = styled(Card)(({ theme }) => ({
     display: 'flex',
@@ -347,11 +334,28 @@ const normalizeSubscriptionPlanValue = (plan: any): string | null => {
 };
 
 export default function Professionals() {
+    const { t } = useTranslation();
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
     const isTablet = useMediaQuery(theme.breakpoints.down('md'));
 
     const { enqueueSnackbar } = useSnackbar();
+
+    const COLUMNS = [
+        { id: 'firstName', label: t('professionals.name') || 'Nom', alignRight: false, searchable: true },
+        { id: 'phone', label: t('common.phone'), alignRight: false, searchable: true },
+        { id: 'entreprise', label: t('professionals.company') || 'Entreprise', alignRight: false, searchable: false },
+        { id: 'postOccupé', label: t('professionals.position') || 'Post occupé', alignRight: false, searchable: false },
+        { id: 'promoCode', label: t('professionals.promoCode') || 'Code promo', alignRight: false, searchable: true },
+        { id: 'isVerified', label: t('professionals.verified') || 'Vérifié', alignRight: false, searchable: false },
+        { id: 'isCertified', label: t('professionals.certified') || 'Certifié', alignRight: false, searchable: false },
+        { id: 'isActive', label: t('professionals.active') || 'Activé', alignRight: false, searchable: false },
+        { id: 'isBanned', label: t('professionals.banned') || 'Banni', alignRight: false, searchable: false },
+        { id: 'isRecommended', label: t('professionals.recommended') || 'Recommandé', alignRight: false, searchable: false },
+        { id: 'rate', label: t('professionals.rate') || 'Rate', alignRight: false, searchable: false },
+        { id: 'createdAt', label: t('users.createdAt') || 'Créé Le', alignRight: false, searchable: false },
+        { id: '', searchable: false },
+    ];
     const navigate = useNavigate();
     const location = useLocation();
     const scrollToUserIdRef = useRef<string | null>(null);
@@ -1245,7 +1249,7 @@ export default function Professionals() {
                     sx={{ mb: 3 }}
                     icon={<InfoIcon />}
                 >
-                    Cette page affiche tous les professionnels (vérifiés et non vérifiés). Utilisez les filtres ci-dessous pour affiner votre recherche.
+                    {t('professionals.infoMessage') || 'Cette page affiche tous les professionnels (vérifiés et non vérifiés). Utilisez les filtres ci-dessous pour affiner votre recherche.'}
                 </Alert>
 
                 <Grid container spacing={isMobile ? 2 : 3} sx={{ mb: { xs: 2, sm: 3 } }}>
@@ -1259,7 +1263,7 @@ export default function Professionals() {
                             </IconWrapperStyle>
                             <Box>
                                 <Typography variant={isMobile ? "body2" : "h6"} color="textSecondary" sx={{ opacity: 0.72 }}>
-                                    Total Professionnels
+                                    {t('professionals.total') || 'Total Professionnels'}
                                 </Typography>
                                 <Typography variant={isMobile ? "h5" : "h4"} component="div">
                                     {totalProfessionals}
@@ -1278,7 +1282,7 @@ export default function Professionals() {
                             </IconWrapperStyle>
                             <Box>
                                 <Typography variant={isMobile ? "body2" : "h6"} color="textSecondary" sx={{ opacity: 0.72 }}>
-                                    Comptes Validés
+                                    {t('professionals.verified') || 'Comptes Validés'}
                                 </Typography>
                                 <Typography variant={isMobile ? "h5" : "h4"} component="div">
                                     {verifiedProfessionals}
@@ -1297,7 +1301,7 @@ export default function Professionals() {
                             </IconWrapperStyle>
                             <Box>
                                 <Typography variant={isMobile ? "body2" : "h6"} color="textSecondary" sx={{ opacity: 0.72 }}>
-                                    Professionnels Actifs
+                                    {t('professionals.active') || 'Professionnels Actifs'}
                                 </Typography>
                                 <Typography variant={isMobile ? "h5" : "h4"} component="div">
                                     {activeProfessionals}
@@ -1316,7 +1320,7 @@ export default function Professionals() {
                             </IconWrapperStyle>
                             <Box>
                                 <Typography variant={isMobile ? "body2" : "h6"} color="textSecondary" sx={{ opacity: 0.72 }}>
-                                    Recommandés
+                                    {t('professionals.recommended') || 'Recommandés'}
                                 </Typography>
                                 <Typography variant={isMobile ? "h5" : "h4"} component="div">
                                     {recommendedProfessionals}
@@ -1335,7 +1339,7 @@ export default function Professionals() {
                             </IconWrapperStyle>
                             <Box>
                                 <Typography variant={isMobile ? "body2" : "h6"} color="textSecondary" sx={{ opacity: 0.72 }}>
-                                    Professionnels Bannis
+                                    {t('professionals.banned') || 'Professionnels Bannis'}
                                 </Typography>
                                 <Typography variant={isMobile ? "h5" : "h4"} component="div">
                                     {bannedProfessionals}
@@ -1348,7 +1352,7 @@ export default function Professionals() {
                 {/* Verified Filter Toggle */}
                 <Box sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
                     <Typography variant="body2" sx={{ fontWeight: 600, color: 'text.secondary' }}>
-                        Filtrer par vérification:
+                        {t('professionals.filterByVerification') || 'Filtrer par vérification'}:
                     </Typography>
                     <ToggleButtonGroup
                         value={verifiedFilter}
@@ -1388,13 +1392,13 @@ export default function Professionals() {
                         }}
                     >
                         <ToggleButton value="all">
-                            Tous ({professionals.length})
+                            {t('professionals.all') || 'Tous'} ({professionals.length})
                         </ToggleButton>
                         <ToggleButton value="verified">
-                            Vérifiés ({professionals.filter((p: any) => p.isVerified).length})
+                            {t('professionals.verified') || 'Vérifiés'} ({professionals.filter((p: any) => p.isVerified).length})
                         </ToggleButton>
                         <ToggleButton value="unverified">
-                            Non vérifiés ({professionals.filter((p: any) => !p.isVerified).length})
+                            {t('professionals.unverified') || 'Non vérifiés'} ({professionals.filter((p: any) => !p.isVerified).length})
                         </ToggleButton>
                     </ToggleButtonGroup>
                 </Box>

@@ -1,0 +1,219 @@
+/* RTL Support Styles for Backoffice */
+
+/* Base RTL adjustments */
+[dir="rtl"] {
+  direction: rtl;
+  text-align: right;
+}
+
+[dir="ltr"] {
+  direction: ltr;
+  text-align: left;
+}
+
+/* Material-UI RTL adjustments */
+[dir="rtl"] .MuiTypography-root {
+  text-align: right;
+}
+
+[dir="rtl"] .MuiButton-root {
+  direction: rtl;
+}
+
+[dir="rtl"] .MuiTextField-root {
+  direction: rtl;
+}
+
+[dir="rtl"] .MuiInputBase-root {
+  direction: rtl;
+  text-align: right;
+}
+
+/* Table adjustments */
+[dir="rtl"] .MuiTableCell-root {
+  text-align: right;
+}
+
+[dir="rtl"] .MuiTableCell-alignRight {
+  text-align: left;
+}
+
+[dir="rtl"] .MuiTableCell-alignLeft {
+  text-align: right;
+}
+
+/* Menu and Popover adjustments */
+[dir="rtl"] .MuiMenu-paper {
+  direction: rtl;
+}
+
+[dir="rtl"] .MuiPopover-paper {
+  direction: rtl;
+}
+
+/* Breadcrumbs */
+[dir="rtl"] .MuiBreadcrumbs-root {
+  direction: rtl;
+}
+
+/* Stack and Grid adjustments */
+[dir="rtl"] .MuiStack-root {
+  direction: rtl;
+}
+
+/* Icon adjustments */
+[dir="rtl"] .MuiSvgIcon-root {
+  transform: scaleX(-1);
+}
+
+/* Card adjustments */
+[dir="rtl"] .MuiCard-root {
+  direction: rtl;
+}
+
+/* Dialog adjustments */
+[dir="rtl"] .MuiDialog-paper {
+  direction: rtl;
+}
+
+/* Form adjustments */
+[dir="rtl"] .MuiFormControl-root {
+  direction: rtl;
+}
+
+[dir="rtl"] .MuiFormLabel-root {
+  text-align: right;
+}
+
+/* Navigation adjustments */
+[dir="rtl"] .MuiDrawer-paper {
+  direction: rtl;
+}
+
+[dir="rtl"] .MuiList-root {
+  direction: rtl;
+}
+
+/* Toolbar adjustments */
+[dir="rtl"] .MuiToolbar-root {
+  direction: rtl;
+  flex-direction: row-reverse;
+}
+
+/* AppBar adjustments */
+[dir="rtl"] .MuiAppBar-root {
+  direction: rtl;
+}
+
+/* Chip adjustments */
+[dir="rtl"] .MuiChip-root {
+  direction: rtl;
+}
+
+/* Select adjustments */
+[dir="rtl"] .MuiSelect-select {
+  text-align: right;
+  padding-right: 14px;
+  padding-left: 32px;
+}
+
+[dir="rtl"] .MuiSelect-icon {
+  left: 7px;
+  right: auto;
+}
+
+/* Checkbox and Radio adjustments */
+[dir="rtl"] .MuiCheckbox-root {
+  margin-right: 0;
+  margin-left: 9px;
+}
+
+[dir="rtl"] .MuiRadio-root {
+  margin-right: 0;
+  margin-left: 9px;
+}
+
+/* Switch adjustments */
+[dir="rtl"] .MuiSwitch-root {
+  direction: rtl;
+}
+
+/* Tabs adjustments */
+[dir="rtl"] .MuiTabs-root {
+  direction: rtl;
+}
+
+[dir="rtl"] .MuiTabs-indicator {
+  right: 0;
+  left: auto;
+}
+
+/* Stepper adjustments */
+[dir="rtl"] .MuiStepper-root {
+  direction: rtl;
+}
+
+/* Pagination adjustments */
+[dir="rtl"] .MuiPagination-root {
+  direction: rtl;
+}
+
+/* Tooltip adjustments */
+[dir="rtl"] .MuiTooltip-tooltip {
+  direction: rtl;
+  text-align: right;
+}
+
+/* Snackbar adjustments */
+[dir="rtl"] .MuiSnackbar-root {
+  direction: rtl;
+}
+
+/* Alert adjustments */
+[dir="rtl"] .MuiAlert-root {
+  direction: rtl;
+  text-align: right;
+}
+
+/* Accordion adjustments */
+[dir="rtl"] .MuiAccordion-root {
+  direction: rtl;
+}
+
+/* Badge adjustments */
+[dir="rtl"] .MuiBadge-badge {
+  left: auto;
+  right: 0;
+}
+
+/* Avatar adjustments */
+[dir="rtl"] .MuiAvatar-root {
+  margin-right: 0;
+  margin-left: 8px;
+}
+
+/* Divider adjustments */
+[dir="rtl"] .MuiDivider-root {
+  direction: rtl;
+}
+
+/* Paper adjustments */
+[dir="rtl"] .MuiPaper-root {
+  direction: rtl;
+}
+
+/* Container adjustments */
+[dir="rtl"] .MuiContainer-root {
+  direction: rtl;
+}
+
+/* Grid adjustments */
+[dir="rtl"] .MuiGrid-root {
+  direction: rtl;
+}
+
+/* Box adjustments */
+[dir="rtl"] .MuiBox-root {
+  direction: rtl;
+}
+

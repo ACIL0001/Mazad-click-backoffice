@@ -1,6 +1,7 @@
 // Fixed App.tsx - Admin Only
 
 import './i18n';
+import './styles/rtl.css';
 // routes
 import Router from './routes';
 import ThemeProvider from './theme';
@@ -15,6 +16,7 @@ import CategoryProvider from './contexts/CategoryContext';
 import IdentityProvider from './contexts/IdentityContext'; 
 import UserProvider from './contexts/UserContext';
 import { ThemeContextProvider } from './contexts/ThemeContext';
+import { LanguageProvider } from './contexts/LanguageContext';
 import { useEffect, useState, useCallback, useRef } from 'react';
 import useAuth from './hooks/useAuth';
 import { hasAdminPrivileges } from './types/Role';
@@ -116,34 +118,45 @@ export default function App() {
         fontSize: '18px',
         fontFamily: 'Arial, sans-serif'
       }}>
-        Chargement de l'application...
+        {(() => {
+          // Try to get translation, but don't import i18n here to avoid circular dependency
+          const lang = localStorage.getItem('i18nextLng') || 'fr';
+          const translations: { [key: string]: string } = {
+            fr: 'Chargement de l\'application...',
+            en: 'Loading application...',
+            ar: 'جاري تحميل التطبيق...'
+          };
+          return translations[lang] || translations.fr;
+        })()}
       </div>
     );
   }
 
   return (
-    <ThemeContextProvider>
-      <SnackbarProvider maxSnack={3} autoHideDuration={4000}>
-        <RequestProvider>
-          <SocketProvider>
-            <StatsProvider>
-              <UserProvider>
-                <CategoryProvider>
-                  <IdentityProvider>
-                    <AxiosInterceptor>
-                      <ThemeProvider>
-                        <ScrollToTop />
-                        <BaseOptionChartStyle />
-                        <Router />
-                      </ThemeProvider>
-                    </AxiosInterceptor>
-                  </IdentityProvider>
-                </CategoryProvider>
-              </UserProvider>
-            </StatsProvider>
-          </SocketProvider>
-        </RequestProvider> 
-      </SnackbarProvider>
-    </ThemeContextProvider>
+    <LanguageProvider>
+      <ThemeContextProvider>
+        <SnackbarProvider maxSnack={3} autoHideDuration={4000}>
+          <RequestProvider>
+            <SocketProvider>
+              <StatsProvider>
+                <UserProvider>
+                  <CategoryProvider>
+                    <IdentityProvider>
+                      <AxiosInterceptor>
+                        <ThemeProvider>
+                          <ScrollToTop />
+                          <BaseOptionChartStyle />
+                          <Router />
+                        </ThemeProvider>
+                      </AxiosInterceptor>
+                    </IdentityProvider>
+                  </CategoryProvider>
+                </UserProvider>
+              </StatsProvider>
+            </SocketProvider>
+          </RequestProvider> 
+        </SnackbarProvider>
+      </ThemeContextProvider>
+    </LanguageProvider>
   );
 }

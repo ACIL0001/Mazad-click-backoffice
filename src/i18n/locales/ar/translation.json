@@ -60,6 +60,25 @@
     "participants": "المشاركون",
     "endingAt": "ينتهي في"
   },
+  "professionals": {
+    "title": "المهنيون",
+    "name": "الاسم",
+    "total": "إجمالي المهنيين",
+    "verified": "الحسابات الم verified",
+    "unverified": "الحسابات غير الم verified",
+    "pending": "في الانتظار",
+    "recommended": "موصى به",
+    "active": "المهنيون النشطون",
+    "banned": "المهنيون المحظورون",
+    "all": "الكل",
+    "filterByVerification": "تصفية حسب التحقق",
+    "company": "الشركة",
+    "position": "المنصب",
+    "promoCode": "رمز الخصم",
+    "certified": "معتمد",
+    "rate": "التقييم",
+    "infoMessage": "تعرض هذه الصفحة جميع المهنيين (الم verified وغير الم verified). استخدم المرشحات أدناه لتحسين بحثك."
+  },
   "bids": {
     "title": "العروض",
     "status": {

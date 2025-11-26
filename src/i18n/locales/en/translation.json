@@ -60,6 +60,25 @@
     "participants": "Participants",
     "endingAt": "Ends At"
   },
+  "professionals": {
+    "title": "Professionals",
+    "name": "Name",
+    "total": "Total Professionals",
+    "verified": "Verified Accounts",
+    "unverified": "Unverified Accounts",
+    "pending": "Pending",
+    "recommended": "Recommended",
+    "active": "Active Professionals",
+    "banned": "Banned Professionals",
+    "all": "All",
+    "filterByVerification": "Filter by verification",
+    "company": "Company",
+    "position": "Position",
+    "promoCode": "Promo Code",
+    "certified": "Certified",
+    "rate": "Rating",
+    "infoMessage": "This page displays all professionals (verified and unverified). Use the filters below to refine your search."
+  },
   "bids": {
     "title": "Bids",
     "status": {

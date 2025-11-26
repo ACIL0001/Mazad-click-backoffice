@@ -5,6 +5,7 @@ import { Box, MenuItem, Stack, IconButton } from '@mui/material';
 // components
 import MenuPopover from '../../components/MenuPopover';
 import { useTranslation } from 'react-i18next';
+import { useLanguage } from '../../contexts/LanguageContext';
 
 // ----------------------------------------------------------------------
 
@@ -32,11 +33,7 @@ export default function LanguagePopover() {
   const anchorRef = useRef(null);
   const [open, setOpen] = useState(false);
   const { i18n } = useTranslation();
-  const [currentLang, setCurrentLang] = useState(i18n.language || 'fr');
-
-  useEffect(() => {
-    setCurrentLang(i18n.language || 'fr');
-  }, [i18n.language]);
+  const { currentLanguage, changeLanguage } = useLanguage();
 
   const handleOpen = () => {
     setOpen(true);
@@ -47,14 +44,8 @@ export default function LanguagePopover() {
   };
 
   const handleLanguageChange = (langCode: string) => {
-    i18n.changeLanguage(langCode);
-    localStorage.setItem('i18nextLng', langCode);
-    setCurrentLang(langCode);
+    changeLanguage(langCode);
     handleClose();
-    // Reload to ensure all components update
-    setTimeout(() => {
-      window.location.reload();
-    }, 100);
   };
 
   return (
@@ -78,7 +69,7 @@ export default function LanguagePopover() {
             color: 'text.primary',
           }}
         >
-          {LANGS.find(lang => lang.value === currentLang)?.label || LANGS[0].label}
+          {LANGS.find(lang => lang.value === currentLanguage)?.label || LANGS[0].label}
         </Box>
       </IconButton>
 
@@ -97,7 +88,7 @@ export default function LanguagePopover() {
           {LANGS.map((option) => (
             <MenuItem 
               key={option.value} 
-              selected={option.value === currentLang} 
+              selected={option.value === currentLanguage} 
               onClick={() => handleLanguageChange(option.value)}
             >
               <Box

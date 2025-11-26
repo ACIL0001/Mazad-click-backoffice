@@ -78,6 +78,25 @@
     "participants": "Participants",
     "endingAt": "Se Termine Le"
   },
+  "professionals": {
+    "title": "Professionnels",
+    "name": "Nom",
+    "total": "Total Professionnels",
+    "verified": "Comptes Validés",
+    "unverified": "Comptes Non Validés",
+    "pending": "En Attente",
+    "recommended": "Recommandés",
+    "active": "Professionnels Actifs",
+    "banned": "Professionnels Bannis",
+    "all": "Tous",
+    "filterByVerification": "Filtrer par vérification",
+    "company": "Entreprise",
+    "position": "Post occupé",
+    "promoCode": "Code promo",
+    "certified": "Certifié",
+    "rate": "Note",
+    "infoMessage": "Cette page affiche tous les professionnels (vérifiés et non vérifiés). Utilisez les filtres ci-dessous pour affiner votre recherche."
+  },
   "bids": {
     "title": "Offres",
     "status": {
