@@ -294,6 +294,494 @@
     "purchasesWillAppear": "Orders will appear here once buyers make purchases",
     "availableQuantity": "Available Quantity"
   },
+  "reseller": {
+    "title": "Resellers",
+    "table": {
+      "name": "Name",
+      "phone": "Phone",
+      "verified": "Verified",
+      "active": "Active",
+      "banned": "Banned",
+      "recommended": "Recommended",
+      "rate": "Rate",
+      "createdAt": "Created At",
+      "actions": "Actions"
+    },
+    "stats": {
+      "total": "Total Resellers",
+      "verified": "Verified Resellers",
+      "active": "Active Resellers",
+      "banned": "Banned Resellers"
+    },
+    "loading": "Loading verified resellers...",
+    "errorLoading": "Failed to load resellers.",
+    "successLoaded": "{{count}} verified resellers loaded successfully.",
+    "confirmEnable": "Are you sure you want to enable the account of",
+    "confirmDisable": "Are you sure you want to disable the account of",
+    "confirmBan": "Are you sure you want to ban",
+    "confirmUnban": "Are you sure you want to unban",
+    "confirmVerify": "Are you sure you want to verify",
+    "confirmUnverify": "Are you sure you want to cancel verification for",
+    "confirmRecommend": "Are you sure you want to recommend",
+    "confirmUnrecommend": "Are you sure you want to remove recommendation for",
+    "confirmDelete": "Are you sure you want to delete",
+    "confirmDeleteMultiple": "Are you sure you want to delete {{count}} selected resellers?",
+    "noSelection": "No user selected for this action.",
+    "rateAdjustment": "Rate Adjustment",
+    "rateAdjustmentInfo": "The rate can only be adjusted by one point at a time (+1 or -1).",
+    "rateUpdateError": "Error: Unable to modify rate. Missing information.",
+    "rateUpdateSuccess": "Reseller rate updated successfully.",
+    "rateUpdateFailed": "Failed to update rate.",
+    "actions": {
+      "enable": "Enable",
+      "disable": "Disable",
+      "ban": "Ban",
+      "unban": "Unban",
+      "verify": "Verify",
+      "unverify": "Cancel Verification",
+      "recommend": "Recommend",
+      "unrecommend": "Remove Recommendation",
+      "delete": "Delete",
+      "adjustRate": "Adjust Rate",
+      "viewDetails": "View Details"
+    },
+    "status": {
+      "validAccount": "Valid Account",
+      "invalidAccount": "Invalid Account"
+    },
+    "success": {
+      "enabled": "Reseller enabled successfully.",
+      "disabled": "Reseller disabled successfully.",
+      "banned": "Reseller banned successfully.",
+      "unbanned": "Reseller unbanned successfully.",
+      "verified": "Reseller verified successfully.",
+      "unverified": "Reseller verification cancelled successfully.",
+      "recommended": "Reseller recommended successfully.",
+      "unrecommended": "Reseller recommendation removed successfully.",
+      "deleted": "Reseller deleted successfully.",
+      "deletedMultiple": "{{count}} resellers deleted successfully."
+    },
+    "errors": {
+      "enable": "Failed to enable reseller.",
+      "disable": "Failed to disable reseller.",
+      "ban": "Failed to ban reseller.",
+      "unban": "Failed to unban reseller.",
+      "verify": "Failed to verify reseller.",
+      "unverify": "Failed to cancel verification.",
+      "recommend": "Failed to recommend reseller.",
+      "unrecommend": "Failed to remove recommendation.",
+      "delete": "Failed to delete reseller.",
+      "deleteMultiple": "Failed to delete resellers."
+    }
+  },
+  "clients": {
+    "title": "Clients",
+    "table": {
+      "name": "Name",
+      "phone": "Phone",
+      "verified": "Verified",
+      "active": "Active",
+      "banned": "Banned",
+      "rate": "Rate",
+      "createdAt": "Created At",
+      "actions": "Actions"
+    },
+    "stats": {
+      "total": "Total Clients",
+      "verified": "Verified Clients",
+      "active": "Active Clients",
+      "banned": "Banned Clients"
+    },
+    "errorLoading": "Failed to load clients.",
+    "confirmEnable": "Are you sure you want to enable the account of",
+    "confirmDisable": "Are you sure you want to disable the account of",
+    "confirmBan": "Are you sure you want to ban",
+    "confirmUnban": "Are you sure you want to unban",
+    "confirmVerify": "Are you sure you want to verify",
+    "confirmUnverify": "Are you sure you want to cancel verification for",
+    "confirmDelete": "Are you sure you want to delete",
+    "confirmDeleteMultiple": "Are you sure you want to delete {{count}} selected clients?",
+    "noSelection": "No user selected for this action.",
+    "rateAdjustment": "Rate Adjustment",
+    "rateAdjustmentInfo": "The rate can only be adjusted by one point at a time (+1 or -1).",
+    "rateUpdateError": "Error: Unable to modify rate. Missing information.",
+    "rateUpdateSuccess": "Client rate updated successfully.",
+    "rateUpdateFailed": "Failed to update rate.",
+    "actions": {
+      "enable": "Enable",
+      "disable": "Disable",
+      "ban": "Ban",
+      "unban": "Unban",
+      "verify": "Verify",
+      "unverify": "Cancel Verification",
+      "delete": "Delete",
+      "adjustRate": "Adjust Rate",
+      "viewDetails": "View Details",
+      "promote": "Promote to Reseller"
+    },
+    "success": {
+      "enabled": "Client enabled successfully.",
+      "disabled": "Client disabled successfully.",
+      "banned": "Client banned successfully.",
+      "unbanned": "Client unbanned successfully.",
+      "verified": "Client verified successfully.",
+      "unverified": "Client verification cancelled successfully.",
+      "promoted": "Client promoted to reseller successfully.",
+      "deleted": "Client deleted successfully.",
+      "deletedMultiple": "{{count}} clients deleted successfully."
+    },
+    "errors": {
+      "enable": "Failed to enable client.",
+      "disable": "Failed to disable client.",
+      "ban": "Failed to ban client.",
+      "unban": "Failed to unban client.",
+      "verify": "Failed to verify client.",
+      "unverify": "Failed to cancel verification.",
+      "delete": "Failed to delete client.",
+      "deleteMultiple": "Failed to delete clients."
+    }
+  },
+  "chat": {
+    "title": "Communication Center",
+    "subtitle": "Manage all your client conversations in one place",
+    "searchPlaceholder": "Search conversations...",
+    "inputPlaceholder": "Type your message...",
+    "startConversation": "Start the conversation",
+    "startConversationSubtitle": "Send a message to start chatting with {{name}}",
+    "noMessage": "No message",
+    "online": "Online",
+    "you": "You",
+    "user": "User",
+    "client": "Client",
+    "admin": "Admin",
+    "conversations": "conversations",
+    "noConversation": "No {{type}} conversation",
+    "clientTypes": {
+      "professional": {
+        "title": "Professional Clients",
+        "description": "B2B clients and businesses"
+      },
+      "reseller": {
+        "title": "Resellers",
+        "description": "Resale partners"
+      },
+      "client": {
+        "title": "Normal Clients",
+        "description": "Normal clients and other users"
+      },
+      "guest": {
+        "title": "Guests",
+        "description": "Unauthenticated users"
+      }
+    },
+    "sidebar": {
+      "title": "Chats",
+      "noChats": "No chats available",
+      "searchPlaceholder": "Search chats..."
+    },
+    "window": {
+      "noChatSelected": "Select a chat to start messaging",
+      "loading": "Loading messages...",
+      "error": "Error loading messages"
+    },
+    "input": {
+      "placeholder": "Type a message...",
+      "send": "Send"
+    },
+    "message": {
+      "sent": "Sent",
+      "delivered": "Delivered",
+      "read": "Read"
+    },
+    "errors": {
+      "fileTooLarge": "File is too large. Maximum size: 10MB",
+      "fileTypeNotSupported": "File type not supported. Supported formats: Images (JPG, PNG, GIF, WebP), PDF, TXT, DOC, DOCX",
+      "failedToSendAttachment": "Failed to send attachment. Please try again.",
+      "unableToAccessMicrophone": "Unable to access microphone",
+      "failedToSendVoiceMessage": "Failed to send voice message",
+      "failedToDownloadFile": "Failed to download file. Please try again."
+    }
+  },
+  "terms": {
+    "title": "Terms and Conditions Management",
+    "addNew": "Add New Terms",
+    "table": {
+      "title": "Title",
+      "version": "Version",
+      "created": "Created",
+      "updated": "Updated",
+      "actions": "Actions"
+    },
+    "form": {
+      "title": "Title",
+      "content": "Content",
+      "version": "Version",
+      "titleRequired": "Title is required",
+      "contentRequired": "Content is required"
+    },
+    "dialog": {
+      "add": "Add Terms",
+      "edit": "Edit Terms",
+      "view": "View Terms",
+      "delete": "Delete Terms",
+      "confirmDelete": "Are you sure you want to delete these terms?",
+      "cancel": "Cancel",
+      "save": "Save",
+      "deleteButton": "Delete"
+    },
+    "success": {
+      "created": "Terms created successfully!",
+      "updated": "Terms updated successfully!",
+      "deleted": "Terms deleted successfully!"
+    },
+    "noTerms": "No terms found. Click \"Add New Terms\" to create one.",
+    "errors": {
+      "loading": "Failed to load terms. Please try again.",
+      "creating": "Failed to create terms. Please try again.",
+      "updating": "Failed to update terms. Please try again.",
+      "deleting": "Failed to delete terms. Please try again.",
+      "loadingDetails": "Failed to load term details. Please try again.",
+      "noId": "Cannot delete: No term ID provided",
+      "noIdEdit": "Cannot edit: Term has no ID"
+    }
+  },
+  "subscription": {
+    "title": "Subscription Management",
+    "subtitle": "Create, manage, and monitor subscription plans with our comprehensive dashboard",
+    "loading": "Loading Subscription Data",
+    "loadingMessage": "Please wait while we fetch your information",
+    "tabs": {
+      "plans": "Subscription Plans",
+      "userSubscriptions": "User Subscriptions"
+    },
+    "plans": {
+      "title": "Available Plans",
+      "subtitle": "Manage and create subscription plans for your users",
+      "createNew": "Create New Plan",
+      "createFirst": "Create First Plan",
+      "noPlans": "No subscription plans found",
+      "noPlansMessage": "Create your first subscription plan to get started",
+      "active": "Active",
+      "subscribe": "Subscribe",
+      "perMonth": "per {{count}} month",
+      "perMonths": "per {{count}} months",
+      "duration": "{{count}} month duration",
+      "durations": "{{count}} months duration",
+      "whatsIncluded": "What's Included:",
+      "moreBenefits": "+{{count}} more benefits"
+    },
+    "form": {
+      "planName": "Plan Name",
+      "planNamePlaceholder": "Enter plan name",
+      "description": "Description",
+      "descriptionPlaceholder": "Enter plan description",
+      "price": "Price",
+      "pricePlaceholder": "Enter price",
+      "duration": "Duration (months)",
+      "durationPlaceholder": "Enter duration",
+      "activePlan": "Active Plan",
+      "addBenefit": "Add Benefit",
+      "benefitPlaceholder": "Enter benefit",
+      "role": "Role",
+      "create": "Create Plan",
+      "update": "Update Plan",
+      "cancel": "Cancel"
+    },
+    "dialog": {
+      "create": "Create Subscription Plan",
+      "edit": "Edit Subscription Plan",
+      "delete": "Delete Subscription Plan",
+      "confirmDelete": "Are you sure you want to delete this subscription plan?",
+      "confirmSubscribe": "Are you sure you want to subscribe to this plan?",
+      "cancel": "Cancel",
+      "deleteButton": "Delete"
+    },
+    "success": {
+      "created": "Subscription plan created successfully!",
+      "updated": "Subscription plan updated successfully!",
+      "deleted": "Subscription plan deleted successfully!",
+      "subscribed": "Successfully subscribed to plan!"
+    },
+    "errors": {
+      "loading": "Failed to load subscription data",
+      "creating": "Failed to create subscription plan",
+      "updating": "Failed to update subscription plan",
+      "deleting": "Failed to delete subscription plan",
+      "subscribing": "Failed to subscribe to plan"
+    }
+  },
+  "communication": {
+    "title": "Communication",
+    "notification": {
+      "title": "Notification",
+      "subtitle": "Send messages to clients and drivers as notifications",
+      "form": {
+        "title": "Title",
+        "description": "Description",
+        "client": "Client",
+        "driver": "Driver"
+      },
+      "apply": "Apply",
+      "confirm": "Are you sure you want to apply the changes?",
+      "success": "Sent to {{count}} users",
+      "error": "Error"
+    },
+    "chats": {
+      "professionals": "Professionals",
+      "resellers": "Resellers",
+      "others": "Others",
+      "noProfessionalChats": "No professional chats",
+      "noResellerChats": "No reseller chats",
+      "noOtherChats": "No other chats",
+      "chatId": "Chat ID:",
+      "dataReceived": "Data received: {{count}} chats",
+      "errorLoading": "Error loading chats"
+    }
+  },
+  "admin": {
+    "management": {
+      "title": "Admin Management",
+      "addAdmin": "Add Administrator",
+      "table": {
+        "name": "Name",
+        "email": "Email",
+        "phone": "Phone",
+        "type": "Type",
+        "status": "Status",
+        "createdAt": "Creation Date",
+        "actions": "Actions"
+      },
+      "form": {
+        "firstName": "First Name",
+        "lastName": "Last Name",
+        "email": "Email",
+        "password": "Password",
+        "phone": "Phone",
+        "gender": "Gender",
+        "type": "Type",
+        "create": "Create",
+        "update": "Update",
+        "cancel": "Cancel"
+      },
+      "status": {
+        "active": "Active",
+        "inactive": "Inactive"
+      },
+      "actions": {
+        "viewDetails": "View Details",
+        "edit": "Edit",
+        "delete": "Delete"
+      },
+      "confirmDelete": "Are you sure you want to delete {{name}}?",
+      "success": {
+        "created": "{{type}} created successfully",
+        "updated": "Administrator updated successfully",
+        "deleted": "Administrator deleted successfully"
+      },
+      "errors": {
+        "loading": "Error loading administrators",
+        "creating": "Error during creation",
+        "updating": "Error during update",
+        "deleting": "Error during deletion"
+      },
+      "type": {
+        "admin": "Administrator",
+        "sousAdmin": "Sub-Administrator"
+      },
+      "adminOnlyMessage": "Only full administrators can create other administrators."
+    },
+    "profile": {
+      "title": "Admin Profile",
+      "changePassword": "Change Password",
+      "currentPassword": "Current Password",
+      "newPassword": "New Password",
+      "confirmPassword": "Confirm New Password",
+      "passwordMismatch": "Passwords do not match",
+      "errorLoading": "Error loading profile",
+      "successUpdated": "Profile updated successfully",
+      "errorUpdating": "Error updating profile",
+      "passwordChanged": "Password changed successfully",
+      "errorChangingPassword": "Error changing password",
+      "currentPermissions": "You are currently logged in as {{role}}. Below are the permissions you have access to:",
+      "form": {
+        "firstName": "First Name",
+        "lastName": "Last Name",
+        "email": "Email",
+        "phone": "Phone",
+        "createdAt": "Created At"
+      },
+      "dialog": {
+        "changePasswordTitle": "Change Password"
+      }
+    },
+    "permissions": {
+      "title": "Permissions",
+      "matrix": "Permission Matrix",
+      "matrixDescription": "This table shows which permissions are available for each role. Check marks indicate that the role has access to that permission.",
+      "categoryAction": "Category / Action",
+      "roleDescriptions": "Role Descriptions",
+      "yourRole": "Your Role",
+      "checker": "Permission Checker",
+      "actionToCheck": "Action to Verify",
+      "actionHelper": "Enter an action name to check your permissions",
+      "checkPermission": "Verify Permission",
+      "action": "Action",
+      "authorized": "Authorized",
+      "currentPermissions": "Your Current Permissions",
+      "currentPermissionsDescription": "You are currently logged in as {{role}}. Below are the permissions you have access to:",
+      "categories": {
+        "userManagement": "User Management",
+        "administration": "Administration",
+        "contentManagement": "Content Management",
+        "systemConfiguration": "System Configuration",
+        "communication": "Communication",
+        "reportsAnalytics": "Reports & Analytics",
+        "identitySubscriptions": "Identity & Subscriptions"
+      },
+      "permissionDescriptions": {
+        "viewUsers": "View user list",
+        "manageUsers": "Manage user accounts",
+        "deleteUsers": "Delete users",
+        "createAdmin": "Create administrators",
+        "createSousAdmin": "Create sub-administrators",
+        "deleteAdmin": "Delete administrators",
+        "manageAdminUsers": "Manage administrator users",
+        "manageAuctions": "Manage auctions",
+        "manageCategories": "Manage categories",
+        "moderateContent": "Moderate content",
+        "manageTerms": "Manage terms and conditions",
+        "systemConfiguration": "System configuration",
+        "paymentSettings": "Payment settings",
+        "sendNotifications": "Send notifications",
+        "manageCommunication": "Manage communication",
+        "viewChat": "Access communication center",
+        "viewBasicStats": "View basic statistics",
+        "viewFinancialReports": "View financial reports",
+        "viewDetailedAnalytics": "View detailed analytics",
+        "manageIdentities": "Manage identity verifications",
+        "viewSubscriptions": "View subscriptions",
+        "manageSubscriptionPlans": "Manage subscription plans",
+        "processPayments": "Process payments"
+      },
+      "roleDescriptions": {
+        "admin": "Full access to all system features",
+        "sousAdmin": "Limited access to daily management features",
+        "professional": "Professional access to auctions and services",
+        "reseller": "Reseller access with resale tools",
+        "client": "Basic client access to auctions",
+        "standard": "Standard user"
+      },
+      "messages": {
+        "enterAction": "Please enter an action to verify",
+        "checkSuccess": "Permission check completed",
+        "checkError": "Error during verification"
+      }
+    }
+  },
+  "common": {
+    "male": "Male",
+    "female": "Female"
+  },
   "common": {
     "loading": "Loading...",
     "error": "Error",

@@ -29,6 +29,7 @@ import {
   Key as KeyIcon,
 } from '@mui/icons-material';
 import { useSnackbar } from 'notistack';
+import { useTranslation } from 'react-i18next';
 import { SousAdminGuard } from '@/components/guards/RoleGuard';
 import { RoleCode } from '@/types/Role';
 import { getRoleDisplayName, getRoleBadgeColor } from '@/utils/permissions';
@@ -44,6 +45,7 @@ interface PermissionCheck {
 }
 
 export default function AdminPermissions() {
+  const { t } = useTranslation();
   const { enqueueSnackbar } = useSnackbar();
   const { user } = useAuth();
   const [selectedRole, setSelectedRole] = useState<RoleCode>(RoleCode.SOUS_ADMIN);
@@ -52,68 +54,68 @@ export default function AdminPermissions() {
 
   const permissionCategories = [
     {
-      name: 'Gestion des Utilisateurs',
+      name: t('admin.permissions.categories.userManagement'),
       permissions: [
-        { action: 'VIEW_USERS', description: 'Voir la liste des utilisateurs' },
-        { action: 'MANAGE_USERS', description: 'Gérer les comptes utilisateurs' },
-        { action: 'DELETE_USERS', description: 'Supprimer des utilisateurs' },
+        { action: 'VIEW_USERS', description: t('admin.permissions.permissionDescriptions.viewUsers') },
+        { action: 'MANAGE_USERS', description: t('admin.permissions.permissionDescriptions.manageUsers') },
+        { action: 'DELETE_USERS', description: t('admin.permissions.permissionDescriptions.deleteUsers') },
       ],
     },
     {
-      name: 'Administration',
+      name: t('admin.permissions.categories.administration'),
       permissions: [
-        { action: 'CREATE_ADMIN', description: 'Créer des administrateurs' },
-        { action: 'CREATE_SOUS_ADMIN', description: 'Créer des sous-administrateurs' },
-        { action: 'DELETE_ADMIN', description: 'Supprimer des administrateurs' },
-        { action: 'MANAGE_ADMIN_USERS', description: 'Gérer les utilisateurs administrateurs' },
+        { action: 'CREATE_ADMIN', description: t('admin.permissions.permissionDescriptions.createAdmin') },
+        { action: 'CREATE_SOUS_ADMIN', description: t('admin.permissions.permissionDescriptions.createSousAdmin') },
+        { action: 'DELETE_ADMIN', description: t('admin.permissions.permissionDescriptions.deleteAdmin') },
+        { action: 'MANAGE_ADMIN_USERS', description: t('admin.permissions.permissionDescriptions.manageAdminUsers') },
       ],
     },
     {
-      name: 'Gestion du Contenu',
+      name: t('admin.permissions.categories.contentManagement'),
       permissions: [
-        { action: 'MANAGE_AUCTIONS', description: 'Gérer les enchères' },
-        { action: 'MANAGE_CATEGORIES', description: 'Gérer les catégories' },
-        { action: 'MODERATE_CONTENT', description: 'Modérer le contenu' },
-        { action: 'MANAGE_TERMS', description: 'Gérer les conditions générales' },
+        { action: 'MANAGE_AUCTIONS', description: t('admin.permissions.permissionDescriptions.manageAuctions') },
+        { action: 'MANAGE_CATEGORIES', description: t('admin.permissions.permissionDescriptions.manageCategories') },
+        { action: 'MODERATE_CONTENT', description: t('admin.permissions.permissionDescriptions.moderateContent') },
+        { action: 'MANAGE_TERMS', description: t('admin.permissions.permissionDescriptions.manageTerms') },
       ],
     },
     {
-      name: 'Configuration Système',
+      name: t('admin.permissions.categories.systemConfiguration'),
       permissions: [
-        { action: 'SYSTEM_CONFIGURATION', description: 'Configuration système' },
-        { action: 'PAYMENT_SETTINGS', description: 'Paramètres de paiement' },
+        { action: 'SYSTEM_CONFIGURATION', description: t('admin.permissions.permissionDescriptions.systemConfiguration') },
+        { action: 'PAYMENT_SETTINGS', description: t('admin.permissions.permissionDescriptions.paymentSettings') },
       ],
     },
     {
-      name: 'Communication',
+      name: t('admin.permissions.categories.communication'),
       permissions: [
-        { action: 'SEND_NOTIFICATIONS', description: 'Envoyer des notifications' },
-        { action: 'MANAGE_COMMUNICATION', description: 'Gérer la communication' },
-        { action: 'VIEW_CHAT', description: 'Accéder au centre de communication' },
+        { action: 'SEND_NOTIFICATIONS', description: t('admin.permissions.permissionDescriptions.sendNotifications') },
+        { action: 'MANAGE_COMMUNICATION', description: t('admin.permissions.permissionDescriptions.manageCommunication') },
+        { action: 'VIEW_CHAT', description: t('admin.permissions.permissionDescriptions.viewChat') },
       ],
     },
     {
-      name: 'Rapports & Analytics',
+      name: t('admin.permissions.categories.reportsAnalytics'),
       permissions: [
-        { action: 'VIEW_BASIC_STATS', description: 'Voir les statistiques de base' },
-        { action: 'VIEW_FINANCIAL_REPORTS', description: 'Voir les rapports financiers' },
-        { action: 'VIEW_DETAILED_ANALYTICS', description: 'Voir les analyses détaillées' },
+        { action: 'VIEW_BASIC_STATS', description: t('admin.permissions.permissionDescriptions.viewBasicStats') },
+        { action: 'VIEW_FINANCIAL_REPORTS', description: t('admin.permissions.permissionDescriptions.viewFinancialReports') },
+        { action: 'VIEW_DETAILED_ANALYTICS', description: t('admin.permissions.permissionDescriptions.viewDetailedAnalytics') },
       ],
     },
     {
-      name: 'Identité & Abonnements',
+      name: t('admin.permissions.categories.identitySubscriptions'),
       permissions: [
-        { action: 'MANAGE_IDENTITIES', description: 'Gérer les vérifications d\'identité' },
-        { action: 'VIEW_SUBSCRIPTIONS', description: 'Voir les abonnements' },
-        { action: 'MANAGE_SUBSCRIPTION_PLANS', description: 'Gérer les plans d\'abonnement' },
-        { action: 'PROCESS_PAYMENTS', description: 'Traiter les paiements' },
+        { action: 'MANAGE_IDENTITIES', description: t('admin.permissions.permissionDescriptions.manageIdentities') },
+        { action: 'VIEW_SUBSCRIPTIONS', description: t('admin.permissions.permissionDescriptions.viewSubscriptions') },
+        { action: 'MANAGE_SUBSCRIPTION_PLANS', description: t('admin.permissions.permissionDescriptions.manageSubscriptionPlans') },
+        { action: 'PROCESS_PAYMENTS', description: t('admin.permissions.permissionDescriptions.processPayments') },
       ],
     },
   ];
 
   const handleCheckPermission = async () => {
     if (!customAction.trim()) {
-      enqueueSnackbar('Veuillez saisir une action à vérifier', { variant: 'warning' });
+      enqueueSnackbar(t('admin.permissions.messages.enterAction'), { variant: 'warning' });
       return;
     }
 
@@ -122,11 +124,11 @@ export default function AdminPermissions() {
         action: customAction.trim(),
       });
       setPermissionResult(response);
-      enqueueSnackbar('Vérification des permissions effectuée', { variant: 'success' });
+      enqueueSnackbar(t('admin.permissions.messages.checkSuccess'), { variant: 'success' });
     } catch (error: any) {
       console.error('Error checking permission:', error);
       enqueueSnackbar(
-        error.response?.data?.message || 'Erreur lors de la vérification',
+        error.response?.data?.message || t('admin.permissions.messages.checkError'),
         { variant: 'error' }
       );
     }
@@ -138,22 +140,22 @@ export default function AdminPermissions() {
 
   const getRoleDescription = (role: RoleCode): string => {
     const descriptions = {
-      [RoleCode.ADMIN]: 'Accès complet à toutes les fonctionnalités du système',
-      [RoleCode.SOUS_ADMIN]: 'Accès limité aux fonctionnalités de gestion quotidienne',
-      [RoleCode.PROFESSIONAL]: 'Accès professionnel aux enchères et services',
-      [RoleCode.RESELLER]: 'Accès revendeur avec outils de revente',
-      [RoleCode.CLIENT]: 'Accès client de base aux enchères',
+      [RoleCode.ADMIN]: t('admin.permissions.roleDescriptions.admin'),
+      [RoleCode.SOUS_ADMIN]: t('admin.permissions.roleDescriptions.sousAdmin'),
+      [RoleCode.PROFESSIONAL]: t('admin.permissions.roleDescriptions.professional'),
+      [RoleCode.RESELLER]: t('admin.permissions.roleDescriptions.reseller'),
+      [RoleCode.CLIENT]: t('admin.permissions.roleDescriptions.client'),
     };
-    return descriptions[role] || 'Utilisateur standard';
+    return descriptions[role] || t('admin.permissions.roleDescriptions.standard');
   };
 
   const userRole = user?.type as RoleCode;
 
   return (
-    <Page title="Permissions & Autorisations">
+    <Page title={t('admin.permissions.title')}>
       <Box sx={{ px: 3, py: 2 }}>
         <Typography variant="h4" gutterBottom>
-          Permissions & Autorisations
+          {t('admin.permissions.title')}
         </Typography>
 
         <Grid container spacing={3}>
@@ -163,11 +165,11 @@ export default function AdminPermissions() {
               <CardContent>
                 <Typography variant="h6" gutterBottom>
                   <SecurityIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
-                  Matrice des Permissions par Rôle
+                  {t('admin.permissions.matrix')}
                 </Typography>
                 
                 <Alert severity="info" sx={{ mb: 3 }}>
-                  Cette matrice montre les autorisations accordées à chaque type d'utilisateur administrateur.
+                  {t('admin.permissions.matrixDescription')}
                 </Alert>
 
                 <Scrollbar>
@@ -175,17 +177,17 @@ export default function AdminPermissions() {
                     <Table sx={{ minWidth: 800 }}>
                       <TableHead>
                         <TableRow>
-                          <TableCell sx={{ fontWeight: 'bold' }}>Catégorie / Action</TableCell>
+                          <TableCell sx={{ fontWeight: 'bold' }}>{t('admin.permissions.categoryAction')}</TableCell>
                           <TableCell align="center" sx={{ fontWeight: 'bold' }}>
                             <Chip
-                              label="Admin"
+                              label={t('admin.management.type.admin')}
                               color="error"
                               size="small"
                             />
                           </TableCell>
                           <TableCell align="center" sx={{ fontWeight: 'bold' }}>
                             <Chip
-                              label="Sous-Admin"
+                              label={t('admin.management.type.sousAdmin')}
                               color="warning"
                               size="small"
                             />
@@ -250,7 +252,7 @@ export default function AdminPermissions() {
             <Card>
               <CardContent>
                 <Typography variant="h6" gutterBottom>
-                  Description des Rôles
+                  {t('admin.permissions.roleDescriptions')}
                 </Typography>
                 
                 <Stack spacing={2}>
@@ -264,7 +266,7 @@ export default function AdminPermissions() {
                         />
                         {userRole === role && (
                           <Chip
-                            label="Votre rôle"
+                            label={t('admin.permissions.yourRole')}
                             color="primary"
                             size="small"
                             variant="outlined"
@@ -287,17 +289,17 @@ export default function AdminPermissions() {
               <CardContent>
                 <Typography variant="h6" gutterBottom>
                   <KeyIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
-                  Vérificateur de Permissions
+                  {t('admin.permissions.checker')}
                 </Typography>
                 
                 <Stack spacing={2}>
                   <TextField
                     fullWidth
-                    label="Action à vérifier"
+                    label={t('admin.permissions.actionToCheck')}
                     placeholder="Ex: CREATE_ADMIN, MANAGE_USERS, etc."
                     value={customAction}
                     onChange={(e) => setCustomAction(e.target.value)}
-                    helperText="Saisissez le nom d'une action pour vérifier vos permissions"
+                    helperText={t('admin.permissions.actionHelper')}
                   />
                   
                   <Button
@@ -305,7 +307,7 @@ export default function AdminPermissions() {
                     onClick={handleCheckPermission}
                     disabled={!customAction.trim()}
                   >
-                    Vérifier la Permission
+                    {t('admin.permissions.checkPermission')}
                   </Button>
 
                   {permissionResult && (
@@ -314,9 +316,9 @@ export default function AdminPermissions() {
                       sx={{ mt: 2 }}
                     >
                       <Typography variant="body2">
-                        <strong>Action:</strong> {permissionResult.action}<br />
-                        <strong>Votre rôle:</strong> {getRoleDisplayName(permissionResult.userType)}<br />
-                        <strong>Autorisé:</strong> {permissionResult.hasPermission ? 'Oui' : 'Non'}
+                        <strong>{t('admin.permissions.action')}:</strong> {permissionResult.action}<br />
+                        <strong>{t('admin.permissions.yourRole')}:</strong> {getRoleDisplayName(permissionResult.userType)}<br />
+                        <strong>{t('admin.permissions.authorized')}:</strong> {permissionResult.hasPermission ? t('common.yes') : t('common.no')}
                       </Typography>
                     </Alert>
                   )}
@@ -330,11 +332,11 @@ export default function AdminPermissions() {
             <Card>
               <CardContent>
                 <Typography variant="h6" gutterBottom>
-                  Vos Permissions Actuelles
+                  {t('admin.permissions.currentPermissions')}
                 </Typography>
                 
                 <Alert severity="info" sx={{ mb: 2 }}>
-                  En tant que <strong>{getRoleDisplayName(userRole)}</strong>, voici vos autorisations actuelles :
+                  {t('admin.permissions.currentPermissionsDescription', { role: getRoleDisplayName(userRole) })}
                 </Alert>
 
                 <Grid container spacing={2}>

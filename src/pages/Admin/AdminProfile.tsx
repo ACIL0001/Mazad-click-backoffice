@@ -30,6 +30,7 @@ import {
   Shield as ShieldIcon,
 } from '@mui/icons-material';
 import { useSnackbar } from 'notistack';
+import { useTranslation } from 'react-i18next';
 import { SousAdminGuard } from '@/components/guards/RoleGuard';
 import { RoleCode } from '@/types/Role';
 import { getRoleDisplayName, getRoleBadgeColor, PERMISSIONS, hasPermission } from '@/utils/permissions';
@@ -54,6 +55,7 @@ interface AdminProfile {
 }
 
 export default function AdminProfile() {
+  const { t } = useTranslation();
   const { enqueueSnackbar } = useSnackbar();
   const { user } = useAuth();
   const [profile, setProfile] = useState<AdminProfile | null>(null);
@@ -89,7 +91,7 @@ export default function AdminProfile() {
       });
     } catch (error) {
       console.error('Error fetching profile:', error);
-      enqueueSnackbar('Erreur lors du chargement du profil', { variant: 'error' });
+      enqueueSnackbar(t('admin.profile.errorLoading'), { variant: 'error' });
     } finally {
       setLoading(false);
     }
@@ -98,13 +100,13 @@ export default function AdminProfile() {
   const handleUpdateProfile = async () => {
     try {
       await requests.put(`admin/update/${profile?._id}`, formData);
-      enqueueSnackbar('Profil mis à jour avec succès', { variant: 'success' });
+      enqueueSnackbar(t('admin.profile.successUpdated'), { variant: 'success' });
       setEditMode(false);
       fetchProfile();
     } catch (error: any) {
       console.error('Error updating profile:', error);
       enqueueSnackbar(
-        error.response?.data?.message || 'Erreur lors de la mise à jour',
+        error.response?.data?.message || t('admin.profile.errorUpdating'),
         { variant: 'error' }
       );
     }
@@ -112,7 +114,7 @@ export default function AdminProfile() {
 
   const handleChangePassword = async () => {
     if (passwordData.newPassword !== passwordData.confirmPassword) {
-      enqueueSnackbar('Les mots de passe ne correspondent pas', { variant: 'error' });
+      enqueueSnackbar(t('admin.profile.passwordMismatch'), { variant: 'error' });
       return;
     }
 
@@ -121,13 +123,13 @@ export default function AdminProfile() {
         currentPassword: passwordData.currentPassword,
         newPassword: passwordData.newPassword,
       });
-      enqueueSnackbar('Mot de passe modifié avec succès', { variant: 'success' });
+      enqueueSnackbar(t('admin.profile.passwordChanged'), { variant: 'success' });
       setPasswordDialog(false);
       setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
     } catch (error: any) {
       console.error('Error changing password:', error);
       enqueueSnackbar(
-        error.response?.data?.message || 'Erreur lors du changement de mot de passe',
+        error.response?.data?.message || t('admin.profile.errorChangingPassword'),
         { variant: 'error' }
       );
     }
@@ -147,40 +149,41 @@ export default function AdminProfile() {
   };
 
   const getPermissionDescription = (permission: string): string => {
-    const descriptions: Record<string, string> = {
-      VIEW_USERS: 'Voir la liste des utilisateurs',
-      MANAGE_USERS: 'Gérer les comptes utilisateurs',
-      DELETE_USERS: 'Supprimer des utilisateurs',
-      CREATE_ADMIN: 'Créer des administrateurs',
-      CREATE_SOUS_ADMIN: 'Créer des sous-administrateurs',
-      DELETE_ADMIN: 'Supprimer des administrateurs',
-      MANAGE_ADMIN_USERS: 'Gérer les utilisateurs administrateurs',
-      MANAGE_AUCTIONS: 'Gérer les enchères',
-      MANAGE_CATEGORIES: 'Gérer les catégories',
-      MODERATE_CONTENT: 'Modérer le contenu',
-      SYSTEM_CONFIGURATION: 'Configuration système',
-      PAYMENT_SETTINGS: 'Paramètres de paiement',
-      MANAGE_TERMS: 'Gérer les conditions générales',
-      SEND_NOTIFICATIONS: 'Envoyer des notifications',
-      MANAGE_COMMUNICATION: 'Gérer la communication',
-      VIEW_CHAT: 'Accéder au centre de communication',
-      VIEW_BASIC_STATS: 'Voir les statistiques de base',
-      VIEW_FINANCIAL_REPORTS: 'Voir les rapports financiers',
-      VIEW_DETAILED_ANALYTICS: 'Voir les analyses détaillées',
-      MANAGE_IDENTITIES: 'Gérer les vérifications d\'identité',
-      VIEW_SUBSCRIPTIONS: 'Voir les abonnements',
-      MANAGE_SUBSCRIPTION_PLANS: 'Gérer les plans d\'abonnement',
-      PROCESS_PAYMENTS: 'Traiter les paiements',
+    const permissionKeyMap: Record<string, string> = {
+      VIEW_USERS: 'admin.permissions.permissionDescriptions.viewUsers',
+      MANAGE_USERS: 'admin.permissions.permissionDescriptions.manageUsers',
+      DELETE_USERS: 'admin.permissions.permissionDescriptions.deleteUsers',
+      CREATE_ADMIN: 'admin.permissions.permissionDescriptions.createAdmin',
+      CREATE_SOUS_ADMIN: 'admin.permissions.permissionDescriptions.createSousAdmin',
+      DELETE_ADMIN: 'admin.permissions.permissionDescriptions.deleteAdmin',
+      MANAGE_ADMIN_USERS: 'admin.permissions.permissionDescriptions.manageAdminUsers',
+      MANAGE_AUCTIONS: 'admin.permissions.permissionDescriptions.manageAuctions',
+      MANAGE_CATEGORIES: 'admin.permissions.permissionDescriptions.manageCategories',
+      MODERATE_CONTENT: 'admin.permissions.permissionDescriptions.moderateContent',
+      SYSTEM_CONFIGURATION: 'admin.permissions.permissionDescriptions.systemConfiguration',
+      PAYMENT_SETTINGS: 'admin.permissions.permissionDescriptions.paymentSettings',
+      MANAGE_TERMS: 'admin.permissions.permissionDescriptions.manageTerms',
+      SEND_NOTIFICATIONS: 'admin.permissions.permissionDescriptions.sendNotifications',
+      MANAGE_COMMUNICATION: 'admin.permissions.permissionDescriptions.manageCommunication',
+      VIEW_CHAT: 'admin.permissions.permissionDescriptions.viewChat',
+      VIEW_BASIC_STATS: 'admin.permissions.permissionDescriptions.viewBasicStats',
+      VIEW_FINANCIAL_REPORTS: 'admin.permissions.permissionDescriptions.viewFinancialReports',
+      VIEW_DETAILED_ANALYTICS: 'admin.permissions.permissionDescriptions.viewDetailedAnalytics',
+      MANAGE_IDENTITIES: 'admin.permissions.permissionDescriptions.manageIdentities',
+      VIEW_SUBSCRIPTIONS: 'admin.permissions.permissionDescriptions.viewSubscriptions',
+      MANAGE_SUBSCRIPTION_PLANS: 'admin.permissions.permissionDescriptions.manageSubscriptionPlans',
+      PROCESS_PAYMENTS: 'admin.permissions.permissionDescriptions.processPayments',
     };
 
-    return descriptions[permission] || permission;
+    const translationKey = permissionKeyMap[permission];
+    return translationKey ? t(translationKey) : permission;
   };
 
   if (loading || !profile) {
     return (
-      <Page title="Profil Administrateur">
+      <Page title={t('admin.profile.title')}>
         <Box sx={{ p: 3, display: 'flex', justifyContent: 'center' }}>
-          <Typography>Chargement...</Typography>
+          <Typography>{t('common.loading')}</Typography>
         </Box>
       </Page>
     );
@@ -189,10 +192,10 @@ export default function AdminProfile() {
   const permissions = getPermissionList();
 
   return (
-    <Page title="Profil Administrateur">
+    <Page title={t('admin.profile.title')}>
       <Box sx={{ px: 3, py: 2 }}>
         <Typography variant="h4" gutterBottom>
-          Profil Administrateur
+          {t('admin.profile.title')}
         </Typography>
 
         <Grid container spacing={3}>
@@ -215,7 +218,7 @@ export default function AdminProfile() {
                         icon={<ShieldIcon />}
                       />
                       <Chip
-                        label={profile.isActive ? 'Actif' : 'Inactif'}
+                        label={profile.isActive ? t('admin.management.status.active') : t('admin.management.status.inactive')}
                         color={profile.isActive ? 'success' : 'error'}
                       />
                     </Stack>
@@ -228,7 +231,7 @@ export default function AdminProfile() {
                   <Grid item xs={12} sm={6}>
                     <TextField
                       fullWidth
-                      label="Prénom"
+                      label={t('admin.management.form.firstName')}
                       value={editMode ? formData.firstName : profile.firstName}
                       onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
                       disabled={!editMode}
@@ -237,7 +240,7 @@ export default function AdminProfile() {
                   <Grid item xs={12} sm={6}>
                     <TextField
                       fullWidth
-                      label="Nom"
+                      label={t('admin.management.form.lastName')}
                       value={editMode ? formData.lastName : profile.lastName}
                       onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
                       disabled={!editMode}
@@ -246,7 +249,7 @@ export default function AdminProfile() {
                   <Grid item xs={12} sm={6}>
                     <TextField
                       fullWidth
-                      label="Email"
+                      label={t('admin.management.form.email')}
                       value={editMode ? formData.email : profile.email}
                       onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                       disabled={!editMode}
@@ -255,7 +258,7 @@ export default function AdminProfile() {
                   <Grid item xs={12} sm={6}>
                     <TextField
                       fullWidth
-                      label="Téléphone"
+                      label={t('admin.management.form.phone')}
                       value={editMode ? formData.phone : profile.phone}
                       onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                       disabled={!editMode}
@@ -264,7 +267,7 @@ export default function AdminProfile() {
                   <Grid item xs={12}>
                     <TextField
                       fullWidth
-                      label="Date de création"
+                      label={t('admin.management.table.createdAt')}
                       value={new Date(profile.createdAt).toLocaleString('fr-FR')}
                       disabled
                     />
@@ -275,15 +278,15 @@ export default function AdminProfile() {
                   {editMode ? (
                     <>
                       <Button variant="contained" onClick={handleUpdateProfile}>
-                        Sauvegarder
+                        {t('common.save')}
                       </Button>
                       <Button onClick={() => setEditMode(false)}>
-                        Annuler
+                        {t('common.cancel')}
                       </Button>
                     </>
                   ) : (
                     <Button variant="outlined" onClick={() => setEditMode(true)}>
-                      Modifier
+                      {t('common.edit')}
                     </Button>
                   )}
                   <Button
@@ -291,7 +294,7 @@ export default function AdminProfile() {
                     startIcon={<SecurityIcon />}
                     onClick={() => setPasswordDialog(true)}
                   >
-                    Changer le mot de passe
+                    {t('admin.profile.changePassword')}
                   </Button>
                 </Stack>
               </CardContent>
@@ -304,11 +307,11 @@ export default function AdminProfile() {
               <CardContent>
                 <Typography variant="h6" gutterBottom>
                   <KeyIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
-                  Permissions
+                  {t('admin.permissions.title')}
                 </Typography>
                 
                 <Alert severity="info" sx={{ mb: 2 }}>
-                  Vos autorisations actuelles en tant que {getRoleDisplayName(profile.type)}
+                  {t('admin.profile.currentPermissions', { role: getRoleDisplayName(profile.type) })}
                 </Alert>
 
                 <List dense>
@@ -342,40 +345,40 @@ export default function AdminProfile() {
 
         {/* Password Change Dialog */}
         <Dialog open={passwordDialog} onClose={() => setPasswordDialog(false)} maxWidth="sm" fullWidth>
-          <DialogTitle>Changer le mot de passe</DialogTitle>
+          <DialogTitle>{t('admin.profile.changePassword')}</DialogTitle>
           <DialogContent>
             <Stack spacing={3} sx={{ mt: 1 }}>
               <TextField
                 fullWidth
                 type="password"
-                label="Mot de passe actuel"
+                label={t('admin.profile.currentPassword')}
                 value={passwordData.currentPassword}
                 onChange={(e) => setPasswordData({ ...passwordData, currentPassword: e.target.value })}
               />
               <TextField
                 fullWidth
                 type="password"
-                label="Nouveau mot de passe"
+                label={t('admin.profile.newPassword')}
                 value={passwordData.newPassword}
                 onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
               />
               <TextField
                 fullWidth
                 type="password"
-                label="Confirmer le nouveau mot de passe"
+                label={t('admin.profile.confirmPassword')}
                 value={passwordData.confirmPassword}
                 onChange={(e) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })}
                 error={passwordData.newPassword !== '' && passwordData.confirmPassword !== '' && passwordData.newPassword !== passwordData.confirmPassword}
                 helperText={
                   passwordData.newPassword !== '' && passwordData.confirmPassword !== '' && passwordData.newPassword !== passwordData.confirmPassword
-                    ? 'Les mots de passe ne correspondent pas'
+                    ? t('admin.profile.passwordMismatch')
                     : ''
                 }
               />
             </Stack>
           </DialogContent>
           <DialogActions>
-            <Button onClick={() => setPasswordDialog(false)}>Annuler</Button>
+            <Button onClick={() => setPasswordDialog(false)}>{t('common.cancel')}</Button>
             <Button
               onClick={handleChangePassword}
               variant="contained"
@@ -386,7 +389,7 @@ export default function AdminProfile() {
                 passwordData.newPassword !== passwordData.confirmPassword
               }
             >
-              Changer le mot de passe
+              {t('admin.profile.changePassword')}
             </Button>
           </DialogActions>
         </Dialog>

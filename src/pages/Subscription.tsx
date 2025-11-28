@@ -79,6 +79,7 @@ import {
 
 // Import your real API
 import { SubscriptionAPI, SubscriptionPlan, CreatePlanDto } from '../api/subscription'
+import { useTranslation } from 'react-i18next'
 
 const theme = createTheme({
   palette: {
@@ -419,6 +420,7 @@ function CountdownTimer({ endDate }: { endDate: string }) {
 }
 
 export default function SubscriptionPage() {
+  const { t } = useTranslation()
   const [plans, setPlans] = useState<SubscriptionPlan[]>([])
   const [userSubscriptions, setUserSubscriptions] = useState<UserSubscription[]>([])
   const [mySubscription, setMySubscription] = useState<UserSubscription | null>(null)
@@ -659,10 +661,10 @@ export default function SubscriptionPage() {
                 }} 
               />
               <Typography variant="h5" fontWeight="600" color="text.primary" gutterBottom>
-                Loading Subscription Data
+                {t('subscription.loading')}
               </Typography>
               <Typography variant="body1" color="text.secondary">
-                Please wait while we fetch your information
+                {t('subscription.loadingMessage')}
               </Typography>
             </Box>
           </Fade>
@@ -706,10 +708,10 @@ export default function SubscriptionPage() {
                   WebkitTextFillColor: 'transparent',
                 }}
               >
-                Subscription Management
+                {t('subscription.title')}
               </Typography>
               <Typography variant="h6" sx={{ color: 'text.secondary', maxWidth: '600px', mx: 'auto', fontWeight: 400 }}>
-                Create, manage, and monitor subscription plans with our comprehensive dashboard
+                {t('subscription.subtitle')}
               </Typography>
             </Box>
           </Fade>
@@ -742,12 +744,12 @@ export default function SubscriptionPage() {
                   }}
                 >
                   <Tab 
-                    label="Subscription Plans" 
+                    label={t('subscription.tabs.plans')} 
                     icon={<StarIcon />} 
                     iconPosition="start"
                   />
                   <Tab 
-                    label="User Subscriptions" 
+                    label={t('subscription.tabs.userSubscriptions')} 
                     icon={<UsersIcon />} 
                     iconPosition="start"
                   />
@@ -762,10 +764,10 @@ export default function SubscriptionPage() {
                 <Box display="flex" justifyContent="space-between" alignItems="center" mb={4}>
                   <Box>
                     <Typography variant="h4" fontWeight="600" color="text.primary" gutterBottom>
-                      Available Plans
+                      {t('subscription.plans.title')}
                     </Typography>
                     <Typography variant="body1" color="text.secondary" sx={{ fontWeight: 400 }}>
-                      Manage and create subscription plans for your users
+                      {t('subscription.plans.subtitle')}
                     </Typography>
                   </Box>
                   <Button
@@ -774,7 +776,7 @@ export default function SubscriptionPage() {
                     startIcon={<AddIcon />}
                     onClick={() => setCreateDialogOpen(true)}
                   >
-                    Create New Plan
+                    {t('subscription.plans.createNew')}
                   </Button>
                 </Box>
 
@@ -807,7 +809,7 @@ export default function SubscriptionPage() {
                                 zIndex: 2,
                               }}
                             >
-                              Active
+                              {t('subscription.plans.active')}
                             </Box>
                           )}
                           
@@ -838,21 +840,21 @@ export default function SubscriptionPage() {
                                 {formatPrice(plan.price)}
                               </Typography>
                               <Typography variant="body2" color="text.secondary">
-                                per {plan.duration} month{plan.duration > 1 ? 's' : ''}
+                                {plan.duration === 1 ? t('subscription.plans.perMonth', { count: plan.duration }) : t('subscription.plans.perMonths', { count: plan.duration })}
                               </Typography>
                             </Box>
 
                             <Box display="flex" alignItems="center" gap={1} mb={3}>
                               <CalendarIcon sx={{ color: 'text.secondary', fontSize: 16 }} />
                               <Typography variant="body2" color="text.secondary">
-                                {plan.duration} month{plan.duration > 1 ? 's' : ''} duration
+                                {plan.duration === 1 ? t('subscription.plans.duration', { count: plan.duration }) : t('subscription.plans.durations', { count: plan.duration })}
                               </Typography>
                             </Box>
 
                             {plan.benefits && plan.benefits.length > 0 && (
                               <Box mb={3}>
                                 <Typography variant="body2" fontWeight="600" color="text.primary" mb={1.5}>
-                                  What's Included:
+                                  {t('subscription.plans.whatsIncluded')}
                                 </Typography>
                                 <Box display="flex" flexDirection="column" gap={1}>
                                   {plan.benefits.slice(0, 3).map((benefit, idx) => (
@@ -867,7 +869,7 @@ export default function SubscriptionPage() {
                                   ))}
                                   {plan.benefits.length > 3 && (
                                     <Typography variant="body2" color="primary.main" sx={{ ml: 3, fontWeight: 500 }}>
-                                      +{plan.benefits.length - 3} more benefits
+                                      {t('subscription.plans.moreBenefits', { count: plan.benefits.length - 3 })}
                                     </Typography>
                                   )}
                                 </Box>
@@ -890,7 +892,7 @@ export default function SubscriptionPage() {
                               disabled={!plan.isActive}
                               sx={{ flexGrow: 1 }}
                             >
-                              Subscribe
+                              {t('subscription.plans.subscribe')}
                             </Button>
                             <IconButton
                               onClick={() => handleEditPlan(plan)}
@@ -928,17 +930,17 @@ export default function SubscriptionPage() {
                           <CardContent sx={{ textAlign: "center", py: 8 }}>
                             <StarIcon sx={{ fontSize: 64, color: 'text.disabled', mb: 2 }} />
                             <Typography variant="h6" color="text.secondary" gutterBottom>
-                              No subscription plans found
+                              {t('subscription.plans.noPlans')}
                             </Typography>
                             <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-                              Create your first subscription plan to get started
+                              {t('subscription.plans.noPlansMessage')}
                             </Typography>
                             <Button
                               variant="contained"
                               startIcon={<AddIcon />}
                               onClick={() => setCreateDialogOpen(true)}
                             >
-                              Create First Plan
+                              {t('subscription.plans.createFirst')}
                             </Button>
                           </CardContent>
                         </Card>
@@ -1081,21 +1083,21 @@ export default function SubscriptionPage() {
             <DialogTitle sx={{ pb: 1 }}>
               <Box display="flex" alignItems="center" justifyContent="space-between">
                 <Typography variant="h5" fontWeight="600">
-                  Create New Subscription Plan
+                  {t('subscription.dialog.create')}
                 </Typography>
                 <IconButton onClick={() => setCreateDialogOpen(false)} size="small">
                   <CloseIcon />
                 </IconButton>
               </Box>
               <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                Fill in the details to create a new subscription plan
+                {t('subscription.dialog.create')}
               </Typography>
             </DialogTitle>
             <DialogContent sx={{ pt: 3 }}>
               <Grid container spacing={3}>
                 <Grid item xs={12}>
                   <TextField
-                    label="Plan Name"
+                    label={t('subscription.form.planName')}
                     value={newPlan.name}
                     onChange={(e) => setNewPlan({ ...newPlan, name: e.target.value })}
                     fullWidth
@@ -1111,7 +1113,7 @@ export default function SubscriptionPage() {
                 </Grid>
                 <Grid item xs={12}>
                   <TextField
-                    label="Description"
+                    label={t('subscription.form.description')}
                     value={newPlan.description}
                     onChange={(e) => setNewPlan({ ...newPlan, description: e.target.value })}
                     multiline
@@ -1129,7 +1131,7 @@ export default function SubscriptionPage() {
                 </Grid>
                 <Grid item xs={6}>
                   <TextField
-                    label="Price (DZD)"
+                    label={t('subscription.form.price')}
                     type="number"
                     value={newPlan.price}
                     onChange={(e) => setNewPlan({ ...newPlan, price: Math.max(0, Number(e.target.value)) })}
@@ -1150,7 +1152,7 @@ export default function SubscriptionPage() {
                 </Grid>
                 <Grid item xs={6}>
                   <TextField
-                    label="Duration (months)"
+                    label={t('subscription.form.duration')}
                     type="number"
                     value={newPlan.duration === 0 ? '' : newPlan.duration}
                     onChange={(e) => setNewPlan({ ...newPlan, duration: e.target.value === '' ? 0 : Math.max(1, Number(e.target.value)) })}
@@ -1207,7 +1209,7 @@ export default function SubscriptionPage() {
                         color="primary"
                       />
                     }
-                    label="Active Plan"
+                    label={t('subscription.form.activePlan')}
                     sx={{ mt: 2 }}
                   />
                 </Grid>
@@ -1218,7 +1220,7 @@ export default function SubscriptionPage() {
                   </Typography>
                   <Box display="flex" gap={2} mb={2}>
                     <TextField
-                      label="Add Benefit"
+                      label={t('subscription.form.addBenefit')}
                       value={newBenefit}
                       onChange={(e) => setNewBenefit(e.target.value)}
                       onKeyPress={(e) => {
@@ -1312,7 +1314,7 @@ export default function SubscriptionPage() {
                 onClick={handleCreatePlan}
                 startIcon={<SaveIcon />}
               >
-                Create Plan
+                {t('subscription.form.create')}
               </Button>
             </DialogActions>
           </Dialog>
@@ -1322,21 +1324,21 @@ export default function SubscriptionPage() {
             <DialogTitle sx={{ pb: 1 }}>
               <Box display="flex" alignItems="center" justifyContent="space-between">
                 <Typography variant="h5" fontWeight="600">
-                  Edit Subscription Plan
+                  {t('subscription.dialog.edit')}
                 </Typography>
                 <IconButton onClick={() => setEditDialogOpen(false)} size="small">
                   <CloseIcon />
                 </IconButton>
               </Box>
               <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                Modify the details of the selected subscription plan
+                {t('subscription.dialog.edit')}
               </Typography>
             </DialogTitle>
             <DialogContent sx={{ pt: 3 }}>
               <Grid container spacing={3}>
                 <Grid item xs={12}>
                   <TextField
-                    label="Plan Name"
+                    label={t('subscription.form.planName')}
                     value={currentPlan?.name || ""}
                     onChange={(e) => setCurrentPlan({ ...currentPlan!, name: e.target.value })}
                     fullWidth
@@ -1448,7 +1450,7 @@ export default function SubscriptionPage() {
                         color="primary"
                       />
                     }
-                    label="Active Plan"
+                    label={t('subscription.form.activePlan')}
                     sx={{ mt: 2 }}
                   />
                 </Grid>
@@ -1459,7 +1461,7 @@ export default function SubscriptionPage() {
                   </Typography>
                   <Box display="flex" gap={2} mb={2}>
                     <TextField
-                      label="Add Benefit"
+                      label={t('subscription.form.addBenefit')}
                       value={editBenefit}
                       onChange={(e) => setEditBenefit(e.target.value)}
                       onKeyPress={(e) => {
@@ -1572,7 +1574,7 @@ export default function SubscriptionPage() {
                 </Avatar>
                 <Box>
                   <Typography variant="h6" fontWeight="600">
-                    Delete Subscription Plan
+                    {t('subscription.dialog.delete')}
                   </Typography>
                   <Typography variant="body2" color="text.secondary">
                     This action cannot be undone
@@ -1582,7 +1584,7 @@ export default function SubscriptionPage() {
             </DialogTitle>
             <DialogContent>
               <Typography variant="body1" color="text.secondary">
-                Are you sure you want to delete "<strong>{currentPlan?.name}</strong>"? 
+                {t('subscription.dialog.confirmDelete')}: "<strong>{currentPlan?.name}</strong>"? 
                 This will permanently remove the subscription plan and cannot be undone.
               </Typography>
             </DialogContent>

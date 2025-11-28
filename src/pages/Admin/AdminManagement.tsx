@@ -35,6 +35,7 @@ import {
   Key as KeyIcon,
 } from '@mui/icons-material';
 import { useSnackbar } from 'notistack';
+import { useTranslation } from 'react-i18next';
 import { AdminOnlyGuard, PermissionGuard } from '@/components/guards/RoleGuard';
 import { RoleCode } from '@/types/Role';
 import { getRoleDisplayName, getRoleBadgeColor } from '@/utils/permissions';
@@ -66,6 +67,7 @@ interface CreateAdminDto {
 }
 
 export default function AdminManagement() {
+  const { t } = useTranslation();
   const { enqueueSnackbar } = useSnackbar();
   const [admins, setAdmins] = useState<AdminUser[]>([]);
   const [loading, setLoading] = useState(true);
@@ -94,7 +96,7 @@ export default function AdminManagement() {
       setAdmins(response.data || []);
     } catch (error) {
       console.error('Error fetching admins:', error);
-      enqueueSnackbar('Erreur lors du chargement des administrateurs', { variant: 'error' });
+      enqueueSnackbar(t('admin.management.errors.loading'), { variant: 'error' });
     } finally {
       setLoading(false);
     }
@@ -106,7 +108,7 @@ export default function AdminManagement() {
       await requests.post(endpoint, formData);
       
       enqueueSnackbar(
-        `${formData.type === RoleCode.ADMIN ? 'Administrateur' : 'Sous-administrateur'} créé avec succès`,
+        t('admin.management.success.created', { type: formData.type === RoleCode.ADMIN ? t('admin.management.type.admin') : t('admin.management.type.sousAdmin') }),
         { variant: 'success' }
       );
       
@@ -116,7 +118,7 @@ export default function AdminManagement() {
     } catch (error: any) {
       console.error('Error creating admin:', error);
       enqueueSnackbar(
-        error.response?.data?.message || 'Erreur lors de la création',
+        error.response?.data?.message || t('admin.management.errors.creating'),
         { variant: 'error' }
       );
     }
@@ -127,7 +129,7 @@ export default function AdminManagement() {
     
     try {
       await requests.put(`admin/update/${editingAdmin._id}`, formData);
-      enqueueSnackbar('Administrateur mis à jour avec succès', { variant: 'success' });
+      enqueueSnackbar(t('admin.management.success.updated'), { variant: 'success' });
       setOpenDialog(false);
       setEditingAdmin(null);
       resetForm();
@@ -135,25 +137,25 @@ export default function AdminManagement() {
     } catch (error: any) {
       console.error('Error updating admin:', error);
       enqueueSnackbar(
-        error.response?.data?.message || 'Erreur lors de la mise à jour',
+        error.response?.data?.message || t('admin.management.errors.updating'),
         { variant: 'error' }
       );
     }
   };
 
   const handleDeleteAdmin = async (admin: AdminUser) => {
-    if (!window.confirm(`Êtes-vous sûr de vouloir supprimer ${admin.firstName} ${admin.lastName} ?`)) {
+    if (!window.confirm(t('admin.management.confirmDelete', { name: `${admin.firstName} ${admin.lastName}` }))) {
       return;
     }
 
     try {
       await requests.delete(`admin/delete/${admin._id}`);
-      enqueueSnackbar('Administrateur supprimé avec succès', { variant: 'success' });
+      enqueueSnackbar(t('admin.management.success.deleted'), { variant: 'success' });
       fetchAdmins();
     } catch (error: any) {
       console.error('Error deleting admin:', error);
       enqueueSnackbar(
-        error.response?.data?.message || 'Erreur lors de la suppression',
+        error.response?.data?.message || t('admin.management.errors.deleting'),
         { variant: 'error' }
       );
     }
@@ -195,11 +197,11 @@ export default function AdminManagement() {
   const isNotFound = !loading && admins.length === 0;
 
   return (
-    <Page title="Gestion des Administrateurs">
+    <Page title={t('admin.management.title')}>
       <Box sx={{ px: 3, py: 2 }}>
         <Stack direction="row" alignItems="center" justifyContent="space-between" mb={3}>
           <Typography variant="h4" gutterBottom>
-            Gestion des Administrateurs
+            {t('admin.management.title')}
           </Typography>
           <AdminOnlyGuard>
             <Button
@@ -207,7 +209,7 @@ export default function AdminManagement() {
               startIcon={<AddIcon />}
               onClick={openCreateDialog}
             >
-              Ajouter un Administrateur
+              {t('admin.management.addAdmin')}
             </Button>
           </AdminOnlyGuard>
         </Stack>
@@ -218,13 +220,13 @@ export default function AdminManagement() {
               <Table>
                 <TableHead>
                   <TableRow>
-                    <TableCell>Nom</TableCell>
-                    <TableCell>Email</TableCell>
-                    <TableCell>Téléphone</TableCell>
-                    <TableCell>Type</TableCell>
-                    <TableCell>Status</TableCell>
-                    <TableCell>Date de création</TableCell>
-                    <TableCell align="right">Actions</TableCell>
+                    <TableCell>{t('admin.management.table.name')}</TableCell>
+                    <TableCell>{t('admin.management.table.email')}</TableCell>
+                    <TableCell>{t('admin.management.table.phone')}</TableCell>
+                    <TableCell>{t('admin.management.table.type')}</TableCell>
+                    <TableCell>{t('admin.management.table.status')}</TableCell>
+                    <TableCell>{t('admin.management.table.createdAt')}</TableCell>
+                    <TableCell align="right">{t('admin.management.table.actions')}</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -246,7 +248,7 @@ export default function AdminManagement() {
                       </TableCell>
                       <TableCell>
                         <Chip
-                          label={admin.isActive ? 'Actif' : 'Inactif'}
+                          label={admin.isActive ? t('admin.management.status.active') : t('admin.management.status.inactive')}
                           color={admin.isActive ? 'success' : 'error'}
                           size="small"
                         />
@@ -256,14 +258,14 @@ export default function AdminManagement() {
                       </TableCell>
                       <TableCell align="right">
                         <Stack direction="row" spacing={1}>
-                          <Tooltip title="Voir les détails">
+                          <Tooltip title={t('admin.management.actions.viewDetails')}>
                             <IconButton size="small" onClick={() => openEditDialog(admin)}>
                               <ViewIcon />
                             </IconButton>
                           </Tooltip>
                           
                           <PermissionGuard permission="MANAGE_ADMIN_USERS">
-                            <Tooltip title="Modifier">
+                            <Tooltip title={t('admin.management.actions.edit')}>
                               <IconButton size="small" onClick={() => openEditDialog(admin)}>
                                 <EditIcon />
                               </IconButton>
@@ -271,7 +273,7 @@ export default function AdminManagement() {
                           </PermissionGuard>
 
                           <AdminOnlyGuard>
-                            <Tooltip title="Supprimer">
+                            <Tooltip title={t('admin.management.actions.delete')}>
                               <IconButton 
                                 size="small" 
                                 color="error"
@@ -311,14 +313,14 @@ export default function AdminManagement() {
         {/* Create/Edit Dialog */}
         <Dialog open={openDialog} onClose={() => setOpenDialog(false)} maxWidth="sm" fullWidth>
           <DialogTitle>
-            {editingAdmin ? 'Modifier l\'Administrateur' : 'Créer un Administrateur'}
+            {editingAdmin ? t('admin.management.form.update') : t('admin.management.form.create')}
           </DialogTitle>
           <DialogContent>
             <Grid container spacing={2} sx={{ mt: 1 }}>
               <Grid item xs={12} sm={6}>
                 <TextField
                   fullWidth
-                  label="Prénom"
+                  label={t('admin.management.form.firstName')}
                   value={formData.firstName}
                   onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
                   required
@@ -327,7 +329,7 @@ export default function AdminManagement() {
               <Grid item xs={12} sm={6}>
                 <TextField
                   fullWidth
-                  label="Nom"
+                  label={t('admin.management.form.lastName')}
                   value={formData.lastName}
                   onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
                   required
@@ -336,7 +338,7 @@ export default function AdminManagement() {
               <Grid item xs={12}>
                 <TextField
                   fullWidth
-                  label="Email"
+                  label={t('admin.management.form.email')}
                   type="email"
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
@@ -346,7 +348,7 @@ export default function AdminManagement() {
               <Grid item xs={12}>
                 <TextField
                   fullWidth
-                  label={editingAdmin ? 'Nouveau mot de passe (optionnel)' : 'Mot de passe'}
+                  label={t('admin.management.form.password')}
                   type="password"
                   value={formData.password}
                   onChange={(e) => setFormData({ ...formData, password: e.target.value })}
@@ -356,7 +358,7 @@ export default function AdminManagement() {
               <Grid item xs={12}>
                 <TextField
                   fullWidth
-                  label="Téléphone"
+                  label={t('admin.management.form.phone')}
                   value={formData.phone}
                   onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                   required
@@ -364,14 +366,14 @@ export default function AdminManagement() {
               </Grid>
               <Grid item xs={12} sm={6}>
                 <FormControl fullWidth>
-                  <InputLabel>Genre</InputLabel>
+                  <InputLabel>{t('admin.management.form.gender')}</InputLabel>
                   <Select
                     value={formData.gender}
-                    label="Genre"
+                    label={t('admin.management.form.gender')}
                     onChange={(e) => setFormData({ ...formData, gender: e.target.value as 'MALE' | 'FEMALE' })}
                   >
-                    <MenuItem value="MALE">Homme</MenuItem>
-                    <MenuItem value="FEMALE">Femme</MenuItem>
+                    <MenuItem value="MALE">{t('common.male')}</MenuItem>
+                    <MenuItem value="FEMALE">{t('common.female')}</MenuItem>
                   </Select>
                 </FormControl>
               </Grid>
@@ -379,19 +381,19 @@ export default function AdminManagement() {
                 <AdminOnlyGuard
                   fallback={
                     <Alert severity="info" sx={{ mt: 1 }}>
-                      Seuls les administrateurs complets peuvent créer d'autres administrateurs.
+                      {t('admin.management.adminOnlyMessage')}
                     </Alert>
                   }
                 >
                   <FormControl fullWidth>
-                    <InputLabel>Type d'Administrateur</InputLabel>
+                    <InputLabel>{t('admin.management.form.type')}</InputLabel>
                     <Select
                       value={formData.type}
-                      label="Type d'Administrateur"
+                      label={t('admin.management.form.type')}
                       onChange={(e) => setFormData({ ...formData, type: e.target.value as RoleCode.ADMIN | RoleCode.SOUS_ADMIN })}
                     >
-                      <MenuItem value={RoleCode.SOUS_ADMIN}>Sous-Administrateur</MenuItem>
-                      <MenuItem value={RoleCode.ADMIN}>Administrateur Complet</MenuItem>
+                      <MenuItem value={RoleCode.SOUS_ADMIN}>{t('admin.management.type.sousAdmin')}</MenuItem>
+                      <MenuItem value={RoleCode.ADMIN}>{t('admin.management.type.admin')}</MenuItem>
                     </Select>
                   </FormControl>
                 </AdminOnlyGuard>
@@ -399,13 +401,13 @@ export default function AdminManagement() {
             </Grid>
           </DialogContent>
           <DialogActions>
-            <Button onClick={() => setOpenDialog(false)}>Annuler</Button>
+            <Button onClick={() => setOpenDialog(false)}>{t('admin.management.form.cancel')}</Button>
             <Button
               onClick={editingAdmin ? handleUpdateAdmin : handleCreateAdmin}
               variant="contained"
               disabled={!formData.firstName || !formData.lastName || !formData.email || (!editingAdmin && !formData.password)}
             >
-              {editingAdmin ? 'Mettre à jour' : 'Créer'}
+              {editingAdmin ? t('admin.management.form.update') : t('admin.management.form.create')}
             </Button>
           </DialogActions>
         </Dialog>

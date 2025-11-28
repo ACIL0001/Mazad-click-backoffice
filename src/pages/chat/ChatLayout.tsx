@@ -54,6 +54,7 @@ import { ChatAPI } from '../../api/Chat';
 import { MessageAPI } from '../../api/message';
 import useAuth from '../../hooks/useAuth';
 import Page from '../../components/Page';
+import { useTranslation } from 'react-i18next';
 
 const API_BASE_URL = (() => {
   const envUrl = import.meta.env.VITE_API_URL;
@@ -141,46 +142,49 @@ interface ClientType {
   description: string;
 }
 
-const clientTypes: ClientType[] = [
-  {
-    id: 'professional',
-    title: 'Clients Professionnels',
-    icon: BusinessIcon,
-    accountTypes: ['PROFESSIONAL'],
-    color: '#1976d2',
-    description: 'Clients B2B et entreprises'
-  },
-  {
-    id: 'reseller',
-    title: 'Revendeurs',
-    icon: StoreIcon,
-    accountTypes: ['RESELLER'],
-    color: '#388e3c',
-    description: 'Partenaires de revente'
-  },
-  {
-    id: 'client',
-    title: 'Clients Normaux',
-    icon: PersonIcon,
-    accountTypes: ['CLIENT', 'BUYER', 'OTHER'],
-    color: '#f57c00',
-    description: 'Clients normaux et autres utilisateurs'
-  },
-  {
-    id: 'guest',
-    title: 'Invités',
-    icon: PersonIcon,
-    accountTypes: ['guest', 'GUEST'],
-    color: '#9c27b0',
-    description: 'Utilisateurs non authentifiés'
-  }
-];
+// clientTypes will be defined inside the component to use translations
 
 export function ChatLayout() {
+  const { t } = useTranslation();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const { auth } = useAuth();
   const socketContext = useContext(SocketContext);
+  
+  const clientTypes: ClientType[] = [
+    {
+      id: 'professional',
+      title: t('chat.clientTypes.professional.title'),
+      icon: BusinessIcon,
+      accountTypes: ['PROFESSIONAL'],
+      color: '#1976d2',
+      description: t('chat.clientTypes.professional.description')
+    },
+    {
+      id: 'reseller',
+      title: t('chat.clientTypes.reseller.title'),
+      icon: StoreIcon,
+      accountTypes: ['RESELLER'],
+      color: '#388e3c',
+      description: t('chat.clientTypes.reseller.description')
+    },
+    {
+      id: 'client',
+      title: t('chat.clientTypes.client.title'),
+      icon: PersonIcon,
+      accountTypes: ['CLIENT', 'BUYER', 'OTHER'],
+      color: '#f57c00',
+      description: t('chat.clientTypes.client.description')
+    },
+    {
+      id: 'guest',
+      title: t('chat.clientTypes.guest.title'),
+      icon: PersonIcon,
+      accountTypes: ['guest', 'GUEST'],
+      color: '#9c27b0',
+      description: t('chat.clientTypes.guest.description')
+    }
+  ];
   
   const [selectedTab, setSelectedTab] = useState(0);
   const [selectedChat, setSelectedChat] = useState<Chat | null>(null);
@@ -621,7 +625,7 @@ export function ChatLayout() {
     if (file) {
       // Check file size (max 10MB)
       if (file.size > 10 * 1024 * 1024) {
-        alert('File is too large. Maximum size: 10MB');
+        alert(t('chat.errors.fileTooLarge'));
         return;
       }
 
@@ -633,7 +637,7 @@ export function ChatLayout() {
       ];
 
       if (!allowedTypes.includes(file.type)) {
-        alert('File type not supported. Supported formats: Images (JPG, PNG, GIF, WebP), PDF, TXT, DOC, DOCX');
+        alert(t('chat.errors.fileTypeNotSupported'));
         return;
       }
 
@@ -788,7 +792,7 @@ export function ChatLayout() {
           : msg
       ));
       
-      alert('Failed to send attachment. Please try again.');
+      alert(t('chat.errors.failedToSendAttachment'));
     } finally {
       setIsUploading(false);
     }
@@ -822,7 +826,7 @@ export function ChatLayout() {
       setIsRecording(true);
     } catch (error) {
       console.error('Error accessing microphone:', error);
-      alert('Unable to access microphone');
+      alert(t('chat.errors.unableToAccessMicrophone'));
     }
   }, []);
 
@@ -870,7 +874,7 @@ export function ChatLayout() {
       }
     } catch (error) {
       console.error('Error sending voice message:', error);
-      alert('Failed to send voice message');
+      alert(t('chat.errors.failedToSendVoiceMessage'));
     }
   }, [audioBlob, selectedChat, auth?.user, audioUrl, loadMessages, silentlyUpdateChats]);
 
@@ -1089,7 +1093,7 @@ export function ChatLayout() {
       console.log('✅ Download initiated successfully');
     } catch (error) {
       console.error('❌ Error downloading file:', error);
-      alert('Failed to download file. Please try again.');
+      alert(t('chat.errors.failedToDownloadFile'));
     }
   }, []);
 
@@ -1398,7 +1402,7 @@ export function ChatLayout() {
     const user = getUserFromChat(selectedChat);
     
     return (
-      <Page title="Centre de Communication">
+      <Page title={t('chat.title')}>
         <Box sx={{ height: '80vh', display: 'flex', flexDirection: 'column' }}>
           {/* Chat Header */}
           <Paper 
@@ -1436,7 +1440,7 @@ export function ChatLayout() {
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
                   <OnlineIcon sx={{ fontSize: 12, color: '#4CAF50' }} />
                   <Typography variant="caption" sx={{ opacity: 0.9 }}>
-                    {user?.AccountType} • En ligne
+                    {user?.AccountType} • {t('chat.online')}
                   </Typography>
                   {user?.phone && (
                     <Typography variant="body2" sx={{ opacity: 0.95, fontWeight: 700, fontSize: '0.9rem' }}>
@@ -1444,7 +1448,7 @@ export function ChatLayout() {
                     </Typography>
                   )}
                   <Chip 
-                    label="Client" 
+                    label={t('chat.client')} 
                     size="small"
                     sx={{ 
                       bgcolor: alpha(theme.palette.common.white, 0.2),
@@ -1458,7 +1462,7 @@ export function ChatLayout() {
               
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                 <Chip 
-                  label="Admin" 
+                  label={t('chat.admin')} 
                   size="small"
                   sx={{ 
                     bgcolor: alpha(theme.palette.common.white, 0.2),
@@ -1498,10 +1502,10 @@ export function ChatLayout() {
               <Box sx={{ textAlign: 'center', py: 8 }}>
                 <ChatIcon sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
                 <Typography variant="h6" color="text.secondary" sx={{ mb: 1 }}>
-                  Commencez la conversation
+                  {t('chat.startConversation')}
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
-                  Envoyez un message pour commencer à discuter avec {user?.firstName}
+                  {t('chat.startConversationSubtitle', { name: user?.firstName })}
                 </Typography>
               </Box>
             ) : (
@@ -1857,7 +1861,7 @@ export function ChatLayout() {
                             fontWeight: 500,
                           }}
                         >
-                          {isOwnMessage(msg) ? 'Vous' : user?.firstName || 'Utilisateur'}
+                          {isOwnMessage(msg) ? t('chat.you') : user?.firstName || t('chat.user')}
                         </Typography>
                       </Box>
                     </Box>
@@ -2017,7 +2021,7 @@ export function ChatLayout() {
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
                 onKeyPress={handleKeyPress}
-                placeholder="Tapez votre message..."
+                placeholder={t('chat.inputPlaceholder')}
                 variant="outlined"
                 sx={{
                   '& .MuiOutlinedInput-root': {
@@ -2051,7 +2055,7 @@ export function ChatLayout() {
   }
 
   return (
-    <Page title="Centre de Communication">
+    <Page title={t('chat.title')}>
       <Container maxWidth="xl">
         <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '80vh' }}>
           {/* Header */}
@@ -2076,10 +2080,10 @@ export function ChatLayout() {
               </Avatar>
               <Box>
                 <Typography variant="h4" sx={{ fontWeight: 700, mb: 1 }}>
-                  Centre de Communication
+                  {t('chat.title')}
                 </Typography>
                 <Typography variant="body1" sx={{ opacity: 0.9 }}>
-                  Gérez toutes vos conversations clients en un seul endroit
+                  {t('chat.subtitle')}
                 </Typography>
               </Box>
             </Box>
@@ -2089,7 +2093,7 @@ export function ChatLayout() {
           <Box sx={{ mb: 3, px: 1 }}>
             <TextField
               fullWidth
-              placeholder="Rechercher des conversations..."
+              placeholder={t('chat.searchPlaceholder')}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               InputProps={{
@@ -2138,7 +2142,7 @@ export function ChatLayout() {
                             {type.title}
                           </Typography>
                           <Typography variant="caption" color="text.secondary">
-                            {getFilteredChats(type).length} conversations
+                            {getFilteredChats(type).length} {t('chat.conversations')}
                           </Typography>
                         </Box>
                         {unreadCount > 0 && (
@@ -2177,7 +2181,7 @@ export function ChatLayout() {
                           <CardContent>
                             <Icon sx={{ fontSize: 64, color: type.color, mb: 2 }} />
                             <Typography variant="h6" gutterBottom>
-                              Aucune conversation {type.title.toLowerCase()}
+                              {t('chat.noConversation', { type: type.title.toLowerCase() })}
                             </Typography>
                             <Typography variant="body2" color="text.secondary">
                               {type.description}
@@ -2267,7 +2271,7 @@ export function ChatLayout() {
                                               mb: 0.5
                                             }}
                                           >
-                                            {chat.lastMessage?.message || 'Aucun message'}
+                                            {chat.lastMessage?.message || t('chat.noMessage')}
                                           </Typography>
                                           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
                                             {user.email && (

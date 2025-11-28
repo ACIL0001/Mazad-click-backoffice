@@ -14,7 +14,7 @@ import Scrollbar from '../../components/Scrollbar';
 import NavSection from '../../components/NavSection';
 //
 
-import navConfig from './NavConfig';
+// Navigation config is now handled by NavSection component using useNavConfig hook
 
 import app from '../../config';
 import useAuth from '@/hooks/useAuth';
@@ -103,7 +103,7 @@ export default function DashboardSidebar({ isOpenSidebar, onCloseSidebar }: any)
               {app.name} office
             </Typography>
             <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-              Gérer votre buisness
+              {app.name} office
             </Typography>
           </Box>
           {/*}
