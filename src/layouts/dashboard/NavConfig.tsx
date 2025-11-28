@@ -35,11 +35,11 @@ export const useNavConfig = () => {
           path: '/dashboard/users/resellers', 
           icon: getIcon('mdi:store'), 
         },
-        {
-          title: t('navigation.sellers'), 
-          path: '/dashboard/users/sellers',
-          icon: getIcon('mdi:food'),
-        },
+        // {
+        //   title: t('navigation.sellers'), 
+        //   path: '/dashboard/users/sellers',
+        //   icon: getIcon('mdi:food'),
+        // },
       ],
     },
     {
