@@ -113,47 +113,47 @@ export const useNavConfig = () => {
       path: '/dashboard/identities',
       icon: getIcon('ph:user-focus-bold'),
     },
-    {
-      title: t('navigation.configuration'),
-      path: '/dashboard/configuration',
-      icon: getIcon('eva:settings-fill'),
-    },
-    {
-      title: t('navigation.communication'),
-      path: '/dashboard/communication',
-      icon: getIcon('mdi:message'),
-      children: [
-        {
-          title: t('navigation.notification'),
-          path: '/dashboard/communication/notification',
-          icon: getIcon('mdi:bell'),
-        },
-        {
-          title: t('navigation.sms'),
-          path: '/dashboard/communication/sms',
-          icon: getIcon('mdi:message'),
-          description: t('navigation.comingSoon'),
-          disabled: true,
-        },
-        {
-          title: t('navigation.email'),
-          path: '/dashboard/communication/email',
-          icon: getIcon('mdi:email'),
-        },
-      ],
-    },
-    {
-      title: t('navigation.reports'),
-      path: '/dashboard/reports',
-      icon: getIcon('clarity:alert-solid'),
-      disabled: true,
-    },
-    {
-      title: t('navigation.reviews'),
-      path: '/dashboard/reviews',
-      icon: getIcon('material-symbols:reviews-rounded'),
-      disabled: true,
-    },
+    // {
+    //   title: t('navigation.configuration'),
+    //   path: '/dashboard/configuration',
+    //   icon: getIcon('eva:settings-fill'),
+    // },
+    // {
+    //   title: t('navigation.communication'),
+    //   path: '/dashboard/communication',
+    //   icon: getIcon('mdi:message'),
+    //   children: [
+    //     {
+    //       title: t('navigation.notification'),
+    //       path: '/dashboard/communication/notification',
+    //       icon: getIcon('mdi:bell'),
+    //     },
+    //     {
+    //       title: t('navigation.sms'),
+    //       path: '/dashboard/communication/sms',
+    //       icon: getIcon('mdi:message'),
+    //       description: t('navigation.comingSoon'),
+    //       disabled: true,
+    //     },
+    //     {
+    //       title: t('navigation.email'),
+    //       path: '/dashboard/communication/email',
+    //       icon: getIcon('mdi:email'),
+    //     },
+    //   ],
+    // },
+    // {
+    //   title: t('navigation.reports'),
+    //   path: '/dashboard/reports',
+    //   icon: getIcon('clarity:alert-solid'),
+    //   disabled: true,
+    // },
+    // {
+    //   title: t('navigation.reviews'),
+    //   path: '/dashboard/reviews',
+    //   icon: getIcon('material-symbols:reviews-rounded'),
+    //   disabled: true,
+    // },
   ];
 };
 
