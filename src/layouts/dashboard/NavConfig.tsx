@@ -83,16 +83,16 @@ export const useNavConfig = () => {
       path: '/dashboard/categories',
       icon: getIcon('material-symbols:category'),
     },
-    {
-      title: t('navigation.subCategories'),
-      path: '/dashboard/sous-categories',
-      icon: getIcon('material-symbols:format_list_bulleted'),
-    },
-    {
-      title: t('navigation.subSubCategories'),
-      path: '/dashboard/sous-sous-categories',
-      icon: getIcon('material-symbols:layers'),
-    },
+    // {
+    //   title: t('navigation.subCategories'),
+    //   path: '/dashboard/sous-categories',
+    //   icon: getIcon('material-symbols:format_list_bulleted'),
+    // },
+    // {
+    //   title: t('navigation.subSubCategories'),
+    //   path: '/dashboard/sous-sous-categories',
+    //   icon: getIcon('material-symbols:layers'),
+    // },
     {
       title: t('navigation.subscriptions'),
       path: '/dashboard/subscription',
