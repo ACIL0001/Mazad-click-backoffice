@@ -123,9 +123,120 @@
   },
   "dashboard": {
     "title": "Tableau de bord",
+    "adminTitle": "Tableau de Bord Admin",
+    "subtitle": "Analyse complète de la plateforme d'enchères",
     "overview": "Aperçu",
     "statistics": "Statistiques",
-    "recent": "Activité récente"
+    "recent": "Activité récente",
+    "loading": "Chargement du tableau de bord...",
+    "criticalError": "Erreur critique lors du chargement des données.",
+    "errorLoading": "Erreur lors du chargement des données. Certaines données peuvent ne pas être disponibles.",
+    "stats": {
+      "totalUsers": "Utilisateurs Total",
+      "totalAuctions": "Enchères Total",
+      "totalTenders": "Soumissions Total",
+      "activeTenders": "Soumissions Actives",
+      "totalRevenue": "Revenus Total",
+      "activeAuctions": "Enchères Actives",
+      "verifiedUsers": "Utilisateurs Vérifiés",
+      "pendingIdentities": "Vérifications en Attente",
+      "totalOffers": "Offres Total"
+    },
+    "tabs": {
+      "analytics": "Analytics",
+      "users": "Utilisateurs",
+      "auctions": "Enchères",
+      "tenders": "Soumissions",
+      "categories": "Catégories",
+      "subscriptions": "Abonnements",
+      "identities": "Identités"
+    },
+    "charts": {
+      "userAuctionTrend": "Tendance Utilisateurs & Enchères",
+      "categoryDistribution": "Distribution des Catégories",
+      "userGrowth": "Croissance des Utilisateurs"
+    },
+    "users": {
+      "distribution": "Répartition des Utilisateurs",
+      "activity": "Activité des Utilisateurs",
+      "verificationRate": "Taux de Vérification",
+      "ofUsers": "des utilisateurs",
+      "administrators": "Administrateurs",
+      "professionals": "Professionnels",
+      "clients": "Clients",
+      "resellers": "Revendeurs"
+    },
+    "auctions": {
+      "status": "Statut des Enchères",
+      "active": "Enchères Actives",
+      "completed": "Enchères Terminées",
+      "pending": "En Attente",
+      "cancelled": "Annulées",
+      "metrics": "Métriques des Enchères",
+      "dailyAverage": "Enchères par jour en moyenne",
+      "weeklyGrowth": "Croissance hebdomadaire"
+    },
+    "tenders": {
+      "status": "Statut des Soumissions",
+      "open": "Soumissions Ouvertes",
+      "awarded": "Attribuées",
+      "closed": "Fermées",
+      "archived": "Archivées",
+      "types": "Types de Soumissions",
+      "products": "Produits",
+      "services": "Services",
+      "metrics": "Métriques des Soumissions",
+      "dailyAverage": "Soumissions par jour en moyenne",
+      "weeklyGrowth": "Croissance hebdomadaire"
+    },
+    "categories": {
+      "performance": "Performance par Catégorie",
+      "category": "Catégorie",
+      "auctionCount": "Nombre d'enchères",
+      "percentage": "Pourcentage"
+    },
+    "subscriptions": {
+      "revenue": "Revenus des Abonnements",
+      "totalRevenue": "Total des revenus",
+      "growth": "Croissance",
+      "breakdown": "Répartition des Revenus",
+      "subscriptions": "Abonnements",
+      "commissions": "Commissions"
+    },
+    "identities": {
+      "verificationStatus": "Statut de Vérification d'Identité",
+      "pending": "Vérifications en Attente",
+      "verified": "Utilisateurs Vérifiés",
+      "verificationRate": "Taux de Vérification",
+      "successRate": "Taux de succès"
+    },
+    "recentActivity": {
+      "title": "Activité Récente",
+      "activeAuctions": "enchères actives en cours",
+      "openTenders": "soumissions ouvertes",
+      "totalUsers": "utilisateurs au total",
+      "pendingVerifications": "vérifications en attente",
+      "subscriptionRevenueUpdated": "Revenus d'abonnements mis à jour",
+      "now": "Maintenant",
+      "minutes": "min",
+      "hours": "h"
+    }
+  },
+  "categories": {
+    "title": "Catégories",
+    "name": "Nom",
+    "type": "Type",
+    "attributes": "Attributs",
+    "actions": "Actions",
+    "confirmDelete": "Êtes-vous sûr de vouloir supprimer cette catégorie ?",
+    "confirmDeleteWithDescendants": "Cette catégorie a des sous-catégories. Voulez-vous supprimer la catégorie et toutes ses sous-catégories ?",
+    "confirmDeleteMultiple": "Êtes-vous sûr de vouloir supprimer les {{count}} catégories sélectionnées ? Cette action supprimera aussi toutes leurs sous-catégories.",
+    "errorLoading": "Échec du chargement des catégories. Veuillez réessayer.",
+    "errorLoadingMessage": "Échec du chargement des catégories.",
+    "deleteSuccess": "Catégorie supprimée avec succès !",
+    "deleteWithDescendantsSuccess": "Catégorie et ses sous-catégories supprimées avec succès !",
+    "deleteError": "Erreur lors de la suppression: {{error}}",
+    "deleteMultipleError": "Erreur lors de la suppression des catégories: {{error}}"
   },
   "navigation": {
     "dashboard": "Tableau de bord",

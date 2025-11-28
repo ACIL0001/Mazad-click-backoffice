@@ -105,9 +105,120 @@
   },
   "dashboard": {
     "title": "لوحة التحكم",
+    "adminTitle": "لوحة تحكم المشرف",
+    "subtitle": "تحليل شامل لمنصة المزادات",
     "overview": "نظرة عامة",
     "statistics": "الإحصائيات",
-    "recent": "النشاط الأخير"
+    "recent": "النشاط الأخير",
+    "loading": "جاري تحميل لوحة التحكم...",
+    "criticalError": "خطأ حرج في تحميل البيانات.",
+    "errorLoading": "خطأ في تحميل البيانات. قد لا تكون بعض البيانات متاحة.",
+    "stats": {
+      "totalUsers": "إجمالي المستخدمين",
+      "totalAuctions": "إجمالي المزادات",
+      "totalTenders": "إجمالي طلبات العروض",
+      "activeTenders": "طلبات العروض النشطة",
+      "totalRevenue": "إجمالي الإيرادات",
+      "activeAuctions": "المزادات النشطة",
+      "verifiedUsers": "المستخدمون الم verified",
+      "pendingIdentities": "التحقق في الانتظار",
+      "totalOffers": "إجمالي العروض"
+    },
+    "tabs": {
+      "analytics": "التحليلات",
+      "users": "المستخدمون",
+      "auctions": "المزادات",
+      "tenders": "طلبات العروض",
+      "categories": "الفئات",
+      "subscriptions": "الاشتراكات",
+      "identities": "الهويات"
+    },
+    "charts": {
+      "userAuctionTrend": "اتجاه المستخدمين والمزادات",
+      "categoryDistribution": "توزيع الفئات",
+      "userGrowth": "نمو المستخدمين"
+    },
+    "users": {
+      "distribution": "توزيع المستخدمين",
+      "activity": "نشاط المستخدمين",
+      "verificationRate": "معدل التحقق",
+      "ofUsers": "من المستخدمين",
+      "administrators": "المشرفون",
+      "professionals": "المهنيون",
+      "clients": "العملاء",
+      "resellers": "الموزعون"
+    },
+    "auctions": {
+      "status": "حالة المزادات",
+      "active": "المزادات النشطة",
+      "completed": "المزادات المكتملة",
+      "pending": "في الانتظار",
+      "cancelled": "ملغي",
+      "metrics": "مقاييس المزادات",
+      "dailyAverage": "مزادات في اليوم في المتوسط",
+      "weeklyGrowth": "النمو الأسبوعي"
+    },
+    "tenders": {
+      "status": "حالة طلبات العروض",
+      "open": "طلبات العروض المفتوحة",
+      "awarded": "ممنوحة",
+      "closed": "مغلقة",
+      "archived": "مؤرشفة",
+      "types": "أنواع طلبات العروض",
+      "products": "المنتجات",
+      "services": "الخدمات",
+      "metrics": "مقاييس طلبات العروض",
+      "dailyAverage": "طلبات عروض في اليوم في المتوسط",
+      "weeklyGrowth": "النمو الأسبوعي"
+    },
+    "categories": {
+      "performance": "الأداء حسب الفئة",
+      "category": "الفئة",
+      "auctionCount": "عدد المزادات",
+      "percentage": "النسبة المئوية"
+    },
+    "subscriptions": {
+      "revenue": "إيرادات الاشتراكات",
+      "totalRevenue": "إجمالي الإيرادات",
+      "growth": "النمو",
+      "breakdown": "تفصيل الإيرادات",
+      "subscriptions": "الاشتراكات",
+      "commissions": "العمولات"
+    },
+    "identities": {
+      "verificationStatus": "حالة التحقق من الهوية",
+      "pending": "التحقق في الانتظار",
+      "verified": "المستخدمون الم verified",
+      "verificationRate": "معدل التحقق",
+      "successRate": "معدل النجاح"
+    },
+    "recentActivity": {
+      "title": "النشاط الأخير",
+      "activeAuctions": "مزادات نشطة قيد التنفيذ",
+      "openTenders": "طلبات عروض مفتوحة",
+      "totalUsers": "مستخدمين في المجموع",
+      "pendingVerifications": "تحقق في الانتظار",
+      "subscriptionRevenueUpdated": "تم تحديث إيرادات الاشتراكات",
+      "now": "الآن",
+      "minutes": "دقيقة",
+      "hours": "ساعة"
+    }
+  },
+  "categories": {
+    "title": "الفئات",
+    "name": "الاسم",
+    "type": "النوع",
+    "attributes": "السمات",
+    "actions": "الإجراءات",
+    "confirmDelete": "هل أنت متأكد من أنك تريد حذف هذه الفئة؟",
+    "confirmDeleteWithDescendants": "هذه الفئة تحتوي على فئات فرعية. هل تريد حذف الفئة وجميع فئاتها الفرعية؟",
+    "confirmDeleteMultiple": "هل أنت متأكد من أنك تريد حذف {{count}} فئة محددة؟ سيؤدي هذا الإجراء أيضًا إلى حذف جميع فئاتها الفرعية.",
+    "errorLoading": "فشل تحميل الفئات. يرجى المحاولة مرة أخرى.",
+    "errorLoadingMessage": "فشل تحميل الفئات.",
+    "deleteSuccess": "تم حذف الفئة بنجاح!",
+    "deleteWithDescendantsSuccess": "تم حذف الفئة وفئاتها الفرعية بنجاح!",
+    "deleteError": "خطأ في حذف الفئة: {{error}}",
+    "deleteMultipleError": "خطأ في حذف الفئات: {{error}}"
   },
   "navigation": {
     "dashboard": "لوحة التحكم",

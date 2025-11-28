@@ -105,9 +105,120 @@
   },
   "dashboard": {
     "title": "Dashboard",
+    "adminTitle": "Admin Dashboard",
+    "subtitle": "Complete auction platform analysis",
     "overview": "Overview",
     "statistics": "Statistics",
-    "recent": "Recent Activity"
+    "recent": "Recent Activity",
+    "loading": "Loading dashboard...",
+    "criticalError": "Critical error loading data.",
+    "errorLoading": "Error loading data. Some data may not be available.",
+    "stats": {
+      "totalUsers": "Total Users",
+      "totalAuctions": "Total Auctions",
+      "totalTenders": "Total Tenders",
+      "activeTenders": "Active Tenders",
+      "totalRevenue": "Total Revenue",
+      "activeAuctions": "Active Auctions",
+      "verifiedUsers": "Verified Users",
+      "pendingIdentities": "Pending Verifications",
+      "totalOffers": "Total Offers"
+    },
+    "tabs": {
+      "analytics": "Analytics",
+      "users": "Users",
+      "auctions": "Auctions",
+      "tenders": "Tenders",
+      "categories": "Categories",
+      "subscriptions": "Subscriptions",
+      "identities": "Identities"
+    },
+    "charts": {
+      "userAuctionTrend": "User & Auction Trend",
+      "categoryDistribution": "Category Distribution",
+      "userGrowth": "User Growth"
+    },
+    "users": {
+      "distribution": "User Distribution",
+      "activity": "User Activity",
+      "verificationRate": "Verification Rate",
+      "ofUsers": "of users",
+      "administrators": "Administrators",
+      "professionals": "Professionals",
+      "clients": "Clients",
+      "resellers": "Resellers"
+    },
+    "auctions": {
+      "status": "Auction Status",
+      "active": "Active Auctions",
+      "completed": "Completed Auctions",
+      "pending": "Pending",
+      "cancelled": "Cancelled",
+      "metrics": "Auction Metrics",
+      "dailyAverage": "Auctions per day on average",
+      "weeklyGrowth": "Weekly growth"
+    },
+    "tenders": {
+      "status": "Tender Status",
+      "open": "Open Tenders",
+      "awarded": "Awarded",
+      "closed": "Closed",
+      "archived": "Archived",
+      "types": "Tender Types",
+      "products": "Products",
+      "services": "Services",
+      "metrics": "Tender Metrics",
+      "dailyAverage": "Tenders per day on average",
+      "weeklyGrowth": "Weekly growth"
+    },
+    "categories": {
+      "performance": "Performance by Category",
+      "category": "Category",
+      "auctionCount": "Number of auctions",
+      "percentage": "Percentage"
+    },
+    "subscriptions": {
+      "revenue": "Subscription Revenue",
+      "totalRevenue": "Total revenue",
+      "growth": "Growth",
+      "breakdown": "Revenue Breakdown",
+      "subscriptions": "Subscriptions",
+      "commissions": "Commissions"
+    },
+    "identities": {
+      "verificationStatus": "Identity Verification Status",
+      "pending": "Pending Verifications",
+      "verified": "Verified Users",
+      "verificationRate": "Verification Rate",
+      "successRate": "Success rate"
+    },
+    "recentActivity": {
+      "title": "Recent Activity",
+      "activeAuctions": "active auctions in progress",
+      "openTenders": "open tenders",
+      "totalUsers": "users in total",
+      "pendingVerifications": "verifications pending",
+      "subscriptionRevenueUpdated": "Subscription revenue updated",
+      "now": "Now",
+      "minutes": "min",
+      "hours": "h"
+    }
+  },
+  "categories": {
+    "title": "Categories",
+    "name": "Name",
+    "type": "Type",
+    "attributes": "Attributes",
+    "actions": "Actions",
+    "confirmDelete": "Are you sure you want to delete this category?",
+    "confirmDeleteWithDescendants": "This category has subcategories. Do you want to delete the category and all its subcategories?",
+    "confirmDeleteMultiple": "Are you sure you want to delete the {{count}} selected categories? This action will also delete all their subcategories.",
+    "errorLoading": "Failed to load categories. Please try again.",
+    "errorLoadingMessage": "Failed to load categories.",
+    "deleteSuccess": "Category deleted successfully!",
+    "deleteWithDescendantsSuccess": "Category and its subcategories deleted successfully!",
+    "deleteError": "Error deleting category: {{error}}",
+    "deleteMultipleError": "Error deleting categories: {{error}}"
   },
   "navigation": {
     "dashboard": "Dashboard",
