@@ -27,12 +27,10 @@ import {
   Add as AddIcon,
   Visibility as ViewIcon
 } from '@mui/icons-material';
-import { useTranslation } from 'react-i18next';
 import { Terms, CreateTermsDto, UpdateTermsDto } from '../../types/terms';
 import { TermsAPI } from '../../api/terms';
 
 const TermsManagement: React.FC = () => {
-  const { t } = useTranslation();
   const [terms, setTerms] = useState<Terms[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -63,7 +61,7 @@ const TermsManagement: React.FC = () => {
       setTerms(data);
       setError(null);
     } catch (err) {
-      setError(t('terms.errors.loading'));
+      setError('Failed to fetch terms. Please try again.');
       console.error('Error fetching terms:', err);
     } finally {
       setLoading(false);
@@ -74,18 +72,18 @@ const TermsManagement: React.FC = () => {
     try {
       const newTerm = await TermsAPI.create(formData);
       setTerms([...terms, newTerm]);
-      setSuccess(t('terms.success.created'));
+      setSuccess('Terms created successfully!');
       setOpenDialog(false);
       resetForm();
     } catch (err) {
-      setError(t('terms.errors.creating'));
+      setError('Failed to create terms. Please try again.');
       console.error('Error creating terms:', err);
     }
   };
 
   const handleUpdate = async () => {
     if (!currentTerm || !currentTerm._id) {
-      setError(t('terms.errors.noIdEdit'));
+      setError('Cannot update: No term selected or missing ID');
       return;
     }
     
@@ -93,12 +91,12 @@ const TermsManagement: React.FC = () => {
       setUpdateLoading(true);
       const updatedTerm = await TermsAPI.update(currentTerm._id, formData);
       setTerms(terms.map(term => term._id === updatedTerm._id ? updatedTerm : term));
-      setSuccess(t('terms.success.updated'));
+      setSuccess('Terms updated successfully!');
       setOpenDialog(false);
       resetForm();
       setCurrentTerm(null);
     } catch (err) {
-      setError(t('terms.errors.updating'));
+      setError('Failed to update terms. Please try again.');
       console.error('Error updating terms:', err);
     } finally {
       setUpdateLoading(false);
@@ -107,7 +105,7 @@ const TermsManagement: React.FC = () => {
 
   const handleDelete = async () => {
     if (!deleteTermId) {
-      setError(t('terms.errors.noId'));
+      setError('Cannot delete: No term ID provided');
       setOpenDeleteDialog(false);
       return;
     }
@@ -116,11 +114,11 @@ const TermsManagement: React.FC = () => {
       setDeleteLoading(true);
       await TermsAPI.delete(deleteTermId);
       setTerms(terms.filter(term => term._id !== deleteTermId));
-      setSuccess(t('terms.success.deleted'));
+      setSuccess('Terms deleted successfully!');
       setOpenDeleteDialog(false);
       setDeleteTermId(null);
     } catch (err) {
-      setError(t('terms.errors.deleting'));
+      setError('Failed to delete terms. Please try again.');
       console.error('Error deleting terms:', err);
     } finally {
       setDeleteLoading(false);
@@ -129,7 +127,7 @@ const TermsManagement: React.FC = () => {
 
   const handleEditClick = (term: Terms) => {
     if (!term._id) {
-      setError(t('terms.errors.noIdEdit'));
+      setError('Cannot edit: Term has no ID');
       return;
     }
     
@@ -144,7 +142,7 @@ const TermsManagement: React.FC = () => {
 
   const handleDeleteClick = (id: string) => {
     if (!id) {
-      setError(t('terms.errors.noId'));
+      setError('Cannot delete: No term ID provided');
       return;
     }
     
@@ -159,7 +157,7 @@ const TermsManagement: React.FC = () => {
       setViewTerm(fullTerm);
       setOpenViewDialog(true);
     } catch (err) {
-      setError(t('terms.errors.loadingDetails'));
+      setError('Failed to load term details. Please try again.');
       console.error('Error fetching term details:', err);
     }
   };
@@ -202,7 +200,7 @@ const TermsManagement: React.FC = () => {
         {/* Header */}
         <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
           <Typography variant="h4" component="h1" gutterBottom color="primary">
-            {t('terms.title')}
+            Terms and Conditions Management
           </Typography>
           <Button
             variant="contained"
@@ -211,7 +209,7 @@ const TermsManagement: React.FC = () => {
             onClick={handleAddClick}
             sx={{ borderRadius: 2 }}
           >
-            {t('terms.addNew')}
+            Add New Terms
           </Button>
         </Box>
 
@@ -237,11 +235,11 @@ const TermsManagement: React.FC = () => {
             <Table>
               <TableHead>
                 <TableRow sx={{ backgroundColor: '#f5f5f5' }}>
-                  <TableCell sx={{ fontWeight: 'bold' }}>{t('terms.table.title')}</TableCell>
-                  <TableCell sx={{ fontWeight: 'bold' }}>{t('terms.table.version')}</TableCell>
-                  <TableCell sx={{ fontWeight: 'bold' }}>{t('terms.table.created')}</TableCell>
-                  <TableCell sx={{ fontWeight: 'bold' }}>{t('terms.table.updated')}</TableCell>
-                  <TableCell align="center" sx={{ fontWeight: 'bold' }}>{t('terms.table.actions')}</TableCell>
+                  <TableCell sx={{ fontWeight: 'bold' }}>Title</TableCell>
+                  <TableCell sx={{ fontWeight: 'bold' }}>Version</TableCell>
+                  <TableCell sx={{ fontWeight: 'bold' }}>Created</TableCell>
+                  <TableCell sx={{ fontWeight: 'bold' }}>Updated</TableCell>
+                  <TableCell align="center" sx={{ fontWeight: 'bold' }}>Actions</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -282,7 +280,7 @@ const TermsManagement: React.FC = () => {
                   <TableRow>
                     <TableCell colSpan={5} align="center" sx={{ py: 4 }}>
                       <Typography variant="body1" color="textSecondary">
-                        {t('terms.noTerms')}
+                        No terms found. Click "Add New Terms" to create one.
                       </Typography>
                     </TableCell>
                   </TableRow>
@@ -295,7 +293,7 @@ const TermsManagement: React.FC = () => {
         {/* Create/Edit Dialog */}
         <Dialog open={openDialog} onClose={handleCloseDialog} maxWidth="md" fullWidth>
           <DialogTitle sx={{ backgroundColor: 'primary.main', color: 'white' }}>
-            {currentTerm ? t('terms.dialog.edit') : t('terms.dialog.add')}
+            {currentTerm ? 'Edit Terms' : 'Create New Terms'}
           </DialogTitle>
           <DialogContent sx={{ mt: 2 }}>
             <Box component="form">
@@ -303,7 +301,7 @@ const TermsManagement: React.FC = () => {
                 margin="normal"
                 required
                 fullWidth
-                label={t('terms.form.title')}
+                label="Title"
                 value={formData.title}
                 onChange={(e) => setFormData({ ...formData, title: e.target.value })}
               />
@@ -311,7 +309,7 @@ const TermsManagement: React.FC = () => {
                 margin="normal"
                 required
                 fullWidth
-                label={t('terms.form.version')}
+                label="Version"
                 value={formData.version}
                 onChange={(e) => setFormData({ ...formData, version: e.target.value })}
                 placeholder="e.g., 1.0.0"
@@ -322,36 +320,36 @@ const TermsManagement: React.FC = () => {
                 fullWidth
                 multiline
                 rows={6}
-                label={t('terms.form.content')}
+                label="Content"
                 value={formData.content}
                 onChange={(e) => setFormData({ ...formData, content: e.target.value })}
               />
             </Box>
           </DialogContent>
           <DialogActions>
-            <Button onClick={handleCloseDialog}>{t('terms.dialog.cancel')}</Button>
+            <Button onClick={handleCloseDialog}>Cancel</Button>
             <Button
               onClick={currentTerm ? handleUpdate : handleCreate}
               variant="contained"
               disabled={!formData.title || !formData.content || !formData.version || updateLoading}
             >
-              {updateLoading ? <CircularProgress size={24} /> : (currentTerm ? t('common.save') : t('common.save'))}
+              {updateLoading ? <CircularProgress size={24} /> : (currentTerm ? 'Update' : 'Create')}
             </Button>
           </DialogActions>
         </Dialog>
 
         {/* Delete Confirmation Dialog */}
         <Dialog open={openDeleteDialog} onClose={() => setOpenDeleteDialog(false)}>
-          <DialogTitle>{t('terms.dialog.delete')}</DialogTitle>
+          <DialogTitle>Confirm Delete</DialogTitle>
           <DialogContent>
             <Typography>
-              {t('terms.dialog.confirmDelete')}
+              Are you sure you want to delete these terms? This action cannot be undone.
             </Typography>
           </DialogContent>
           <DialogActions>
-            <Button onClick={() => setOpenDeleteDialog(false)}>{t('terms.dialog.cancel')}</Button>
+            <Button onClick={() => setOpenDeleteDialog(false)}>Cancel</Button>
             <Button onClick={handleDelete} color="error" variant="contained" disabled={deleteLoading}>
-              {deleteLoading ? <CircularProgress size={24} /> : t('terms.dialog.deleteButton')}
+              {deleteLoading ? <CircularProgress size={24} /> : 'Delete'}
             </Button>
           </DialogActions>
         </Dialog>
@@ -365,17 +363,17 @@ const TermsManagement: React.FC = () => {
           PaperProps={{ sx: { maxHeight: '80vh' } }}
         >
           <DialogTitle sx={{ backgroundColor: 'info.main', color: 'white' }}>
-            {t('terms.dialog.view')}: {viewTerm?.title} (v{viewTerm?.version})
+            {viewTerm?.title} (v{viewTerm?.version})
           </DialogTitle>
           <DialogContent>
             {viewTerm && (
               <Box sx={{ mt: 2 }}>
                 <Box display="flex" justifyContent="space-between" mb={2}>
                   <Typography variant="body2" color="textSecondary">
-                    {t('terms.table.created')}: {formatDate(viewTerm.createdAt)}
+                    Created: {formatDate(viewTerm.createdAt)}
                   </Typography>
                   <Typography variant="body2" color="textSecondary">
-                    {t('terms.table.updated')}: {formatDate(viewTerm.updatedAt)}
+                    Last updated: {formatDate(viewTerm.updatedAt)}
                   </Typography>
                 </Box>
                 <Paper variant="outlined" sx={{ p: 2, maxHeight: '50vh', overflow: 'auto' }}>
@@ -387,7 +385,7 @@ const TermsManagement: React.FC = () => {
             )}
           </DialogContent>
           <DialogActions>
-            <Button onClick={() => setOpenViewDialog(false)}>{t('common.close')}</Button>
+            <Button onClick={() => setOpenViewDialog(false)}>Close</Button>
           </DialogActions>
         </Dialog>
       </Paper>

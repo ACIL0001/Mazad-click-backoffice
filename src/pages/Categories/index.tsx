@@ -1,7 +1,6 @@
 "use client"
 import { useState, useEffect, useCallback, useMemo } from "react"
 import { useNavigate } from "react-router-dom"
-import { useTranslation } from 'react-i18next'
 
 import {
   Stack,
@@ -57,6 +56,15 @@ export interface ICategory {
   level?: number
   attributes?: string[]
 }
+
+// ----------------------------------------------------------------------
+
+const CATEGORY_TABLE_HEAD = [
+  { id: "name", label: "Nom", alignRight: false, searchable: true },
+  { id: "type", label: "Type", alignRight: false, searchable: true },
+  { id: "attributes", label: "Attributs", alignRight: false, searchable: false },
+  { id: "actions", label: "Actions", alignRight: true, searchable: false },
+]
 
 // ----------------------------------------------------------------------
 
@@ -391,7 +399,6 @@ interface CategoriesTableBodyProps {
 }
 
 function CategoriesTableBody({ data, selected, setSelected, onCategoryDeleted }: CategoriesTableBodyProps) {
-  const { t } = useTranslation()
   const navigate = useNavigate()
   const { enqueueSnackbar } = useSnackbar()
 
@@ -409,25 +416,25 @@ function CategoriesTableBody({ data, selected, setSelected, onCategoryDeleted }:
         const categoryWithDescendants = await CategoryAPI.getCategoryWithDescendants(categoryId)
         const hasDescendants = categoryWithDescendants.children && categoryWithDescendants.children.length > 0
         
-        let confirmMessage = t('categories.confirmDelete')
+        let confirmMessage = "Êtes-vous sûr de vouloir supprimer cette catégorie ?"
         if (hasDescendants) {
-          confirmMessage = t('categories.confirmDeleteWithDescendants')
+          confirmMessage = "Cette catégorie a des sous-catégories. Voulez-vous supprimer la catégorie et toutes ses sous-catégories ?"
         }
 
         if (window.confirm(confirmMessage)) {
           // Use deleteWithDescendants if category has descendants, otherwise use regular delete
           if (hasDescendants) {
             await CategoryAPI.deleteWithDescendants(categoryId)
-            enqueueSnackbar(t('categories.deleteWithDescendantsSuccess'), { variant: "success" })
+            enqueueSnackbar("Catégorie et ses sous-catégories supprimées avec succès !", { variant: "success" })
           } else {
             await CategoryAPI.delete(categoryId)
-            enqueueSnackbar(t('categories.deleteSuccess'), { variant: "success" })
+            enqueueSnackbar("Catégorie supprimée avec succès !", { variant: "success" })
           }
           onCategoryDeleted()
         }
       } catch (error: any) {
         console.error("Error deleting category:", error)
-        enqueueSnackbar(t('categories.deleteError', { error: error.message || t('common.error') }), { variant: "error" })
+        enqueueSnackbar(`Erreur lors de la suppression: ${error.message || "Erreur inconnue"}`, { variant: "error" })
       }
     },
     [enqueueSnackbar, onCategoryDeleted],
@@ -480,18 +487,10 @@ function flattenCategoryTree(categories: ICategory[]): ICategory[] {
 // ----------------------------------------------------------------------
 
 export default function DashboardCategoriesPage() {
-  const { t } = useTranslation()
   const navigate = useNavigate()
   const { enqueueSnackbar } = useSnackbar()
   const theme = useTheme()
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
-
-  const CATEGORY_TABLE_HEAD = [
-    { id: "name", label: t('categories.name'), alignRight: false, searchable: true },
-    { id: "type", label: t('categories.type'), alignRight: false, searchable: true },
-    { id: "attributes", label: t('categories.attributes'), alignRight: false, searchable: false },
-    { id: "actions", label: t('categories.actions'), alignRight: true, searchable: false },
-  ]
 
   const [page, setPage] = useState(0)
   const [order, setOrder] = useState<"asc" | "desc">("asc")
@@ -512,8 +511,8 @@ export default function DashboardCategoriesPage() {
       setCategoryTree(treeData)
     } catch (error: any) {
       console.error("Error fetching categories:", error)
-      setError(t('categories.errorLoading'))
-      enqueueSnackbar(t('categories.errorLoadingMessage'), { variant: "error" })
+      setError("Failed to load categories. Please try again.")
+      enqueueSnackbar("Failed to load categories.", { variant: "error" })
     }
   }, []) // Remove enqueueSnackbar from dependencies
 
@@ -534,16 +533,16 @@ export default function DashboardCategoriesPage() {
   const handleDeleteSelectedCategories = useCallback(async () => {
     if (selected.length === 0) return
 
-    if (window.confirm(t('categories.confirmDeleteMultiple', { count: selected.length }))) {
+    if (window.confirm(`Êtes-vous sûr de vouloir supprimer les ${selected.length} catégories sélectionnées ? Cette action supprimera aussi toutes leurs sous-catégories.`)) {
       try {
         // Use deleteWithDescendants for each selected category to ensure all descendants are removed
         await Promise.all(selected.map((categoryId) => CategoryAPI.deleteWithDescendants(categoryId)))
-        enqueueSnackbar(t('categories.deleteSuccess'), { variant: "success" })
+        enqueueSnackbar(`${selected.length} catégories supprimées avec succès !`, { variant: "success" })
         fetchCategories()
         setSelected([])
       } catch (error: any) {
         console.error("Error deleting selected categories:", error)
-        enqueueSnackbar(t('categories.deleteMultipleError', { error: error.message || t('common.error') }), {
+        enqueueSnackbar(`Erreur lors de la suppression des catégories: ${error.message || "Erreur inconnue"}`, {
           variant: "error",
         })
       }
@@ -653,7 +652,7 @@ export default function DashboardCategoriesPage() {
                     letterSpacing: "-0.02em",
                   }}
                 >
-                  {t('navigation.categories')}
+                  Catégories & Services
                 </Typography>
                 <Typography variant={isMobile ? "body2" : "body1"} color="text.secondary" sx={{ fontWeight: 500 }}>
                   Gérez vos catégories de produits et services
@@ -780,7 +779,7 @@ export default function DashboardCategoriesPage() {
                     },
                   }}
                 >
-                  {t('directSales.product')}
+                  Produits
                 </ToggleButton>
                 <ToggleButton
                   value="service"
@@ -809,7 +808,7 @@ export default function DashboardCategoriesPage() {
                     },
                   }}
                 >
-                  {t('directSales.service')}
+                  Services
                 </ToggleButton>
               </ToggleButtonGroup>
             </Paper>

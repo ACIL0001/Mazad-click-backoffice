@@ -24,7 +24,6 @@ import Breadcrumb from '@/components/Breadcrumbs';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
 import { useState, useEffect } from 'react';
-import { useTranslation } from 'react-i18next';
 import { NotificationAPI } from '@/api/notification';
 import { ChatAPI } from '@/api/Chat';
 
@@ -43,14 +42,13 @@ const CommunicationSchema = Yup.object().shape({
 });
 
 export default function Communication() {
-  const { t } = useTranslation();
   const { enqueueSnackbar } = useSnackbar();
 
   const formik = useFormik({
     initialValues,
     validationSchema: CommunicationSchema,
     onSubmit: (values: any, actions) => {
-      var proceed = confirm(t('communication.notification.confirm'));
+      var proceed = confirm('Êtes-vous sur de vouloir appliquer les changements?');
       if (!proceed) {
         actions.setSubmitting(false);
         return;
@@ -58,10 +56,10 @@ export default function Communication() {
 
       NotificationAPI.SubmitPushNotification(values)
         .then(({ data }) => {
-          enqueueSnackbar(t('communication.notification.success', { count: data.counts | 0 }), { variant: 'success' });
+          enqueueSnackbar(`Envoyer a ${data.counts | 0} utilisateurr`, { variant: 'success' });
         })
         .catch((e) => {
-          enqueueSnackbar(t('communication.notification.error'), { variant: 'error' });
+          enqueueSnackbar('Erreur', { variant: 'error' });
           console.error(e);
         })
         .finally(() => {
@@ -86,7 +84,7 @@ export default function Communication() {
     ChatAPI.getAdminChats()
       .then((chats) => {
         console.log('Fetched admin chats:', chats); // Debug log
-        enqueueSnackbar(t('communication.chats.dataReceived', { count: chats.length }), { variant: 'info' });
+        enqueueSnackbar(`Données reçues: ${chats.length} chats`, { variant: 'info' });
         // Group chats by user2.type
         const professional = [];
         const reseller = [];
@@ -105,7 +103,7 @@ export default function Communication() {
         setOtherChats(other);
       })
       .catch((e) => {
-        enqueueSnackbar(t('communication.chats.errorLoading'), { variant: 'error' });
+        enqueueSnackbar('Erreur lors du chargement des chats', { variant: 'error' });
         console.error(e);
       });
   }, []);
@@ -117,7 +115,7 @@ export default function Communication() {
 
         <Stack direction="row" alignItems="center" justifyContent="space-between" ml={2} mb={1}>
           <Typography variant="h4" gutterBottom>
-            {t('communication.title')}
+            Communication
           </Typography>
         </Stack>
 
@@ -140,34 +138,34 @@ export default function Communication() {
 
         {/* Admin Chats Section */}
         <Box sx={{ mb: 4 }}>
-          <Typography variant="h6" sx={{ mt: 2, mb: 1 }}>{t('communication.chats.professionals')}</Typography>
-          {professionalChats.length === 0 && <Typography color="text.secondary">{t('communication.chats.noProfessionalChats')}</Typography>}
+          <Typography variant="h6" sx={{ mt: 2, mb: 1 }}>Professionnels</Typography>
+          {professionalChats.length === 0 && <Typography color="text.secondary">Aucun chat professionnel</Typography>}
           {professionalChats.map((chat) => {
             const user2 = chat.users.find((u) => u._id !== 'admin');
             return (
               <Card key={chat._id} sx={{ mb: 1 }}>
                 <CardContent>
                   <Typography><b>{user2?.firstName} {user2?.lastName}</b> ({user2?.type})</Typography>
-                  <Typography variant="body2">{t('communication.chats.chatId')} {chat._id}</Typography>
+                  <Typography variant="body2">Chat ID: {chat._id}</Typography>
                 </CardContent>
               </Card>
             );
           })}
-          <Typography variant="h6" sx={{ mt: 4, mb: 1 }}>{t('communication.chats.resellers')}</Typography>
-          {resellerChats.length === 0 && <Typography color="text.secondary">{t('communication.chats.noResellerChats')}</Typography>}
+          <Typography variant="h6" sx={{ mt: 4, mb: 1 }}>Revendeurs</Typography>
+          {resellerChats.length === 0 && <Typography color="text.secondary">Aucun chat revendeur</Typography>}
           {resellerChats.map((chat) => {
             const user2 = chat.users.find((u) => u._id !== 'admin');
             return (
               <Card key={chat._id} sx={{ mb: 1 }}>
                 <CardContent>
                   <Typography><b>{user2?.firstName} {user2?.lastName}</b> ({user2?.type})</Typography>
-                  <Typography variant="body2">{t('communication.chats.chatId')} {chat._id}</Typography>
+                  <Typography variant="body2">Chat ID: {chat._id}</Typography>
                 </CardContent>
               </Card>
             );
           })}
-          <Typography variant="h6" sx={{ mt: 4, mb: 1 }}>{t('communication.chats.others')}</Typography>
-          {otherChats.length === 0 && <Typography color="text.secondary">{t('communication.chats.noOtherChats')}</Typography>}
+          <Typography variant="h6" sx={{ mt: 4, mb: 1 }}>Autres</Typography>
+          {otherChats.length === 0 && <Typography color="text.secondary">Aucun autre chat</Typography>}
           {otherChats.map((chat) => {
             const user2 = chat.users.find((u) => u._id !== 'admin');
             return (
@@ -197,8 +195,8 @@ export default function Communication() {
               <Divider />
               <CardContent sx={{ mx: 2 }}>
                 <CardHeader
-                  title={t('communication.notification.title')}
-                  subheader={t('communication.notification.subtitle')}
+                  title="Notification"
+                  subheader="Envoyer des messages au client et au conducteur sous forme de notification"
                 />
                 <Divider />
                 <Grid container m={1} spacing={2}>
@@ -206,7 +204,7 @@ export default function Communication() {
                     <FormControl fullWidth>
                       <TextField
                         fullWidth
-                        label={t('communication.notification.form.title')}
+                        label="Titre"
                         aria-describedby="standard-weight-helper-text"
                         error={Boolean(touched.title && errors.title)}
                         helperText={touched.title && errors.title}
@@ -221,7 +219,7 @@ export default function Communication() {
                         fullWidth
                         multiline
                         rows={6}
-                        label={t('communication.notification.form.description')}
+                        label="Description"
                         aria-describedby="standard-weight-helper-text"
                         error={Boolean(touched.description && errors.description)}
                         helperText={touched.description && errors.description}
@@ -237,13 +235,13 @@ export default function Communication() {
                           control={
                             <Checkbox checked={values.rider} onChange={handleCheckboxChange('rider')} name="rider" />
                           }
-                          label={t('communication.notification.form.driver')}
+                          label="Chauffeur"
                         />
                         <FormControlLabel
                           control={
                             <Checkbox checked={values.client} onChange={handleCheckboxChange('client')} name="client" />
                           }
-                          label={t('communication.notification.form.client')}
+                          label="Client"
                         />
                       </FormGroup>
                     </FormControl>
@@ -252,7 +250,7 @@ export default function Communication() {
               </CardContent>
               <Box sx={{ display: 'flex', justifyContent: 'flex-end', p: 2 }}>
                 <Button color="primary" variant="contained" onClick={handleSubmit}>
-                  {t('communication.notification.apply')}
+                  Appliquer
                 </Button>
               </Box>
             </Card>

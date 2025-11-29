@@ -38,7 +38,7 @@ import { RoleCode } from '@/types/Role';
 import { IdentityStatus } from '@/types/Identity';
 import { filterNavItemsByPermissions } from '@/utils/permissions';
 import useAuth from '@/hooks/useAuth';
-import { useNavConfig } from '@/layouts/dashboard/NavConfig';
+import navConfigData from '@/layouts/dashboard/NavConfig';
 
 // ----------------------------------------------------------------------
 
@@ -306,40 +306,120 @@ export default function NavSection({ ...other }) {
     updateAllUsers();
   }, [updateCategory, updateIdentity, updateAllUsers]);
 
-  // Get translated navigation config
-  const navConfig = useNavConfig();
-
   // Create enhanced navigation config with dynamic badges and permission filtering
   const enhancedNavConfig = useMemo(() => {
-    // Map navConfig items and add badges/icons
-    const baseConfig = navConfig.map((item: any) => {
-      const enhancedItem = { ...item };
-      
-      // Replace icon function with actual icon element
-      if (item.icon && typeof item.icon === 'function') {
-        enhancedItem.icon = item.icon();
-      }
-      
-      // Add badge for communication center
-      if (item.path === '/dashboard/chat' && adminNotificationCount > 0) {
-        enhancedItem.icon = getIcon('material-symbols:chat-bubble', adminNotificationCount);
-      }
-      
-      // Recursively process children
-      if (item.children) {
-        enhancedItem.children = item.children.map((child: any) => ({
-          ...child,
-          icon: child.icon && typeof child.icon === 'function' ? child.icon() : child.icon
-        }));
-      }
-      
-      return enhancedItem;
-    });
+    const baseConfig = [
+      {
+        title: 'Tableau De Bord',
+        path: '/dashboard/app',
+        icon: getIcon('typcn:chart-pie'),
+      },
+      {
+        title: 'Utilisateurs',
+        path: '/dashboard/users',
+        icon: getIcon('mdi:user-online'),
+        requiresAdmin: true,
+        children: [
+          {
+            title: 'Clients',
+            path: '/dashboard/users/clients',
+            icon: getIcon('mdi:account'),
+            requiresAdmin: true,
+          },
+          {
+            title: 'Professionals',
+            path: '/dashboard/users/professionals',
+            icon: getIcon('mdi:account-group'),
+            requiresAdmin: true,
+          },
+          {
+            title: 'Resellers',
+            path: '/dashboard/users/resellers',
+            icon: getIcon('mdi:store'),
+            requiresAdmin: true,
+          },
+        ],
+      },
+      {
+        title: 'Administration',
+        path: '/dashboard/admin',
+        icon: getIcon('mdi:shield-account'),
+        requiresAdmin: true,
+        children: [
+          {
+            title: 'Gestion des Admins',
+            path: '/dashboard/admin/management',
+            icon: getIcon('mdi:account-cog'),
+            adminOnly: true,
+          },
+          {
+            title: 'Profil Admin',
+            path: '/dashboard/admin/profile',
+            icon: getIcon('mdi:account-circle'),
+            requiresAdmin: true,
+          },
+          {
+            title: 'Permissions',
+            path: '/dashboard/admin/permissions',
+            icon: getIcon('mdi:key'),
+            requiresAdmin: true,
+          },
+        ],
+      },
+      {
+  title: 'Ventes Directes',
+  path: '/dashboard/direct-sales',
+  icon: getIcon('mdi:store'),
+  requiresAdmin: true,
+},
+      {
+        title: 'Enchères',
+        path: '/dashboard/auctions',
+        icon: getIcon('mdi:gavel'),
+        requiresAdmin: true,
+      },
+      {
+        title: 'Soumissions',
+        path: '/dashboard/tenders',
+        icon: getIcon('mdi:file-document-outline'),
+        requiresAdmin: true,
+      },
+      {
+        title: 'Categories',
+        path: '/dashboard/categories',
+        icon: getIcon('material-symbols:category'),
+        requiresAdmin: true,
+      },
+      {
+        title: 'Abonnements',
+        path: '/dashboard/subscription',
+        icon: getIcon('mdi:credit-card-multiple'),
+        requiresAdmin: true,
+      },
+      {
+        title: 'Conditions Générales',
+        path: '/dashboard/terms',
+        icon: getIcon('mdi:file-document-outline'),
+        requiresAdmin: true,
+      },
+      {
+        title: 'Centre de Communication',
+        path: '/dashboard/chat',
+        icon: getIcon('material-symbols:chat-bubble'),
+        requiresAdmin: true,
+      },
+      {
+        title: 'Identités',
+        path: '/dashboard/identities',
+        icon: getIcon('ph:user-focus-bold'),
+        requiresAdmin: true,
+      },
+    ];
 
     // Filter navigation items based on user permissions
     const userRole = user?.type as RoleCode;
     return filterNavItemsByPermissions(baseConfig, userRole);
-  }, [navConfig, user?.type, adminNotificationCount, getIcon]);
+  }, [user?.type, adminNotificationCount, getIcon]);
 
   return (
     <Box {...other}>

@@ -54,9 +54,11 @@ export interface IdentityDocument {
     postOccupé?: string;
   };
   status: string;
+  certificationStatus?: string;
   conversionType?: string;
   targetUserType?: string;
   commercialRegister?: UserDocument;
+  carteAutoEntrepreneur?: UserDocument;
   nif?: UserDocument;
   nis?: UserDocument;
   last3YearsBalanceSheet?: UserDocument;
@@ -104,6 +106,10 @@ export const IdentityAPI = {
   // Verify identity
   verifyIdentity: (identityId: string, action: 'accept' | 'reject'): Promise<any> => 
     requests.put(`identities/${identityId}/verify`, { action }),
+
+  // Verify certification
+  verifyCertification: (identityId: string, action: 'accept' | 'reject'): Promise<any> => 
+    requests.put(`identities/${identityId}/verify-certification`, { action }),
 
   // Certify identity (marks user as certified and verified, rate -> 5)
   certifyIdentity: (identityId: string): Promise<any> =>

@@ -1,7 +1,6 @@
 import { sentenceCase } from 'change-case';
 import { useState, useEffect, useCallback } from 'react';
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
-import { useTranslation } from 'react-i18next';
 // material
 import {
     Stack,
@@ -56,7 +55,17 @@ import GppBadIcon from '@mui/icons-material/GppBad';
 import VerifiedUserIcon from '@mui/icons-material/VerifiedUser';
 import HowToRegIcon from '@mui/icons-material/HowToReg';
 
-// COLUMNS will be defined inside the component to use translations
+const COLUMNS = [
+    { id: 'firstName', label: 'Nom', alignRight: false, searchable: true },
+    { id: 'phone', label: 'Tel', alignRight: false, searchable: true },
+    { id: 'isVerified', label: 'Vérifié', alignRight: false, searchable: false },
+    { id: 'isActive', label: 'Activé', alignRight: false, searchable: false },
+    { id: 'isBanned', label: 'Banni', alignRight: false, searchable: false },
+    { id: 'isRecommended', label: 'Recommandé', alignRight: false, searchable: false },
+    { id: 'rate', label: 'Rate', alignRight: false, searchable: false },
+    { id: 'createdAt', label: 'Créé Le', alignRight: false, searchable: false },
+    { id: '', label: '', alignRight: true, searchable: false },
+];
 
 const StyledCard = styled(Card)(({ theme }) => ({
     display: 'flex',
@@ -94,25 +103,12 @@ const IconWrapperStyle = styled('div')(({ theme }) => ({
 }));
 
 export default function Reseller() {
-    const { t } = useTranslation();
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
     const isTablet = useMediaQuery(theme.breakpoints.down('md'));
 
     const { enqueueSnackbar } = useSnackbar();
     const navigate = useNavigate();
-
-    const COLUMNS = [
-        { id: 'firstName', label: t('reseller.table.name'), alignRight: false, searchable: true },
-        { id: 'phone', label: t('reseller.table.phone'), alignRight: false, searchable: true },
-        { id: 'isVerified', label: t('reseller.table.verified'), alignRight: false, searchable: false },
-        { id: 'isActive', label: t('reseller.table.active'), alignRight: false, searchable: false },
-        { id: 'isBanned', label: t('reseller.table.banned'), alignRight: false, searchable: false },
-        { id: 'isRecommended', label: t('reseller.table.recommended'), alignRight: false, searchable: false },
-        { id: 'rate', label: t('reseller.table.rate'), alignRight: false, searchable: false },
-        { id: 'createdAt', label: t('reseller.table.createdAt'), alignRight: false, searchable: false },
-        { id: '', label: '', alignRight: true, searchable: false },
-    ];
 
     const [resellers, setResellers] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -148,11 +144,11 @@ export default function Reseller() {
             const data = await UserAPI.getResellers();
             console.log('Fetched verified resellers from API:', data);
             setResellers(data);
-            enqueueSnackbar(t('reseller.successLoaded', { count: data.length }), { variant: 'success' });
+            enqueueSnackbar(`${data.length} revendeurs vérifiés chargés avec succès.`, { variant: 'success' });
         } catch (err: any) {
             console.error("Failed to load resellers:", err);
-            setError(err.message || t('reseller.errorLoading'));
-            enqueueSnackbar(t('reseller.errorLoading'), { variant: 'error' });
+            setError(err.message || 'Chargement des revendeurs échoué.');
+            enqueueSnackbar('Chargement des revendeurs échoué.', { variant: 'error' });
         } finally {
             setLoading(false);
         }
@@ -196,60 +192,60 @@ export default function Reseller() {
         const idsToActOn = actionType === 'delete_bulk' ? selectedUserIds : [userToConfirmId];
 
         if (idsToActOn.length === 0 || (!userToConfirmId && actionType !== 'delete_bulk')) {
-            enqueueSnackbar(t('reseller.noSelection'), { variant: 'warning' });
+            enqueueSnackbar('Aucun utilisateur sélectionné pour cette action.', { variant: 'warning' });
             return;
         }
 
         switch (actionType) {
             case 'enable':
                 actionPromise = UserAPI.setUserActive(userToConfirmId, true);
-                successMessage = t('reseller.success.enabled');
-                errorMessage = t('reseller.errors.enable');
+                successMessage = 'Revendeur activé avec succès.';
+                errorMessage = 'Échec de l\'activation du revendeur.';
                 break;
             case 'disable':
                 actionPromise = UserAPI.setUserActive(userToConfirmId, false);
-                successMessage = t('reseller.success.disabled');
-                errorMessage = t('reseller.errors.disable');
+                successMessage = 'Revendeur désactivé avec succès.';
+                errorMessage = 'Échec de la désactivation du revendeur.';
                 break;
             case 'ban':
                 actionPromise = UserAPI.setUserBanned(userToConfirmId, true);
-                successMessage = t('reseller.success.banned');
-                errorMessage = t('reseller.errors.ban');
+                successMessage = 'Revendeur banni avec succès.';
+                errorMessage = 'Échec du bannissement du revendeur.';
                 break;
             case 'unban':
                 actionPromise = UserAPI.setUserBanned(userToConfirmId, false);
-                successMessage = t('reseller.success.unbanned');
-                errorMessage = t('reseller.errors.unban');
+                successMessage = 'Revendeur débanni avec succès.';
+                errorMessage = 'Échec du débannissement du revendeur.';
                 break;
             case 'verify':
                 actionPromise = UserAPI.verifyUser(userToConfirmId, true);
-                successMessage = t('reseller.success.verified');
-                errorMessage = t('reseller.errors.verify');
+                successMessage = 'Revendeur vérifié avec succès.';
+                errorMessage = 'Échec de la vérification du revendeur.';
                 break;
             case 'unverify':
                 actionPromise = UserAPI.verifyUser(userToConfirmId, false);
-                successMessage = t('reseller.success.unverified');
-                errorMessage = t('reseller.errors.unverify');
+                successMessage = 'Vérification du revendeur annulée avec succès.';
+                errorMessage = 'Échec de l\'annulation de la vérification.';
                 break;
             case 'recommend':
                 actionPromise = UserAPI.recommendUser(userToConfirmId, true);
-                successMessage = t('reseller.success.recommended');
-                errorMessage = t('reseller.errors.recommend');
+                successMessage = 'Revendeur recommandé avec succès.';
+                errorMessage = 'Échec de la recommandation du revendeur.';
                 break;
             case 'unrecommend':
                 actionPromise = UserAPI.recommendUser(userToConfirmId, false);
-                successMessage = t('reseller.success.unrecommended');
-                errorMessage = t('reseller.errors.unrecommend');
+                successMessage = 'Recommandation du revendeur retirée avec succès.';
+                errorMessage = 'Échec du retrait de la recommandation.';
                 break;
             case 'delete':
                 actionPromise = UserAPI.deleteUser(userToConfirmId);
-                successMessage = t('reseller.success.deleted');
-                errorMessage = t('reseller.errors.delete');
+                successMessage = 'Revendeur supprimé avec succès.';
+                errorMessage = 'Échec de la suppression du revendeur.';
                 break;
             case 'delete_bulk':
                 actionPromise = Promise.all(idsToActOn.map(id => UserAPI.deleteUser(id)));
-                successMessage = t('reseller.success.deletedMultiple', { count: idsToActOn.length });
-                errorMessage = t('reseller.errors.deleteMultiple');
+                successMessage = `${idsToActOn.length} revendeurs supprimés avec succès.`;
+                errorMessage = 'Échec de la suppression des revendeurs.';
                 break;
             default:
                 break;
@@ -307,14 +303,14 @@ export default function Reseller() {
 
     const handleSaveRate = async () => {
         if (resellerToRateId === '' || currentRate === null || initialRate === null) {
-            enqueueSnackbar(t('reseller.rateUpdateError'), { variant: 'error' });
+            enqueueSnackbar('Erreur: Impossible de modifier la cote. Informations manquantes.', { variant: 'error' });
             return;
         }
 
         const totalDelta = currentRate - initialRate;
 
         if (Math.abs(totalDelta) !== 1) {
-            enqueueSnackbar(t('reseller.rateAdjustmentInfo'), { variant: 'warning' });
+            enqueueSnackbar('La cote ne peut être ajustée que par un seul point à la fois (+1 ou -1).', { variant: 'warning' });
             return;
         }
 
@@ -322,52 +318,52 @@ export default function Reseller() {
 
         try {
             await ReviewAPI.adjustUserRateByAdmin(resellerToRateId, operationDelta);
-            enqueueSnackbar(t('reseller.rateUpdateSuccess'), { variant: 'success' });
+            enqueueSnackbar('Rate du revendeur mise à jour avec succès.', { variant: 'success' });
             fetchResellers();
             handleCloseRateDialog();
         } catch (e: any) {
             console.error("Failed to update rate:", e);
-            enqueueSnackbar(e.response?.data?.message || t('reseller.rateUpdateFailed'), { variant: 'error' });
+            enqueueSnackbar(e.response?.data?.message || 'Échec de la mise à jour de la cote.', { variant: 'error' });
         }
     };
 
     // Updated action functions
     const enableReseller = (id: string, name: string) => {
-        handleOpenConfirmDialog(id, name, 'enable', t('reseller.confirmEnable'));
+        handleOpenConfirmDialog(id, name, 'enable', `Êtes-vous sûr de vouloir activer le compte de`);
     };
 
     const disableReseller = (id: string, name: string) => {
-        handleOpenConfirmDialog(id, name, 'disable', t('reseller.confirmDisable'));
+        handleOpenConfirmDialog(id, name, 'disable', `Êtes-vous sûr de vouloir désactiver le compte de`);
     };
 
     const banReseller = (id: string, name: string) => {
-        handleOpenConfirmDialog(id, name, 'ban', t('reseller.confirmBan'));
+        handleOpenConfirmDialog(id, name, 'ban', `Êtes-vous sûr de vouloir bannir le compte de`);
     };
 
     const unbanReseller = (id: string, name: string) => {
-        handleOpenConfirmDialog(id, name, 'unban', t('reseller.confirmUnban'));
+        handleOpenConfirmDialog(id, name, 'unban', `Êtes-vous sûr de vouloir débannir le compte de`);
     };
 
     const verifyReseller = (id: string, name: string) => {
-        handleOpenConfirmDialog(id, name, 'verify', t('reseller.confirmVerify'));
+        handleOpenConfirmDialog(id, name, 'verify', `Êtes-vous sûr de vouloir vérifier le compte de`);
     };
 
     const unverifyReseller = (id: string, name: string) => {
-        handleOpenConfirmDialog(id, name, 'unverify', t('reseller.confirmUnverify'));
+        handleOpenConfirmDialog(id, name, 'unverify', `Êtes-vous sûr de vouloir annuler la vérification du compte de`);
     };
 
     const recommendReseller = (id: string, name: string) => {
-        handleOpenConfirmDialog(id, name, 'recommend', t('reseller.confirmRecommend'));
+        handleOpenConfirmDialog(id, name, 'recommend', `Êtes-vous sûr de vouloir recommander le compte de`);
     };
 
     const unrecommendReseller = (id: string, name: string) => {
-        handleOpenConfirmDialog(id, name, 'unrecommend', t('reseller.confirmUnrecommend'));
+        handleOpenConfirmDialog(id, name, 'unrecommend', `Êtes-vous sûr de vouloir retirer la recommandation du compte de`);
     };
 
     const deleteReseller = (id: string) => {
         const reseller = resellers.find(r => r._id === id);
         if (reseller) {
-            handleOpenConfirmDialog(id, `${reseller.firstName} ${reseller.lastName}`, 'delete', t('reseller.confirmDelete'));
+            handleOpenConfirmDialog(id, `${reseller.firstName} ${reseller.lastName}`, 'delete', `Êtes-vous sûr de vouloir supprimer définitivement le compte de`);
         } else {
             console.error(`Reseller with ID ${id} not found.`);
         }
@@ -380,12 +376,12 @@ export default function Reseller() {
         if (selectedIds.length > 0) {
             handleOpenConfirmDialog(
                 selectedIds,
-                t('reseller.confirmDeleteMultiple', { count: selectedIds.length }),
+                `ces ${selectedIds.length} revendeurs`,
                 'delete_bulk',
-                t('reseller.confirmDelete')
+                `Êtes-vous sûr de vouloir supprimer définitivement`
             );
         } else {
-            enqueueSnackbar(t('reseller.noSelection'), { variant: 'warning' });
+            enqueueSnackbar('Aucun revendeur sélectionné à supprimer.', { variant: 'warning' });
             console.log("No resellers selected for deletion. Showing snackbar.");
         }
     };
@@ -414,7 +410,7 @@ export default function Reseller() {
                 <TableBody>
                     <TableRow>
                         <TableCell colSpan={COLUMNS.length} align="center" sx={{ py: 4 }}>
-                            <Typography>{t('reseller.loading')}</Typography>
+                            <Typography>Chargement des revendeurs vérifiés...</Typography>
                         </TableCell>
                     </TableRow>
                 </TableBody>
@@ -517,13 +513,13 @@ export default function Reseller() {
 
                             <TableCell align="left">
                                 <Label variant="ghost" color={isVerified ? 'success' : 'error'} sx={{ fontSize: isMobile ? '0.7rem' : '0.75rem' }}>
-                                    {sentenceCase(isVerified ? t('reseller.status.validAccount') : t('reseller.status.invalidAccount'))}
+                                    {sentenceCase(isVerified ? "Compte Valide" : 'Compte Non Valide')}
                                 </Label>
                             </TableCell>
 
                             <TableCell align="left" sx={{ display: isMobile ? 'none' : 'table-cell' }}>
                                 <Label variant="ghost" color={isActive ? 'success' : 'error'} sx={{ fontSize: isMobile ? '0.7rem' : '0.75rem' }}>
-                                    {sentenceCase(isActive ? t('reseller.table.active') : t('reseller.table.active'))}
+                                    {sentenceCase(isActive ? 'Actif' : 'Inactif')}
                                 </Label>
                             </TableCell>
 
@@ -544,7 +540,7 @@ export default function Reseller() {
                                     }}
                                 >
                                     {isRecommended && <RecommendIcon sx={{ fontSize: isMobile ? 14 : 16, mr: 0.5 }} />}
-                                    {isRecommended ? t('reseller.table.recommended') : t('reseller.table.recommended')}
+                                    {isRecommended ? 'Recommandé' : 'Non Recommandé'}
                                 </Label>
                             </TableCell>
 
@@ -565,20 +561,20 @@ export default function Reseller() {
                                 <ActionsMenu
                                     _id={_id}
                                     actions={[
-                                        { label: t('reseller.actions.adjustRate'), onClick: () => handleOpenRateDialog(_id, resellerFullName, rate), icon: 'eva:edit-fill' },
+                                        { label: 'Modifier Rate', onClick: () => handleOpenRateDialog(_id, resellerFullName, rate), icon: 'eva:edit-fill' },
                                         isRecommended
-                                            ? { label: t('reseller.actions.unrecommend'), onClick: () => unrecommendReseller(_id, resellerFullName), icon: 'eva:star-outline' }
-                                            : { label: t('reseller.actions.recommend'), onClick: () => recommendReseller(_id, resellerFullName), icon: 'eva:star-fill' },
+                                            ? { label: 'Retirer Recommandation', onClick: () => unrecommendReseller(_id, resellerFullName), icon: 'eva:star-outline' }
+                                            : { label: 'Recommander', onClick: () => recommendReseller(_id, resellerFullName), icon: 'eva:star-fill' },
                                         isActive
-                                            ? { label: t('reseller.actions.disable'), onClick: () => disableReseller(_id, resellerFullName), icon: 'mdi:user-block-outline' }
-                                            : { label: t('reseller.actions.enable'), onClick: () => enableReseller(_id, resellerFullName), icon: 'mdi:user-check-outline' },
+                                            ? { label: 'Désactiver', onClick: () => disableReseller(_id, resellerFullName), icon: 'mdi:user-block-outline' }
+                                            : { label: 'Activer', onClick: () => enableReseller(_id, resellerFullName), icon: 'mdi:user-check-outline' },
                                         isBanned
-                                            ? { label: t('reseller.actions.unban'), onClick: () => unbanReseller(_id, resellerFullName), icon: 'eva:person-done-outline' }
-                                            : { label: t('reseller.actions.ban'), onClick: () => banReseller(_id, resellerFullName), icon: 'eva:slash-outline' },
+                                            ? { label: 'Débannir', onClick: () => unbanReseller(_id, resellerFullName), icon: 'eva:person-done-outline' }
+                                            : { label: 'Bannir', onClick: () => banReseller(_id, resellerFullName), icon: 'eva:slash-outline' },
                                         isVerified
-                                            ? { label: t('reseller.actions.unverify'), onClick: () => unverifyReseller(_id, resellerFullName), icon: 'eva:close-circle-outline' }
-                                            : { label: t('reseller.actions.verify'), onClick: () => verifyReseller(_id, resellerFullName), icon: 'eva:checkmark-circle-outline' },
-                                        { label: t('reseller.actions.delete'), onClick: () => deleteReseller(_id), icon: 'eva:trash-2-outline' }
+                                            ? { label: 'Annuler la vérification', onClick: () => unverifyReseller(_id, resellerFullName), icon: 'eva:close-circle-outline' }
+                                            : { label: 'Vérifier', onClick: () => verifyReseller(_id, resellerFullName), icon: 'eva:checkmark-circle-outline' },
+                                        { label: 'Supprimer', onClick: () => deleteReseller(_id), icon: 'eva:trash-2-outline' }
                                     ]}
                                 />
                             </TableCell>
@@ -610,7 +606,7 @@ export default function Reseller() {
                     sx={{ mb: 3 }}
                     icon={<InfoIcon />}
                 >
-                    {t('reseller.loading')}
+                    Cette page n'affiche que les revendeurs dont les documents d'identité ont été vérifiés et acceptés (statut: DONE).
                 </Alert>
 
                 {/* Cards for reseller statistics */}
@@ -626,7 +622,7 @@ export default function Reseller() {
                             </IconWrapperStyle>
                             <Box>
                                 <Typography variant={isMobile ? "body2" : "h6"} color="textSecondary" sx={{ opacity: 0.72 }}>
-                                    {t('reseller.stats.total')}
+                                    Revendeurs Vérifiés
                                 </Typography>
                                 <Typography variant={isMobile ? "h5" : "h4"} component="div">
                                     {totalResellers}
@@ -646,7 +642,7 @@ export default function Reseller() {
                             </IconWrapperStyle>
                             <Box>
                                 <Typography variant={isMobile ? "body2" : "h6"} color="textSecondary" sx={{ opacity: 0.72 }}>
-                                    {t('reseller.stats.verified')}
+                                    Comptes Validés
                                 </Typography>
                                 <Typography variant={isMobile ? "h5" : "h4"} component="div">
                                     {verifiedResellers}
@@ -666,7 +662,7 @@ export default function Reseller() {
                             </IconWrapperStyle>
                             <Box>
                                 <Typography variant={isMobile ? "body2" : "h6"} color="textSecondary" sx={{ opacity: 0.72 }}>
-                                    {t('reseller.stats.active')}
+                                    Revendeurs Actifs
                                 </Typography>
                                 <Typography variant={isMobile ? "h5" : "h4"} component="div">
                                     {activeResellers}
@@ -686,7 +682,7 @@ export default function Reseller() {
                             </IconWrapperStyle>
                             <Box>
                                 <Typography variant={isMobile ? "body2" : "h6"} color="textSecondary" sx={{ opacity: 0.72 }}>
-                                    {t('reseller.table.recommended')}
+                                    Recommandés
                                 </Typography>
                                 <Typography variant={isMobile ? "h5" : "h4"} component="div">
                                     {recommendedResellers}
@@ -706,7 +702,7 @@ export default function Reseller() {
                             </IconWrapperStyle>
                             <Box>
                                 <Typography variant={isMobile ? "body2" : "h6"} color="textSecondary" sx={{ opacity: 0.72 }}>
-                                    {t('reseller.stats.banned')}
+                                    Revendeurs Bannis
                                 </Typography>
                                 <Typography variant={isMobile ? "h5" : "h4"} component="div">
                                     {bannedResellers}
@@ -758,15 +754,15 @@ export default function Reseller() {
                 <DialogTitle sx={{ m: 0, p: { xs: 1.5, sm: 2 }, display: 'flex', alignItems: 'center', fontSize: isMobile ? '1rem' : '1.25rem' }} id="confirm-dialog-title">
                     {(actionType === 'ban' || actionType === 'disable' || actionType === 'unverify' || actionType === 'delete' || actionType === 'delete_bulk' || actionType === 'unrecommend') && <WarningIcon sx={{ mr: 1, color: 'warning.main', fontSize: isMobile ? 20 : 24 }} />}
                     {(actionType === 'verify' || actionType === 'enable' || actionType === 'unban' || actionType === 'recommend') && <CheckCircleOutlineIcon sx={{ mr: 1, color: 'success.main', fontSize: isMobile ? 20 : 24 }} />}
-                    {actionType === 'ban' ? t('reseller.actions.ban') :
-                     actionType === 'unban' ? t('reseller.actions.unban') :
-                     actionType === 'enable' ? t('reseller.actions.enable') :
-                     actionType === 'disable' ? t('reseller.actions.disable') :
-                     actionType === 'verify' ? t('reseller.actions.verify') :
-                     actionType === 'unverify' ? t('reseller.actions.unverify') :
-                     actionType === 'recommend' ? t('reseller.actions.recommend') :
-                     actionType === 'unrecommend' ? t('reseller.actions.unrecommend') :
-                     actionType === 'delete' || actionType === 'delete_bulk' ? t('reseller.actions.delete') : ''}
+                    {actionType === 'ban' ? 'Bannir Revendeur' :
+                     actionType === 'unban' ? 'Débannir Revendeur' :
+                     actionType === 'enable' ? 'Activer Revendeur' :
+                     actionType === 'disable' ? 'Désactiver Revendeur' :
+                     actionType === 'verify' ? 'Vérifier Revendeur' :
+                     actionType === 'unverify' ? 'Annuler Vérification' :
+                     actionType === 'recommend' ? 'Recommander Revendeur' :
+                     actionType === 'unrecommend' ? 'Retirer Recommandation' :
+                     actionType === 'delete' || actionType === 'delete_bulk' ? 'Supprimer Revendeur(s)' : ''}
                 </DialogTitle>
                 <DialogContent sx={{ p: { xs: 1.5, sm: 2 } }}>
                     <Typography gutterBottom sx={{ fontSize: isMobile ? '0.85rem' : '1rem' }}>
@@ -775,7 +771,7 @@ export default function Reseller() {
                 </DialogContent>
                 <DialogActions sx={{ p: { xs: 1.5, sm: 2 } }}>
                     <Button onClick={handleCloseConfirmDialog} color="inherit" size={isMobile ? 'small' : 'medium'}>
-                        {t('common.cancel')}
+                        Annuler
                     </Button>
                     <Button
                         onClick={handleConfirmAction}
@@ -784,7 +780,7 @@ export default function Reseller() {
                         autoFocus
                         size={isMobile ? 'small' : 'medium'}
                     >
-                        {t('common.confirm')}
+                        Confirmer
                     </Button>
                 </DialogActions>
             </Dialog>
@@ -805,11 +801,11 @@ export default function Reseller() {
             >
                 <DialogTitle sx={{ m: 0, p: { xs: 1.5, sm: 2 }, display: 'flex', alignItems: 'center', fontSize: isMobile ? '1rem' : '1.25rem' }} id="rate-dialog-title">
                     <EditIcon sx={{ mr: 1, fontSize: isMobile ? 20 : 24 }} />
-                    {t('reseller.rateAdjustment')}
+                    Modifier la cote du revendeur
                 </DialogTitle>
                 <DialogContent sx={{ p: { xs: 1.5, sm: 2 } }}>
                     <Typography gutterBottom sx={{ fontSize: isMobile ? '0.85rem' : '1rem' }}>
-                        {t('reseller.rateAdjustment')} <Typography component="span" fontWeight="bold">{resellerNameForRateDialog}</Typography>:
+                        Modifier la cote pour <Typography component="span" fontWeight="bold">{resellerNameForRateDialog}</Typography>:
                     </Typography>
                     <Stack direction="row" alignItems="center" spacing={isMobile ? 1 : 2} sx={{ mt: { xs: 1.5, sm: 2 }, mb: { xs: 1.5, sm: 2 }, justifyContent: 'center' }}>
                         <IconButton
@@ -833,10 +829,10 @@ export default function Reseller() {
                 </DialogContent>
                 <DialogActions sx={{ p: { xs: 1.5, sm: 2 } }}>
                     <Button onClick={handleCloseRateDialog} color="inherit" size={isMobile ? 'small' : 'medium'}>
-                        {t('common.cancel')}
+                        Annuler
                     </Button>
                     <Button onClick={handleSaveRate} variant="contained" color="primary" size={isMobile ? 'small' : 'medium'}>
-                        {t('common.save')}
+                        Enregistrer
                     </Button>
                 </DialogActions>
             </Dialog>

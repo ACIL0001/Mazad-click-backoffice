@@ -1,7 +1,6 @@
 "use client"
 import type React from "react"
 import { useState, useEffect } from "react"
-import { useTranslation } from 'react-i18next'
 import {
   Box,
   Typography,
@@ -117,7 +116,6 @@ interface DashboardData {
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#82ca9d', '#ffc658']
 
 export default function ComprehensiveDashboard() {
-  const { t } = useTranslation()
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [tabValue, setTabValue] = useState(0)
@@ -211,11 +209,11 @@ export default function ComprehensiveDashboard() {
 
       // Generate recent activities
       const recentActivities = [
-        { type: 'auction', message: `${auctionStats.byStatus.active} ${t('dashboard.recentActivity.activeAuctions')}`, time: t('dashboard.recentActivity.now') },
-        { type: 'tender', message: `${tenderStats.byStatus.open} ${t('dashboard.recentActivity.openTenders')}`, time: `2 ${t('dashboard.recentActivity.minutes')}` },
-        { type: 'user', message: `${userStats.total} ${t('dashboard.recentActivity.totalUsers')}`, time: `5 ${t('dashboard.recentActivity.minutes')}` },
-        { type: 'identity', message: `${pendingIdentities.length} ${t('dashboard.recentActivity.pendingVerifications')}`, time: `23 ${t('dashboard.recentActivity.minutes')}` },
-        { type: 'subscription', message: t('dashboard.recentActivity.subscriptionRevenueUpdated'), time: `1 ${t('dashboard.recentActivity.hours')}` }
+        { type: 'auction', message: `${auctionStats.byStatus.active} enchères actives en cours`, time: 'Maintenant' },
+        { type: 'tender', message: `${tenderStats.byStatus.open} soumissions ouvertes`, time: '2 min' },
+        { type: 'user', message: `${userStats.total} utilisateurs au total`, time: '5 min' },
+        { type: 'identity', message: `${pendingIdentities.length} vérifications en attente`, time: '23 min' },
+        { type: 'subscription', message: 'Revenus d\'abonnements mis à jour', time: '1 h' }
       ]
 
       const processedData: DashboardData = {
@@ -247,7 +245,7 @@ export default function ComprehensiveDashboard() {
 
       setDashboardData(processedData)
     } catch (err) {
-      setError(t('dashboard.errorLoading'))
+      setError("Erreur lors du chargement des données. Certaines données peuvent ne pas être disponibles.")
       
       // Set fallback data to prevent complete failure
       setDashboardData({
@@ -291,7 +289,7 @@ export default function ComprehensiveDashboard() {
         <Box textAlign="center">
           <CircularProgress size={60} />
           <Typography variant="h6" sx={{ mt: 2 }}>
-            {t('dashboard.loading')}
+            Chargement du tableau de bord...
           </Typography>
         </Box>
       </Container>
@@ -302,7 +300,7 @@ export default function ComprehensiveDashboard() {
     return (
       <Container maxWidth="xl" sx={{ mt: 4 }}>
         <Alert severity="error">
-          {t('dashboard.criticalError')}
+          Erreur critique lors du chargement des données.
         </Alert>
       </Container>
     )
@@ -316,10 +314,10 @@ export default function ComprehensiveDashboard() {
           <DashboardIcon sx={{ fontSize: 40, color: "primary.main" }} />
           <Box>
             <Typography variant="h4" fontWeight="bold">
-              {t('dashboard.adminTitle')}
+              Tableau de Bord Admin
             </Typography>
             <Typography variant="subtitle1" color="text.secondary">
-              {t('dashboard.subtitle')}
+              Analyse complète de la plateforme d'enchères
             </Typography>
           </Box>
         </Box>
@@ -342,7 +340,7 @@ export default function ComprehensiveDashboard() {
                     {dashboardData.stats.totalUsers.toLocaleString()}
                   </Typography>
                   <Typography variant="body2" sx={{ opacity: 0.8 }}>
-                    {t('dashboard.stats.totalUsers')}
+                    Utilisateurs Total
                   </Typography>
                 </Box>
                 <People sx={{ fontSize: 40, opacity: 0.8 }} />
@@ -360,7 +358,7 @@ export default function ComprehensiveDashboard() {
                     {dashboardData.stats.totalAuctions.toLocaleString()}
                   </Typography>
                   <Typography variant="body2" sx={{ opacity: 0.8 }}>
-                    {t('dashboard.stats.totalAuctions')}
+                    Enchères Total
                   </Typography>
                 </Box>
                 <Gavel sx={{ fontSize: 40, opacity: 0.8 }} />
@@ -378,7 +376,7 @@ export default function ComprehensiveDashboard() {
                     {dashboardData.stats.totalTenders.toLocaleString()}
                   </Typography>
                   <Typography variant="body2" sx={{ opacity: 0.8 }}>
-                    {t('dashboard.stats.totalTenders')}
+                    Soumissions Total
                   </Typography>
                 </Box>
                 <Assignment sx={{ fontSize: 40, opacity: 0.8 }} />
@@ -396,7 +394,7 @@ export default function ComprehensiveDashboard() {
                     {(dashboardData.stats.totalRevenue / 1000).toFixed(0)}DZD
                   </Typography>
                   <Typography variant="body2" sx={{ opacity: 0.8 }}>
-                    {t('dashboard.stats.totalRevenue')}
+                    Revenus Total
                   </Typography>
                 </Box>
                 <AttachMoney sx={{ fontSize: 40, opacity: 0.8 }} />
@@ -414,7 +412,7 @@ export default function ComprehensiveDashboard() {
                     {dashboardData.stats.activeAuctions}
                   </Typography>
                   <Typography variant="body2" sx={{ opacity: 0.8 }}>
-                    {t('dashboard.stats.activeAuctions')}
+                    Enchères Actives
                   </Typography>
                 </Box>
                 <Gavel sx={{ fontSize: 40, opacity: 0.8 }} />
@@ -432,7 +430,7 @@ export default function ComprehensiveDashboard() {
                     {dashboardData.stats.activeTenders}
                   </Typography>
                   <Typography variant="body2" sx={{ opacity: 0.8 }}>
-                    {t('dashboard.stats.activeTenders')}
+                    Soumissions Actives
                   </Typography>
                 </Box>
                 <Assignment sx={{ fontSize: 40, opacity: 0.8 }} />
@@ -453,7 +451,7 @@ export default function ComprehensiveDashboard() {
                     {dashboardData.stats.verifiedUsers.toLocaleString()}
                   </Typography>
                   <Typography variant="body2" sx={{ opacity: 0.7 }}>
-                    {t('dashboard.stats.verifiedUsers')}
+                    Utilisateurs Vérifiés
                   </Typography>
                 </Box>
                 <Verified sx={{ fontSize: 40, opacity: 0.7 }} />
@@ -471,7 +469,7 @@ export default function ComprehensiveDashboard() {
                     {dashboardData.stats.pendingIdentities}
                   </Typography>
                   <Typography variant="body2" sx={{ opacity: 0.7 }}>
-                    {t('dashboard.stats.pendingIdentities')}
+                    Vérifications en Attente
                   </Typography>
                 </Box>
                 <Assignment sx={{ fontSize: 40, opacity: 0.7 }} />
@@ -489,7 +487,7 @@ export default function ComprehensiveDashboard() {
                     {dashboardData.stats.totalOffers}
                   </Typography>
                   <Typography variant="body2" sx={{ opacity: 0.7 }}>
-                    {t('dashboard.stats.totalOffers')}
+                    Offres Total
                   </Typography>
                 </Box>
                 <LocalOffer sx={{ fontSize: 40, opacity: 0.7 }} />
@@ -502,13 +500,13 @@ export default function ComprehensiveDashboard() {
       {/* Tabs Navigation */}
       <Paper sx={{ mb: 3 }}>
         <Tabs value={tabValue} onChange={handleTabChange} variant="scrollable" scrollButtons="auto">
-          <Tab icon={<Analytics />} label={t('dashboard.tabs.analytics')} />
-          <Tab icon={<People />} label={t('dashboard.tabs.users')} />
-          <Tab icon={<Gavel />} label={t('dashboard.tabs.auctions')} />
-          <Tab icon={<Assignment />} label={t('dashboard.tabs.tenders')} />
-          <Tab icon={<Category />} label={t('dashboard.tabs.categories')} />
-          <Tab icon={<AttachMoney />} label={t('dashboard.tabs.subscriptions')} />
-          <Tab icon={<Verified />} label={t('dashboard.tabs.identities')} />
+          <Tab icon={<Analytics />} label="Analytics" />
+          <Tab icon={<People />} label="Utilisateurs" />
+          <Tab icon={<Gavel />} label="Enchères" />
+          <Tab icon={<Assignment />} label="Soumissions" />
+          <Tab icon={<Category />} label="Catégories" />
+          <Tab icon={<AttachMoney />} label="Abonnements" />
+          <Tab icon={<Verified />} label="Identités" />
         </Tabs>
       </Paper>
 
@@ -520,7 +518,7 @@ export default function ComprehensiveDashboard() {
             <Card>
               <CardContent>
                 <Typography variant="h6" gutterBottom>
-                  {t('dashboard.charts.userAuctionTrend')}
+                  Tendance Utilisateurs & Enchères
                 </Typography>
                 <ResponsiveContainer width="100%" height={300}>
                   <AreaChart data={dashboardData.revenueData}>
@@ -542,7 +540,7 @@ export default function ComprehensiveDashboard() {
             <Card>
               <CardContent>
                 <Typography variant="h6" gutterBottom>
-                  {t('dashboard.charts.categoryDistribution')}
+                  Distribution des Catégories
                 </Typography>
                 <ResponsiveContainer width="100%" height={300}>
                   <PieChart>
@@ -571,7 +569,7 @@ export default function ComprehensiveDashboard() {
             <Card>
               <CardContent>
                 <Typography variant="h6" gutterBottom>
-                  {t('dashboard.charts.userGrowth')}
+                  Croissance des Utilisateurs
                 </Typography>
                 <ResponsiveContainer width="100%" height={300}>
                   <LineChart data={dashboardData.userGrowth}>
@@ -596,31 +594,31 @@ export default function ComprehensiveDashboard() {
             <Card>
               <CardContent>
                 <Typography variant="h6" gutterBottom>
-                  {t('dashboard.users.distribution')}
+                  Répartition des Utilisateurs
                 </Typography>
                 <Grid container spacing={2}>
                   <Grid item xs={6} sm={3}>
                     <Box textAlign="center" p={2} bgcolor="#e3f2fd" borderRadius={2}>
                       <Typography variant="h4" color="primary">{dashboardData.userStats.byType.admin}</Typography>
-                      <Typography variant="body2">{t('dashboard.users.administrators')}</Typography>
+                      <Typography variant="body2">Administrateurs</Typography>
                     </Box>
                   </Grid>
                   <Grid item xs={6} sm={3}>
                     <Box textAlign="center" p={2} bgcolor="#f3e5f5" borderRadius={2}>
                       <Typography variant="h4" color="secondary">{dashboardData.userStats.byType.professional}</Typography>
-                      <Typography variant="body2">{t('dashboard.users.professionals')}</Typography>
+                      <Typography variant="body2">Professionnels</Typography>
                     </Box>
                   </Grid>
                   <Grid item xs={6} sm={3}>
                     <Box textAlign="center" p={2} bgcolor="#e8f5e8" borderRadius={2}>
                       <Typography variant="h4" style={{ color: '#4caf50' }}>{dashboardData.userStats.byType.client}</Typography>
-                      <Typography variant="body2">{t('dashboard.users.clients')}</Typography>
+                      <Typography variant="body2">Clients</Typography>
                     </Box>
                   </Grid>
                   <Grid item xs={6} sm={3}>
                     <Box textAlign="center" p={2} bgcolor="#fff3e0" borderRadius={2}>
                       <Typography variant="h4" style={{ color: '#ff9800' }}>{dashboardData.userStats.byType.reseller}</Typography>
-                      <Typography variant="body2">{t('dashboard.users.resellers')}</Typography>
+                      <Typography variant="body2">Revendeurs</Typography>
                     </Box>
                   </Grid>
                 </Grid>
@@ -632,18 +630,18 @@ export default function ComprehensiveDashboard() {
             <Card>
               <CardContent>
                 <Typography variant="h6" gutterBottom>
-                  {t('dashboard.users.activity')}
+                  Activité des Utilisateurs
                 </Typography>
                 <Box display="flex" flexDirection="column" gap={2}>
                   <Box>
-                    <Typography variant="body2">{t('dashboard.users.verificationRate')}</Typography>
+                    <Typography variant="body2">Taux de Vérification</Typography>
                     <LinearProgress 
                       variant="determinate" 
                       value={(dashboardData.stats.verifiedUsers / dashboardData.stats.totalUsers) * 100} 
                       sx={{ mt: 1 }} 
                     />
                     <Typography variant="caption">
-                      {((dashboardData.stats.verifiedUsers / dashboardData.stats.totalUsers) * 100).toFixed(1)}% {t('dashboard.users.ofUsers')}
+                      {((dashboardData.stats.verifiedUsers / dashboardData.stats.totalUsers) * 100).toFixed(1)}% des utilisateurs
                     </Typography>
                   </Box>
                 </Box>
@@ -660,23 +658,23 @@ export default function ComprehensiveDashboard() {
             <Card>
               <CardContent>
                 <Typography variant="h6" gutterBottom>
-                  {t('dashboard.auctions.status')}
+                  Statut des Enchères
                 </Typography>
                 <Box display="flex" flexDirection="column" gap={2}>
                   <Box display="flex" justifyContent="space-between" alignItems="center">
-                    <Typography>{t('dashboard.auctions.active')}</Typography>
+                    <Typography>Enchères Actives</Typography>
                     <Chip label={dashboardData.auctionStats.byStatus.active} color="success" />
                   </Box>
                   <Box display="flex" justifyContent="space-between" alignItems="center">
-                    <Typography>{t('dashboard.auctions.completed')}</Typography>
+                    <Typography>Enchères Terminées</Typography>
                     <Chip label={dashboardData.auctionStats.byStatus.completed} color="info" />
                   </Box>
                   <Box display="flex" justifyContent="space-between" alignItems="center">
-                    <Typography>{t('dashboard.auctions.pending')}</Typography>
+                    <Typography>En Attente</Typography>
                     <Chip label={dashboardData.auctionStats.byStatus.pending} color="warning" />
                   </Box>
                   <Box display="flex" justifyContent="space-between" alignItems="center">
-                    <Typography>{t('dashboard.auctions.cancelled')}</Typography>
+                    <Typography>Annulées</Typography>
                     <Chip label={dashboardData.auctionStats.byStatus.cancelled} color="error" />
                   </Box>
                 </Box>
@@ -688,7 +686,7 @@ export default function ComprehensiveDashboard() {
             <Card>
               <CardContent>
                 <Typography variant="h6" gutterBottom>
-                  {t('dashboard.auctions.metrics')}
+                  Métriques des Enchères
                 </Typography>
                 <Box display="flex" flexDirection="column" gap={2}>
                   <Box textAlign="center">
@@ -696,7 +694,7 @@ export default function ComprehensiveDashboard() {
                       {dashboardData.auctionStats.dailyAverage}
                     </Typography>
                     <Typography variant="body2" color="text.secondary">
-                      {t('dashboard.auctions.dailyAverage')}
+                      Enchères par jour en moyenne
                     </Typography>
                   </Box>
                   <Box textAlign="center">
@@ -704,7 +702,7 @@ export default function ComprehensiveDashboard() {
                       {dashboardData.auctionStats.weeklyGrowth >= 0 ? '+' : ''}{dashboardData.auctionStats.weeklyGrowth}%
                     </Typography>
                     <Typography variant="body2" color="text.secondary">
-                      {t('dashboard.auctions.weeklyGrowth')}
+                      Croissance hebdomadaire
                     </Typography>
                   </Box>
                 </Box>
@@ -721,23 +719,23 @@ export default function ComprehensiveDashboard() {
             <Card>
               <CardContent>
                 <Typography variant="h6" gutterBottom>
-                  {t('dashboard.tenders.status')}
+                  Statut des Soumissions
                 </Typography>
                 <Box display="flex" flexDirection="column" gap={2}>
                   <Box display="flex" justifyContent="space-between" alignItems="center">
-                    <Typography>{t('dashboard.tenders.open')}</Typography>
+                    <Typography>Soumissions Ouvertes</Typography>
                     <Chip label={dashboardData.tenderStats.byStatus.open} color="success" />
                   </Box>
                   <Box display="flex" justifyContent="space-between" alignItems="center">
-                    <Typography>{t('dashboard.tenders.awarded')}</Typography>
+                    <Typography>Attribuées</Typography>
                     <Chip label={dashboardData.tenderStats.byStatus.awarded} color="info" />
                   </Box>
                   <Box display="flex" justifyContent="space-between" alignItems="center">
-                    <Typography>{t('dashboard.tenders.closed')}</Typography>
+                    <Typography>Fermées</Typography>
                     <Chip label={dashboardData.tenderStats.byStatus.closed} color="warning" />
                   </Box>
                   <Box display="flex" justifyContent="space-between" alignItems="center">
-                    <Typography>{t('dashboard.tenders.archived')}</Typography>
+                    <Typography>Archivées</Typography>
                     <Chip label={dashboardData.tenderStats.byStatus.archived} color="default" />
                   </Box>
                 </Box>
@@ -749,15 +747,15 @@ export default function ComprehensiveDashboard() {
             <Card>
               <CardContent>
                 <Typography variant="h6" gutterBottom>
-                  {t('dashboard.tenders.types')}
+                  Types de Soumissions
                 </Typography>
                 <Box display="flex" flexDirection="column" gap={2}>
                   <Box display="flex" justifyContent="space-between" alignItems="center">
-                    <Typography>{t('dashboard.tenders.products')}</Typography>
+                    <Typography>Produits</Typography>
                     <Chip label={dashboardData.tenderStats.byType.product} color="primary" />
                   </Box>
                   <Box display="flex" justifyContent="space-between" alignItems="center">
-                    <Typography>{t('dashboard.tenders.services')}</Typography>
+                    <Typography>Services</Typography>
                     <Chip label={dashboardData.tenderStats.byType.service} color="secondary" />
                   </Box>
                 </Box>
@@ -769,7 +767,7 @@ export default function ComprehensiveDashboard() {
             <Card>
               <CardContent>
                 <Typography variant="h6" gutterBottom>
-                  {t('dashboard.tenders.metrics')}
+                  Métriques des Soumissions
                 </Typography>
                 <Grid container spacing={3}>
                   <Grid item xs={12} md={6}>
@@ -778,7 +776,7 @@ export default function ComprehensiveDashboard() {
                         {dashboardData.tenderStats.dailyAverage}
                       </Typography>
                       <Typography variant="body2" color="text.secondary">
-                        {t('dashboard.tenders.dailyAverage')}
+                        Soumissions par jour en moyenne
                       </Typography>
                     </Box>
                   </Grid>
@@ -788,7 +786,7 @@ export default function ComprehensiveDashboard() {
                         {dashboardData.tenderStats.weeklyGrowth >= 0 ? '+' : ''}{dashboardData.tenderStats.weeklyGrowth}%
                       </Typography>
                       <Typography variant="body2" color="text.secondary">
-                        {t('dashboard.tenders.weeklyGrowth')}
+                        Croissance hebdomadaire
                       </Typography>
                     </Box>
                   </Grid>
@@ -806,15 +804,15 @@ export default function ComprehensiveDashboard() {
             <Card>
               <CardContent>
                 <Typography variant="h6" gutterBottom>
-                  {t('dashboard.categories.performance')}
+                  Performance par Catégorie
                 </Typography>
                 <TableContainer>
                   <Table>
                     <TableHead>
                       <TableRow>
-                        <TableCell>{t('dashboard.categories.category')}</TableCell>
-                        <TableCell align="right">{t('dashboard.categories.auctionCount')}</TableCell>
-                        <TableCell align="right">{t('dashboard.categories.percentage')}</TableCell>
+                        <TableCell>Catégorie</TableCell>
+                        <TableCell align="right">Nombre d'enchères</TableCell>
+                        <TableCell align="right">Pourcentage</TableCell>
                       </TableRow>
                     </TableHead>
                     <TableBody>
@@ -852,16 +850,16 @@ export default function ComprehensiveDashboard() {
             <Card sx={{ background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)", color: "white" }}>
               <CardContent>
                 <Typography variant="h6" gutterBottom>
-                  {t('dashboard.subscriptions.revenue')}
+                  Revenus des Abonnements
                 </Typography>
                 <Typography variant="h3">
                   {(dashboardData.subscriptionStats.total / 1000).toFixed(0)}DZD
                 </Typography>
                 <Typography variant="body2" sx={{ opacity: 0.8, mt: 1 }}>
-                  {t('dashboard.subscriptions.totalRevenue')}
+                  Total des revenus
                 </Typography>
                 <Typography variant="body2" sx={{ opacity: 0.8, mt: 2 }}>
-                  {t('dashboard.subscriptions.growth')}: +{dashboardData.subscriptionStats.growth || 0}%
+                  Croissance: +{dashboardData.subscriptionStats.growth || 0}%
                 </Typography>
               </CardContent>
             </Card>
@@ -871,17 +869,17 @@ export default function ComprehensiveDashboard() {
             <Card>
               <CardContent>
                 <Typography variant="h6" gutterBottom>
-                  {t('dashboard.subscriptions.breakdown')}
+                  Répartition des Revenus
                 </Typography>
                 <Box display="flex" flexDirection="column" gap={2}>
                   <Box display="flex" justifyContent="space-between">
-                    <Typography>{t('dashboard.subscriptions.subscriptions')}</Typography>
+                    <Typography>Abonnements</Typography>
                     <Typography fontWeight="bold">
                       {(dashboardData.subscriptionStats.subscriptions / 1000).toFixed(0)}DZD
                     </Typography>
                   </Box>
                   <Box display="flex" justifyContent="space-between">
-                    <Typography>{t('dashboard.subscriptions.commissions')}</Typography>
+                    <Typography>Commissions</Typography>
                     <Typography fontWeight="bold">
                       {(dashboardData.subscriptionStats.commissions / 1000).toFixed(0)}DZD
                     </Typography>
@@ -900,15 +898,15 @@ export default function ComprehensiveDashboard() {
             <Card>
               <CardContent>
                 <Typography variant="h6" gutterBottom>
-                  {t('dashboard.identities.verificationStatus')}
+                  Statut de Vérification d'Identité
                 </Typography>
                 <Box display="flex" flexDirection="column" gap={2}>
                   <Box display="flex" justifyContent="space-between" alignItems="center">
-                    <Typography>{t('dashboard.identities.pending')}</Typography>
+                    <Typography>Vérifications en Attente</Typography>
                     <Chip label={dashboardData.identityStats.pending} color="warning" />
                   </Box>
                   <Box display="flex" justifyContent="space-between" alignItems="center">
-                    <Typography>{t('dashboard.identities.verified')}</Typography>
+                    <Typography>Utilisateurs Vérifiés</Typography>
                     <Chip label={dashboardData.identityStats.verified} color="success" />
                   </Box>
                 </Box>
@@ -920,7 +918,7 @@ export default function ComprehensiveDashboard() {
             <Card>
               <CardContent>
                 <Typography variant="h6" gutterBottom>
-                  {t('dashboard.identities.verificationRate')}
+                  Taux de Vérification
                 </Typography>
                 <Box textAlign="center">
                   <Typography variant="h3" color="primary">
@@ -929,7 +927,7 @@ export default function ComprehensiveDashboard() {
                       : 0}%
                   </Typography>
                   <Typography variant="body2" color="text.secondary">
-                    {t('dashboard.identities.successRate')}
+                    Taux de succès
                   </Typography>
                 </Box>
               </CardContent>
@@ -942,7 +940,7 @@ export default function ComprehensiveDashboard() {
       <Card sx={{ mt: 4 }}>
         <CardContent>
           <Typography variant="h6" gutterBottom>
-            {t('dashboard.recentActivity.title')}
+            Activité Récente
           </Typography>
           <List>
             {dashboardData.recentActivities.map((activity: any, index: number) => (

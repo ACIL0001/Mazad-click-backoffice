@@ -42,14 +42,9 @@ export const LanguageProvider: React.FC<LanguageProviderProps> = ({ children }) 
   const [direction, setDirection] = useState<'ltr' | 'rtl'>('ltr');
 
   useEffect(() => {
-    // Get saved language from localStorage or use i18n's detected language
-    const savedLanguage = localStorage.getItem('i18nextLng') || i18n.language || 'fr';
+    // Get saved language from localStorage or use default
+    const savedLanguage = localStorage.getItem('i18nextLng') || 'fr';
     const currentLang = AVAILABLE_LANGUAGES.find(lang => lang.value === savedLanguage) || AVAILABLE_LANGUAGES[0];
-    
-    // Ensure i18n is set to the saved language
-    if (i18n.language !== savedLanguage) {
-      i18n.changeLanguage(savedLanguage);
-    }
     
     setCurrentLanguage(savedLanguage);
     setIsRTL(currentLang.direction === 'rtl');
@@ -57,7 +52,7 @@ export const LanguageProvider: React.FC<LanguageProviderProps> = ({ children }) 
     
     // Apply language changes
     applyLanguageChanges(savedLanguage, currentLang.direction);
-  }, [i18n]);
+  }, []);
 
   const applyLanguageChanges = (language: string, dir: 'ltr' | 'rtl') => {
     // Change document direction and language
@@ -76,17 +71,23 @@ export const LanguageProvider: React.FC<LanguageProviderProps> = ({ children }) 
       document.body.style.direction = 'ltr';
       document.body.style.textAlign = 'left';
     }
+    
+    // Change i18n language
+    i18n.changeLanguage(language);
   };
 
   const changeLanguage = (language: string) => {
-    // Save to localStorage first
+    const selectedLang = AVAILABLE_LANGUAGES.find(lang => lang.value === language) || AVAILABLE_LANGUAGES[0];
+    
+    setCurrentLanguage(language);
+    setIsRTL(selectedLang.direction === 'rtl');
+    setDirection(selectedLang.direction);
+    
+    // Save to localStorage
     localStorage.setItem('i18nextLng', language);
     
-    // Change i18n language - this will trigger languageChanged event
-    // The event handler will update state and apply document changes
-    i18n.changeLanguage(language).catch((err) => {
-      console.error('Error changing language:', err);
-    });
+    // Apply language changes
+    applyLanguageChanges(language, selectedLang.direction);
   };
 
   // Listen to i18n language changes
@@ -96,8 +97,6 @@ export const LanguageProvider: React.FC<LanguageProviderProps> = ({ children }) 
       setCurrentLanguage(lng);
       setIsRTL(selectedLang.direction === 'rtl');
       setDirection(selectedLang.direction);
-      
-      // Apply document changes
       applyLanguageChanges(lng, selectedLang.direction);
     };
 

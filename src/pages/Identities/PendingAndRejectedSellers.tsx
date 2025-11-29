@@ -42,6 +42,7 @@ const TABLE_HEAD = [
   { id: "secteur", label: "Secteur", alignRight: false, searchable: true },
   { id: "entreprise", label: "Entreprise", alignRight: false, searchable: true },
   { id: "postOccupé", label: "Post occupé", alignRight: false, searchable: true },
+  { id: "status", label: "Statut", alignRight: false, searchable: false },
   { id: "conversion", label: "Conversion", alignRight: false, searchable: false },
   { id: "documents", label: "Documents", alignRight: false, searchable: false },
   { id: "createdAt", label: "Créé le", alignRight: false, searchable: false },
@@ -96,6 +97,7 @@ function SellersTableBody({
   const getDocumentCount = (identity: IdentityDocument) => {
     let count = 0
     if (identity.commercialRegister) count++
+    if (identity.carteAutoEntrepreneur) count++
     if (identity.nif) count++
     if (identity.nis) count++
     if (identity.last3YearsBalanceSheet) count++
@@ -289,6 +291,51 @@ function SellersTableBody({
               >
                 {user?.postOccupé || "N/A"}
               </Typography>
+            </TableCell>
+            
+            {/* Status Cell - Shows verification/certification pending status */}
+            <TableCell align="left" sx={{ py: 2 }}>
+              <Stack direction="row" alignItems="center" spacing={1} flexWrap="wrap">
+                {seller.status === 'WAITING' && (
+                  <Chip
+                    label="Vérification"
+                    size="small"
+                    color="warning"
+                    sx={{
+                      height: 24,
+                      borderRadius: 1.5,
+                      fontWeight: 600,
+                      fontSize: "0.7rem",
+                      minWidth: 90,
+                    }}
+                  />
+                )}
+                {seller.certificationStatus === 'WAITING' && (
+                  <Chip
+                    label="Certification"
+                    size="small"
+                    color="info"
+                    sx={{
+                      height: 24,
+                      borderRadius: 1.5,
+                      fontWeight: 600,
+                      fontSize: "0.7rem",
+                      minWidth: 90,
+                    }}
+                  />
+                )}
+                {seller.status !== 'WAITING' && seller.certificationStatus !== 'WAITING' && (
+                  <Typography
+                    variant="caption"
+                    sx={{
+                      color: theme.palette.text.disabled,
+                      fontSize: "0.75rem",
+                    }}
+                  >
+                    N/A
+                  </Typography>
+                )}
+              </Stack>
             </TableCell>
             
             {/* Conversion Type Cell */}

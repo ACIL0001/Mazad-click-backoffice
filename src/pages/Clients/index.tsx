@@ -1,7 +1,6 @@
 import { sentenceCase } from 'change-case';
 import { useState, useEffect } from 'react';
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
-import { useTranslation } from 'react-i18next';
 import {
     Stack,
     Button,
@@ -45,7 +44,17 @@ import { ReviewAPI } from '@/api/review';
 import Iconify from '../../components/Iconify';
 import UserListToolbar from '../../sections/@dashboard/user/UserListToolbar';
 
-// COLUMNS will be defined inside the component to use translations
+// Fixed COLUMNS to match the professional table structure (without checkbox in COLUMNS array)
+const COLUMNS = [
+    { id: 'firstName', label: 'Nom', alignRight: false, searchable: true },
+    { id: 'phone', label: 'Tel', alignRight: false, searchable: true },
+    { id: 'isVerified', label: 'Vérifié', alignRight: false, searchable: false },
+    { id: 'isActive', label: 'Activé', alignRight: false, searchable: false },
+    { id: 'isBanned', label: 'Banni', alignRight: false, searchable: false },
+    { id: 'rate', label: 'Rate', alignRight: false, searchable: false },
+    { id: 'createdAt', label: 'Créé Le', alignRight: false, searchable: false },
+    { id: '', searchable: false }, // Actions column
+];
 
 const StyledCard = styled(Card)(({ theme }) => ({
     display: 'flex',
@@ -83,23 +92,11 @@ const IconWrapperStyle = styled('div')(({ theme }) => ({
 }));
 
 export default function Clients() {
-    const { t } = useTranslation();
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
     const isTablet = useMediaQuery(theme.breakpoints.down('md'));
     const { enqueueSnackbar } = useSnackbar();
     const navigate = useNavigate();
-
-    const COLUMNS = [
-        { id: 'firstName', label: t('clients.table.name'), alignRight: false, searchable: true },
-        { id: 'phone', label: t('clients.table.phone'), alignRight: false, searchable: true },
-        { id: 'isVerified', label: t('clients.table.verified'), alignRight: false, searchable: false },
-        { id: 'isActive', label: t('clients.table.active'), alignRight: false, searchable: false },
-        { id: 'isBanned', label: t('clients.table.banned'), alignRight: false, searchable: false },
-        { id: 'rate', label: t('clients.table.rate'), alignRight: false, searchable: false },
-        { id: 'createdAt', label: t('clients.table.createdAt'), alignRight: false, searchable: false },
-        { id: '', searchable: false }, // Actions column
-    ];
     const [clients, setClients] = useState([]);
     const [page, setPage] = useState(0);
     const [order, setOrder] = useState<'asc' | 'desc'>('asc');
@@ -132,7 +129,7 @@ export default function Clients() {
             })
             .catch((e) => {
                 console.error("Failed to load clients:", e);
-                enqueueSnackbar(t('clients.errorLoading'), { variant: 'error' });
+                enqueueSnackbar('Chargement des clients échoué.', { variant: 'error' });
             });
     };
 
@@ -162,7 +159,7 @@ export default function Clients() {
         const idsToActOn = actionType === 'deleteSelected' ? selectedUserIds : [userToConfirmId];
         
         if (idsToActOn.length === 0 || (!userToConfirmId && actionType !== 'deleteSelected')) {
-            enqueueSnackbar(t('clients.noSelection'), { variant: 'warning' });
+            enqueueSnackbar('Aucun utilisateur sélectionné pour cette action.', { variant: 'warning' });
             return;
         }
 
@@ -170,39 +167,39 @@ export default function Clients() {
             switch (actionType) {
                 case 'enable':
                     await UserAPI.setUserActive(userToConfirmId, true);
-                    enqueueSnackbar(t('clients.success.enabled'), { variant: 'success' });
+                    enqueueSnackbar('Client activé.', { variant: 'success' });
                     break;
                 case 'disable':
                     await UserAPI.setUserActive(userToConfirmId, false);
-                    enqueueSnackbar(t('clients.success.disabled'), { variant: 'success' });
+                    enqueueSnackbar('Client désactivé.', { variant: 'success' });
                     break;
                 case 'ban':
                     await UserAPI.setUserBanned(userToConfirmId, true);
-                    enqueueSnackbar(t('clients.success.banned'), { variant: 'success' });
+                    enqueueSnackbar('Client banni.', { variant: 'success' });
                     break;
                 case 'unban':
                     await UserAPI.setUserBanned(userToConfirmId, false);
-                    enqueueSnackbar(t('clients.success.unbanned'), { variant: 'success' });
+                    enqueueSnackbar('Client débanni.', { variant: 'success' });
                     break;
                 case 'verify':
                     await UserAPI.verifyUser(userToConfirmId, true);
-                    enqueueSnackbar(t('clients.success.verified'), { variant: 'success' });
+                    enqueueSnackbar('Client vérifié.', { variant: 'success' });
                     break;
                 case 'unverify':
                     await UserAPI.verifyUser(userToConfirmId, false);
-                    enqueueSnackbar(t('clients.success.unverified'), { variant: 'success' });
+                    enqueueSnackbar('Vérification du client annulée.', { variant: 'success' });
                     break;
                 case 'promote':
                     await UserAPI.promoteToReseller(userToConfirmId);
-                    enqueueSnackbar(t('clients.success.promoted'), { variant: 'success' });
+                    enqueueSnackbar('Client promu au rang de revendeur avec succès.', { variant: 'success' });
                     break;
                 case 'delete':
                     await UserAPI.deleteUser(userToConfirmId);
-                    enqueueSnackbar(t('clients.success.deleted'), { variant: 'success' });
+                    enqueueSnackbar('Client supprimé avec succès.', { variant: 'success' });
                     break;
                 case 'deleteSelected':
                     await Promise.all(selectedUserIds.map(id => UserAPI.deleteUser(id)));
-                    enqueueSnackbar(t('clients.success.deletedMultiple', { count: selectedUserIds.length }), { variant: 'success' });
+                    enqueueSnackbar(`${selectedUserIds.length} clients supprimés avec succès.`, { variant: 'success' });
                     break;
                 default:
                     break;
@@ -218,27 +215,27 @@ export default function Clients() {
     };
 
     const enableClient = (id: string, name: string) => {
-        handleOpenConfirmDialog(id, 'enable', t('clients.confirmEnable'), name);
+        handleOpenConfirmDialog(id, 'enable', "Êtes-vous sûr de vouloir activer", name);
     };
 
     const disableClient = (id: string, name: string) => {
-        handleOpenConfirmDialog(id, 'disable', t('clients.confirmDisable'), name);
+        handleOpenConfirmDialog(id, 'disable', 'Êtes-vous sûr de vouloir désactiver', name);
     };
 
     const banClient = (id: string, name: string) => {
-        handleOpenConfirmDialog(id, 'ban', t('clients.confirmBan'), name);
+        handleOpenConfirmDialog(id, 'ban', 'Êtes-vous sûr de vouloir bannir', name);
     };
 
     const unbanClient = (id: string, name: string) => {
-        handleOpenConfirmDialog(id, 'unban', t('clients.confirmUnban'), name);
+        handleOpenConfirmDialog(id, 'unban', 'Êtes-vous sûr de vouloir débannir', name);
     };
 
     const verifyClient = (id: string, name: string) => {
-        handleOpenConfirmDialog(id, 'verify', t('clients.confirmVerify'), name);
+        handleOpenConfirmDialog(id, 'verify', 'Êtes-vous sûr de vouloir vérifier', name);
     };
 
     const unverifyClient = (id: string, name: string) => {
-        handleOpenConfirmDialog(id, 'unverify', t('clients.confirmUnverify'), name);
+        handleOpenConfirmDialog(id, 'unverify', 'Êtes-vous sûr de vouloir annuler la vérification de', name);
     };
 
     const promoteToReseller = (id: string, name: string) => {
@@ -250,7 +247,7 @@ export default function Clients() {
         const clientToDelete = clients.find((c: any) => c._id === id);
         if (clientToDelete) {
             const clientFullName = `${clientToDelete.firstName} ${clientToDelete.lastName}`;
-            handleOpenConfirmDialog(id, 'delete', t('clients.confirmDelete'), clientFullName);
+            handleOpenConfirmDialog(id, 'delete', 'Êtes-vous sûr de vouloir supprimer définitivement le compte de', clientFullName);
         }
     };
 
@@ -260,11 +257,11 @@ export default function Clients() {
             handleOpenConfirmDialog(
                 selectedIds,
                 'deleteSelected',
-                t('clients.confirmDelete'),
-                t('clients.confirmDeleteMultiple', { count: selectedIds.length })
+                `Êtes-vous sûr de vouloir supprimer définitivement`,
+                `ces ${selectedIds.length} clients`
             );
         } else {
-            enqueueSnackbar(t('clients.noSelection'), { variant: 'warning' });
+            enqueueSnackbar('Aucun client sélectionné à supprimer.', { variant: 'warning' });
         }
     };
 
@@ -304,13 +301,13 @@ export default function Clients() {
 
     const handleSaveRate = async () => {
         if (clientToRateId === '' || currentRate === null || initialRate === null) {
-            enqueueSnackbar(t('clients.rateUpdateError'), { variant: 'error' });
+            enqueueSnackbar('Erreur: Impossible de modifier la cote. Informations manquantes.', { variant: 'error' });
             return;
         }
 
         const totalDelta = currentRate - initialRate;
         if (Math.abs(totalDelta) !== 1) {
-            enqueueSnackbar(t('clients.rateAdjustmentInfo'), { variant: 'warning' });
+            enqueueSnackbar('La cote ne peut être ajustée que par un seul point à la fois (+1 ou -1).', { variant: 'warning' });
             return;
         }
 
@@ -318,12 +315,12 @@ export default function Clients() {
 
         try {
             await ReviewAPI.adjustUserRateByAdmin(clientToRateId, operationDelta);
-            enqueueSnackbar(t('clients.rateUpdateSuccess'), { variant: 'success' });
+            enqueueSnackbar('Rate du client mise à jour avec succès.', { variant: 'success' });
             fetchClients();
             handleCloseRateDialog();
         } catch (e: any) {
             console.error("Failed to update rate:", e);
-            enqueueSnackbar(e.response?.data?.message || t('clients.rateUpdateFailed'), { variant: 'error' });
+            enqueueSnackbar(e.response?.data?.message || 'Échec de la mise à jour de la cote.', { variant: 'error' });
         }
     };
 
@@ -406,21 +403,21 @@ export default function Clients() {
                             {/* Verified cell */}
                             <TableCell align="left">
                                 <Label variant="ghost" color={isVerified ? 'success' : 'error'} sx={{ fontSize: isMobile ? '0.7rem' : '0.75rem' }}>
-                                    {sentenceCase(isVerified ? t('reseller.status.validAccount') : t('reseller.status.invalidAccount'))}
+                                    {sentenceCase(isVerified ? "Compte Valide" : 'Compte Non Valide')}
                                 </Label>
                             </TableCell>
 
                             {/* Active cell */}
                             <TableCell align="left" sx={{ display: isMobile ? 'none' : 'table-cell' }}>
                                 <Label variant="ghost" color={isActive ? 'success' : 'error'} sx={{ fontSize: isMobile ? '0.7rem' : '0.75rem' }}>
-                                    {sentenceCase(isActive ? t('clients.table.active') : t('clients.table.active'))}
+                                    {sentenceCase(isActive ? 'Actif' : 'Inactif')}
                                 </Label>
                             </TableCell>
 
                             {/* Banned cell */}
                             <TableCell align="left" sx={{ display: isMobile ? 'none' : 'table-cell' }}>
                                 <Label variant="ghost" color={isBanned ? 'error' : 'success'} sx={{ fontSize: isMobile ? '0.7rem' : '0.75rem' }}>
-                                    {sentenceCase(isBanned ? t('clients.table.banned') : t('clients.table.banned'))}
+                                    {sentenceCase(isBanned ? 'Banni' : 'Non Banni')}
                                 </Label>
                             </TableCell>
 
@@ -444,18 +441,18 @@ export default function Clients() {
                                 <ActionsMenu
                                     _id={_id}
                                     actions={[
-                                        { label: t('clients.actions.adjustRate'), onClick: () => handleOpenRateDialog(_id, clientFullName, rate), icon: 'eva:edit-fill' },
-                                        ...(row.type === 'CLIENT' ? [{ label: t('clients.actions.promote'), onClick: () => promoteToReseller(_id, clientFullName), icon: 'eva:star-outline' }] : []),
+                                        { label: 'Modifier Rate', onClick: () => handleOpenRateDialog(_id, clientFullName, rate), icon: 'eva:edit-fill' },
+                                        ...(row.type === 'CLIENT' ? [{ label: 'Promouvoir en Revendeur', onClick: () => promoteToReseller(_id, clientFullName), icon: 'eva:star-outline' }] : []),
                                         ...(isActive
-                                            ? [{ label: t('clients.actions.disable'), onClick: () => disableClient(_id, clientFullName), icon: 'mdi:user-block-outline' }]
-                                            : [{ label: t('clients.actions.enable'), onClick: () => enableClient(_id, clientFullName), icon: 'mdi:user-check-outline' }]),
+                                            ? [{ label: 'Désactiver', onClick: () => disableClient(_id, clientFullName), icon: 'mdi:user-block-outline' }]
+                                            : [{ label: 'Activer', onClick: () => enableClient(_id, clientFullName), icon: 'mdi:user-check-outline' }]),
                                         ...(isBanned
-                                            ? [{ label: t('clients.actions.unban'), onClick: () => unbanClient(_id, clientFullName), icon: 'eva:person-done-outline' }]
-                                            : [{ label: t('clients.actions.ban'), onClick: () => banClient(_id, clientFullName), icon: 'eva:slash-outline' }]),
+                                            ? [{ label: 'Débannir', onClick: () => unbanClient(_id, clientFullName), icon: 'eva:person-done-outline' }]
+                                            : [{ label: 'Bannir', onClick: () => banClient(_id, clientFullName), icon: 'eva:slash-outline' }]),
                                         ...(isVerified
-                                            ? [{ label: t('clients.actions.unverify'), onClick: () => unverifyClient(_id, clientFullName), icon: 'eva:close-circle-outline' }]
-                                            : [{ label: t('clients.actions.verify'), onClick: () => verifyClient(_id, clientFullName), icon: 'eva:checkmark-circle-outline' }]),
-                                        { label: t('clients.actions.delete'), onClick: () => handleDeleteSingleClient(_id), icon: 'eva:trash-2-outline' },
+                                            ? [{ label: 'Annuler la vérification', onClick: () => unverifyClient(_id, clientFullName), icon: 'eva:close-circle-outline' }]
+                                            : [{ label: 'Vérifier', onClick: () => verifyClient(_id, clientFullName), icon: 'eva:checkmark-circle-outline' }]),
+                                        { label: 'Supprimer', onClick: () => handleDeleteSingleClient(_id), icon: 'eva:trash-2-outline' },
                                     ]}
                                 />
                             </TableCell>
@@ -490,7 +487,7 @@ export default function Clients() {
                             </IconWrapperStyle>
                             <Box>
                                 <Typography variant={isMobile ? "body2" : "h6"} color="textSecondary" sx={{ opacity: 0.72 }}>
-                                    {t('clients.stats.total')}
+                                    Total Clients
                                 </Typography>
                                 <Typography variant={isMobile ? "h5" : "h4"} component="div">
                                     {totalClients}
@@ -508,7 +505,7 @@ export default function Clients() {
                             </IconWrapperStyle>
                             <Box>
                                 <Typography variant={isMobile ? "body2" : "h6"} color="textSecondary" sx={{ opacity: 0.72 }}>
-                                    {t('clients.stats.banned')}
+                                    Clients Bannis
                                 </Typography>
                                 <Typography variant={isMobile ? "h5" : "h4"} component="div">
                                     {bannedClients}
@@ -526,7 +523,7 @@ export default function Clients() {
                             </IconWrapperStyle>
                             <Box>
                                 <Typography variant={isMobile ? "body2" : "h6"} color="textSecondary" sx={{ opacity: 0.72 }}>
-                                    {t('clients.stats.verified')}
+                                    Clients Vérifiés
                                 </Typography>
                                 <Typography variant={isMobile ? "h5" : "h4"} component="div">
                                     {verifiedClients}
@@ -544,7 +541,7 @@ export default function Clients() {
                             </IconWrapperStyle>
                             <Box>
                                 <Typography variant={isMobile ? "body2" : "h6"} color="textSecondary" sx={{ opacity: 0.72 }}>
-                                    {t('clients.stats.active')}
+                                    Clients Actifs
                                 </Typography>
                                 <Typography variant={isMobile ? "h5" : "h4"} component="div">
                                     {activeClients}
@@ -602,15 +599,15 @@ export default function Clients() {
                     <DialogTitle sx={{ m: 0, p: { xs: 1.5, sm: 2 }, display: 'flex', alignItems: 'center', fontSize: isMobile ? '1rem' : '1.25rem' }} id="confirm-dialog-title">
                         {(actionType === 'ban' || actionType === 'disable' || actionType === 'unverify' || actionType === 'delete' || actionType === 'deleteSelected') && <WarningIcon sx={{ mr: 1, color: 'warning.main', fontSize: isMobile ? 20 : 24 }} />}
                         {(actionType === 'verify' || actionType === 'enable' || actionType === 'unban' || actionType === 'promote') && <CheckCircleOutlineIcon sx={{ mr: 1, color: 'success.main', fontSize: isMobile ? 20 : 24 }} />}
-                        {actionType === 'ban' ? t('clients.actions.ban') :
-                         actionType === 'unban' ? t('clients.actions.unban') :
-                         actionType === 'enable' ? t('clients.actions.enable') :
-                         actionType === 'disable' ? t('clients.actions.disable') :
-                         actionType === 'verify' ? t('clients.actions.verify') :
-                         actionType === 'unverify' ? t('clients.actions.unverify') :
-                         actionType === 'promote' ? t('clients.actions.promote') :
-                         actionType === 'delete' ? t('clients.actions.delete') :
-                         actionType === 'deleteSelected' ? t('clients.actions.delete') : ''}
+                        {actionType === 'ban' ? 'Bannir Client' :
+                         actionType === 'unban' ? 'Débannir Client' :
+                         actionType === 'enable' ? 'Activer Client' :
+                         actionType === 'disable' ? 'Désactiver Client' :
+                         actionType === 'verify' ? 'Vérifier Client' :
+                         actionType === 'unverify' ? 'Annuler Vérification' :
+                         actionType === 'promote' ? 'Promouvoir Client' :
+                         actionType === 'delete' ? 'Supprimer Client' :
+                         actionType === 'deleteSelected' ? 'Supprimer Clients' : ''}
                     </DialogTitle>
                     <DialogContent sx={{ p: { xs: 1.5, sm: 2 } }}>
                         <Typography gutterBottom sx={{ fontSize: isMobile ? '0.85rem' : '1rem' }}>
@@ -619,7 +616,7 @@ export default function Clients() {
                     </DialogContent>
                     <DialogActions sx={{ p: { xs: 1.5, sm: 2 } }}>
                         <Button onClick={handleCloseConfirmDialog} color="inherit" size={isMobile ? 'small' : 'medium'}>
-                            {t('common.cancel')}
+                            Annuler
                         </Button>
                         <Button
                             onClick={handleConfirmAction}
@@ -628,7 +625,7 @@ export default function Clients() {
                             autoFocus
                             size={isMobile ? 'small' : 'medium'}
                         >
-                            {t('common.confirm')}
+                            Confirmer
                         </Button>
                     </DialogActions>
                 </Dialog>
@@ -647,11 +644,11 @@ export default function Clients() {
                 >
                     <DialogTitle sx={{ m: 0, p: { xs: 1.5, sm: 2 }, display: 'flex', alignItems: 'center', fontSize: isMobile ? '1rem' : '1.25rem' }} id="rate-dialog-title">
                         <EditIcon sx={{ mr: 1, fontSize: isMobile ? 20 : 24 }} />
-                        {t('clients.rateAdjustment')}
+                        Modifier la cote du client
                     </DialogTitle>
                     <DialogContent sx={{ p: { xs: 1.5, sm: 2 } }}>
                         <Typography gutterBottom sx={{ fontSize: isMobile ? '0.85rem' : '1rem' }}>
-                            {t('clients.rateAdjustment')} <Typography component="span" fontWeight="bold">{clientNameForRateDialog}</Typography>:
+                            Modifier la cote pour <Typography component="span" fontWeight="bold">{clientNameForRateDialog}</Typography>:
                         </Typography>
                         <Stack direction="row" alignItems="center" spacing={isMobile ? 1 : 2} sx={{ mt: { xs: 1.5, sm: 2 }, mb: { xs: 1.5, sm: 2 }, justifyContent: 'center' }}>
                             <IconButton onClick={handleDecrementRate} disabled={currentRate === null || currentRate <= 1} color="error">
@@ -667,10 +664,10 @@ export default function Clients() {
                     </DialogContent>
                     <DialogActions sx={{ p: { xs: 1.5, sm: 2 } }}>
                         <Button onClick={handleCloseRateDialog} color="inherit" size={isMobile ? 'small' : 'medium'}>
-                            {t('common.cancel')}
+                            Annuler
                         </Button>
                         <Button onClick={handleSaveRate} variant="contained" color="primary" size={isMobile ? 'small' : 'medium'}>
-                            {t('common.save')}
+                            Enregistrer
                         </Button>
                     </DialogActions>
                 </Dialog>
