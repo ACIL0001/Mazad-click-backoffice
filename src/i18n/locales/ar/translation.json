@@ -125,6 +125,7 @@
     "categories": "الفئات",
     "subCategories": "الفئات الفرعية",
     "subSubCategories": "الفئات الفرعية الفرعية",
+    "ads": "الإعلانات",
     "subscriptions": "الاشتراكات",
     "terms": "الشروط والأحكام",
     "communicationCenter": "مركز الاتصال",
@@ -182,6 +183,43 @@
     },
     "purchasesWillAppear": "ستظهر الطلبات هنا بمجرد قيام المشترين بعمليات الشراء",
     "availableQuantity": "الكمية المتاحة"
+  },
+  "ads": {
+    "title": "إدارة الإعلانات",
+    "addNew": "إضافة إعلان جديد",
+    "edit": "تعديل",
+    "delete": "حذف",
+    "image": "الصورة",
+    "url": "الرابط",
+    "isActive": "نشط",
+    "isDisplayed": "معروض",
+    "order": "الترتيب",
+    "actions": "الإجراءات",
+    "create": "إنشاء إعلان",
+    "update": "تحديث",
+    "cancel": "إلغاء",
+    "confirmDelete": "هل أنت متأكد من حذف هذا الإعلان؟ لا يمكن التراجع عن هذا الإجراء.",
+    "success": {
+      "created": "تم إنشاء الإعلان بنجاح",
+      "updated": "تم تحديث الإعلان بنجاح",
+      "deleted": "تم حذف الإعلان بنجاح",
+      "displayUpdated": "تم تحديث حالة العرض",
+      "activeUpdated": "تم تحديث الحالة النشطة"
+    },
+    "errors": {
+      "loading": "خطأ في تحميل الإعلانات",
+      "creating": "خطأ في إنشاء الإعلان",
+      "updating": "خطأ في تحديث الإعلان",
+      "deleting": "خطأ في حذف الإعلان"
+    },
+    "validation": {
+      "titleRequired": "العنوان مطلوب",
+      "urlRequired": "الرابط مطلوب",
+      "urlInvalid": "يرجى إدخال رابط صحيح",
+      "imageRequired": "الصورة مطلوبة للإعلانات الجديدة",
+      "imageSize": "يجب أن يكون حجم الصورة أقل من 5 ميجابايت",
+      "imageFormat": "يرجى اختيار ملف صورة صحيح"
+    }
   },
   "common": {
     "loading": "جاري التحميل...",

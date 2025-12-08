@@ -94,6 +94,11 @@ export const useNavConfig = () => {
       icon: getIcon('material-symbols:layers'),
     },
     {
+      title: t('navigation.ads'),
+      path: '/dashboard/ads',
+      icon: getIcon('mdi:image-multiple-outline'),
+    },
+    {
       title: t('navigation.subscriptions'),
       path: '/dashboard/subscription',
       icon: getIcon('mdi:credit-card-multiple'),
@@ -241,6 +246,11 @@ const navConfig = [
     title: 'Sous-Sous Categories',
     path: '/dashboard/sous-sous-categories',
     icon: getIcon('material-symbols:layers'),
+  },
+  {
+    title: 'Publicités',
+    path: '/dashboard/ads',
+    icon: getIcon('mdi:image-multiple-outline'),
   },
   {
     title: 'Abonnements',

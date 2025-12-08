@@ -33,7 +33,15 @@ export const requests = {
       ? instance.post(url, body, config) 
       : instance.post(url, body, config).then(response);
   },
-  put: (url: string, body: {}) => instance.put(url, body).then(response),
+  put: (url: string, body: {}) => {
+    const config: any = {};
+    if (body instanceof FormData) {
+      config.headers = {
+        'Content-Type': 'multipart/form-data',
+      };
+    }
+    return instance.put(url, body, config).then(response);
+  },
   patch: (url: string, body: {}) => instance.patch(url, body).then(response),
   delete: (url: string, data?: any) => instance.delete(url, { data }).then(response),
 };

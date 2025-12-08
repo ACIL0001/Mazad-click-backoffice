@@ -143,6 +143,7 @@
     "categories": "Catégories",
     "subCategories": "Sous Catégories",
     "subSubCategories": "Sous-Sous Catégories",
+    "ads": "Publicités",
     "subscriptions": "Abonnements",
     "terms": "Conditions Générales",
     "communicationCenter": "Centre de Communication",
@@ -199,5 +200,42 @@
       "refunded": "Remboursé"
     },
     "purchasesWillAppear": "Les commandes apparaîtront ici une fois que les acheteurs auront effectué des achats"
+  },
+  "ads": {
+    "title": "Gestion des Publicités",
+    "addNew": "Ajouter une Publicité",
+    "edit": "Modifier",
+    "delete": "Supprimer",
+    "image": "Image",
+    "url": "URL",
+    "isActive": "Actif",
+    "isDisplayed": "Affiché",
+    "order": "Ordre",
+    "actions": "Actions",
+    "create": "Créer une publicité",
+    "update": "Mettre à jour",
+    "cancel": "Annuler",
+    "confirmDelete": "Êtes-vous sûr de vouloir supprimer cette publicité ? Cette action est irréversible.",
+    "success": {
+      "created": "Publicité créée avec succès",
+      "updated": "Publicité mise à jour avec succès",
+      "deleted": "Publicité supprimée avec succès",
+      "displayUpdated": "Statut d'affichage mis à jour",
+      "activeUpdated": "Statut actif mis à jour"
+    },
+    "errors": {
+      "loading": "Erreur lors du chargement des publicités",
+      "creating": "Erreur lors de la création de la publicité",
+      "updating": "Erreur lors de la mise à jour de la publicité",
+      "deleting": "Erreur lors de la suppression de la publicité"
+    },
+    "validation": {
+      "titleRequired": "Le titre est requis",
+      "urlRequired": "L'URL est requise",
+      "urlInvalid": "Veuillez entrer une URL valide",
+      "imageRequired": "L'image est requise pour les nouvelles publicités",
+      "imageSize": "La taille de l'image doit être inférieure à 5MB",
+      "imageFormat": "Veuillez sélectionner un fichier image valide"
+    }
   }
 }

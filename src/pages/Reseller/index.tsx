@@ -136,6 +136,9 @@ export default function Reseller() {
     const [initialRate, setInitialRate] = useState<number | null>(null);
     const [resellerNameForRateDialog, setResellerNameForRateDialog] = useState('');
 
+    // Loading states for status toggles
+    const [togglingStatus, setTogglingStatus] = useState<{ [key: string]: boolean }>({});
+
     const fetchResellers = useCallback(async () => {
         try {
             setLoading(true);
@@ -369,6 +372,67 @@ export default function Reseller() {
         }
     };
 
+    // Toggle handler functions for direct label clicks
+    const toggleVerified = async (id: string, currentValue: boolean) => {
+        const statusKey = `verified-${id}`;
+        setTogglingStatus(prev => ({ ...prev, [statusKey]: true }));
+        try {
+            await UserAPI.verifyUser(id, !currentValue);
+            enqueueSnackbar(`Compte ${!currentValue ? 'vérifié' : 'non vérifié'} avec succès.`, { variant: 'success' });
+            fetchResellers();
+        } catch (error: any) {
+            console.error('Failed to toggle verified status:', error);
+            enqueueSnackbar(error?.response?.data?.message || 'Échec de la modification du statut.', { variant: 'error' });
+        } finally {
+            setTogglingStatus(prev => ({ ...prev, [statusKey]: false }));
+        }
+    };
+
+    const toggleActive = async (id: string, currentValue: boolean) => {
+        const statusKey = `active-${id}`;
+        setTogglingStatus(prev => ({ ...prev, [statusKey]: true }));
+        try {
+            await UserAPI.setUserActive(id, !currentValue);
+            enqueueSnackbar(`Compte ${!currentValue ? 'activé' : 'désactivé'} avec succès.`, { variant: 'success' });
+            fetchResellers();
+        } catch (error: any) {
+            console.error('Failed to toggle active status:', error);
+            enqueueSnackbar(error?.response?.data?.message || 'Échec de la modification du statut.', { variant: 'error' });
+        } finally {
+            setTogglingStatus(prev => ({ ...prev, [statusKey]: false }));
+        }
+    };
+
+    const toggleBanned = async (id: string, currentValue: boolean) => {
+        const statusKey = `banned-${id}`;
+        setTogglingStatus(prev => ({ ...prev, [statusKey]: true }));
+        try {
+            await UserAPI.setUserBanned(id, !currentValue);
+            enqueueSnackbar(`Compte ${!currentValue ? 'banni' : 'débanni'} avec succès.`, { variant: 'success' });
+            fetchResellers();
+        } catch (error: any) {
+            console.error('Failed to toggle banned status:', error);
+            enqueueSnackbar(error?.response?.data?.message || 'Échec de la modification du statut.', { variant: 'error' });
+        } finally {
+            setTogglingStatus(prev => ({ ...prev, [statusKey]: false }));
+        }
+    };
+
+    const toggleRecommended = async (id: string, currentValue: boolean) => {
+        const statusKey = `recommended-${id}`;
+        setTogglingStatus(prev => ({ ...prev, [statusKey]: true }));
+        try {
+            await UserAPI.recommendUser(id, !currentValue);
+            enqueueSnackbar(`Recommandation ${!currentValue ? 'ajoutée' : 'retirée'} avec succès.`, { variant: 'success' });
+            fetchResellers();
+        } catch (error: any) {
+            console.error('Failed to toggle recommended status:', error);
+            enqueueSnackbar(error?.response?.data?.message || 'Échec de la modification du statut.', { variant: 'error' });
+        } finally {
+            setTogglingStatus(prev => ({ ...prev, [statusKey]: false }));
+        }
+    };
+
     const handleDeleteSelected = () => {
         console.log("handleDeleteSelected invoked!");
         const selectedIds = resellers.filter(r => selected.includes(`${r.firstName} ${r.lastName}`)).map(r => r._id);
@@ -512,46 +576,106 @@ export default function Reseller() {
                             <TableCell align="left" sx={{ display: isMobile ? 'none' : 'table-cell' }}>{phone || 'N/A'}</TableCell>
 
                             <TableCell align="left">
-                                <Label variant="ghost" color={isVerified ? 'success' : 'error'} sx={{ fontSize: isMobile ? '0.7rem' : '0.75rem' }}>
-                                    {sentenceCase(isVerified ? "Compte Valide" : 'Compte Non Valide')}
-                                </Label>
+                                <Box
+                                    onClick={() => !togglingStatus[`verified-${_id}`] && toggleVerified(_id, isVerified)}
+                                    sx={{
+                                        cursor: togglingStatus[`verified-${_id}`] ? 'wait' : 'pointer',
+                                        opacity: togglingStatus[`verified-${_id}`] ? 0.6 : 1,
+                                        pointerEvents: togglingStatus[`verified-${_id}`] ? 'none' : 'auto',
+                                        display: 'inline-block'
+                                    }}
+                                >
+                                    <Label variant="ghost" color={isVerified ? 'success' : 'error'} sx={{ fontSize: isMobile ? '0.7rem' : '0.75rem' }}>
+                                        {togglingStatus[`verified-${_id}`] ? '...' : sentenceCase(isVerified ? "Compte Valide" : 'Compte Non Valide')}
+                                    </Label>
+                                </Box>
                             </TableCell>
 
                             <TableCell align="left" sx={{ display: isMobile ? 'none' : 'table-cell' }}>
-                                <Label variant="ghost" color={isActive ? 'success' : 'error'} sx={{ fontSize: isMobile ? '0.7rem' : '0.75rem' }}>
-                                    {sentenceCase(isActive ? 'Actif' : 'Inactif')}
-                                </Label>
+                                <Box
+                                    onClick={() => !togglingStatus[`active-${_id}`] && toggleActive(_id, isActive)}
+                                    sx={{
+                                        cursor: togglingStatus[`active-${_id}`] ? 'wait' : 'pointer',
+                                        opacity: togglingStatus[`active-${_id}`] ? 0.6 : 1,
+                                        pointerEvents: togglingStatus[`active-${_id}`] ? 'none' : 'auto',
+                                        display: 'inline-block'
+                                    }}
+                                >
+                                    <Label variant="ghost" color={isActive ? 'success' : 'error'} sx={{ fontSize: isMobile ? '0.7rem' : '0.75rem' }}>
+                                        {togglingStatus[`active-${_id}`] ? '...' : sentenceCase(isActive ? 'Actif' : 'Inactif')}
+                                    </Label>
+                                </Box>
                             </TableCell>
 
                             <TableCell align="left" sx={{ display: isMobile ? 'none' : 'table-cell' }}>
-                                <Label variant="ghost" color={isBanned ? 'error' : 'success'} sx={{ fontSize: isMobile ? '0.7rem' : '0.75rem' }}>
-                                    {sentenceCase(isBanned ? 'Banni' : 'Non Banni')}
-                                </Label>
+                                <Box
+                                    onClick={() => !togglingStatus[`banned-${_id}`] && toggleBanned(_id, isBanned)}
+                                    sx={{
+                                        cursor: togglingStatus[`banned-${_id}`] ? 'wait' : 'pointer',
+                                        opacity: togglingStatus[`banned-${_id}`] ? 0.6 : 1,
+                                        pointerEvents: togglingStatus[`banned-${_id}`] ? 'none' : 'auto',
+                                        display: 'inline-block'
+                                    }}
+                                >
+                                    <Label variant="ghost" color={isBanned ? 'error' : 'success'} sx={{ fontSize: isMobile ? '0.7rem' : '0.75rem' }}>
+                                        {togglingStatus[`banned-${_id}`] ? '...' : sentenceCase(isBanned ? 'Banni' : 'Non Banni')}
+                                    </Label>
+                                </Box>
                             </TableCell>
 
                             <TableCell align="left">
-                                <Label 
-                                    variant="ghost" 
-                                    color={isRecommended ? 'primary' : 'default'} 
-                                    sx={{ 
-                                        display: 'inline-flex', 
-                                        alignItems: 'center', 
-                                        fontSize: isMobile ? '0.7rem' : '0.75rem' 
+                                <Box
+                                    onClick={() => !togglingStatus[`recommended-${_id}`] && toggleRecommended(_id, isRecommended)}
+                                    sx={{
+                                        cursor: togglingStatus[`recommended-${_id}`] ? 'wait' : 'pointer',
+                                        opacity: togglingStatus[`recommended-${_id}`] ? 0.6 : 1,
+                                        pointerEvents: togglingStatus[`recommended-${_id}`] ? 'none' : 'auto',
+                                        display: 'inline-block'
                                     }}
                                 >
-                                    {isRecommended && <RecommendIcon sx={{ fontSize: isMobile ? 14 : 16, mr: 0.5 }} />}
-                                    {isRecommended ? 'Recommandé' : 'Non Recommandé'}
-                                </Label>
+                                    <Label 
+                                        variant="ghost" 
+                                        color={isRecommended ? 'primary' : 'default'} 
+                                        sx={{ 
+                                            display: 'inline-flex', 
+                                            alignItems: 'center', 
+                                            fontSize: isMobile ? '0.7rem' : '0.75rem'
+                                        }}
+                                    >
+                                        {togglingStatus[`recommended-${_id}`] ? '...' : (
+                                            <>
+                                                {isRecommended && <RecommendIcon sx={{ fontSize: isMobile ? 14 : 16, mr: 0.5 }} />}
+                                                {isRecommended ? 'Recommandé' : 'Non Recommandé'}
+                                            </>
+                                        )}
+                                    </Label>
+                                </Box>
                             </TableCell>
 
                             <TableCell align="left">
                                 {rate !== undefined && rate !== null ? (
-                                    <Label variant="ghost" color={rateColor} sx={{ display: 'inline-flex', alignItems: 'center', fontSize: isMobile ? '0.7rem' : '0.75rem' }}>
-                                        <StarIcon sx={{ fontSize: isMobile ? 14 : 16, mr: 0.5 }} />
-                                        {rate.toFixed(1)}
-                                    </Label>
+                                    <Box
+                                        onClick={() => handleOpenRateDialog(_id, resellerFullName, rate)}
+                                        sx={{
+                                            cursor: 'pointer',
+                                            display: 'inline-block'
+                                        }}
+                                    >
+                                        <Label variant="ghost" color={rateColor} sx={{ display: 'inline-flex', alignItems: 'center', fontSize: isMobile ? '0.7rem' : '0.75rem' }}>
+                                            <StarIcon sx={{ fontSize: isMobile ? 14 : 16, mr: 0.5 }} />
+                                            {rate.toFixed(1)}
+                                        </Label>
+                                    </Box>
                                 ) : (
-                                    <Label variant="ghost" color="info" sx={{ fontSize: isMobile ? '0.7rem' : '0.75rem' }}>N/A</Label>
+                                    <Box
+                                        onClick={() => handleOpenRateDialog(_id, resellerFullName, undefined)}
+                                        sx={{
+                                            cursor: 'pointer',
+                                            display: 'inline-block'
+                                        }}
+                                    >
+                                        <Label variant="ghost" color="info" sx={{ fontSize: isMobile ? '0.7rem' : '0.75rem' }}>N/A</Label>
+                                    </Box>
                                 )}
                             </TableCell>
 
@@ -561,19 +685,6 @@ export default function Reseller() {
                                 <ActionsMenu
                                     _id={_id}
                                     actions={[
-                                        { label: 'Modifier Rate', onClick: () => handleOpenRateDialog(_id, resellerFullName, rate), icon: 'eva:edit-fill' },
-                                        isRecommended
-                                            ? { label: 'Retirer Recommandation', onClick: () => unrecommendReseller(_id, resellerFullName), icon: 'eva:star-outline' }
-                                            : { label: 'Recommander', onClick: () => recommendReseller(_id, resellerFullName), icon: 'eva:star-fill' },
-                                        isActive
-                                            ? { label: 'Désactiver', onClick: () => disableReseller(_id, resellerFullName), icon: 'mdi:user-block-outline' }
-                                            : { label: 'Activer', onClick: () => enableReseller(_id, resellerFullName), icon: 'mdi:user-check-outline' },
-                                        isBanned
-                                            ? { label: 'Débannir', onClick: () => unbanReseller(_id, resellerFullName), icon: 'eva:person-done-outline' }
-                                            : { label: 'Bannir', onClick: () => banReseller(_id, resellerFullName), icon: 'eva:slash-outline' },
-                                        isVerified
-                                            ? { label: 'Annuler la vérification', onClick: () => unverifyReseller(_id, resellerFullName), icon: 'eva:close-circle-outline' }
-                                            : { label: 'Vérifier', onClick: () => verifyReseller(_id, resellerFullName), icon: 'eva:checkmark-circle-outline' },
                                         { label: 'Supprimer', onClick: () => deleteReseller(_id), icon: 'eva:trash-2-outline' }
                                     ]}
                                 />

@@ -125,6 +125,7 @@
     "categories": "Categories",
     "subCategories": "Sub Categories",
     "subSubCategories": "Sub-Sub Categories",
+    "ads": "Ads",
     "subscriptions": "Subscriptions",
     "terms": "Terms & Conditions",
     "communicationCenter": "Communication Center",
@@ -182,6 +183,43 @@
     },
     "purchasesWillAppear": "Orders will appear here once buyers make purchases",
     "availableQuantity": "Available Quantity"
+  },
+  "ads": {
+    "title": "Ads Management",
+    "addNew": "Add New Ad",
+    "edit": "Edit",
+    "delete": "Delete",
+    "image": "Image",
+    "url": "URL",
+    "isActive": "Active",
+    "isDisplayed": "Displayed",
+    "order": "Order",
+    "actions": "Actions",
+    "create": "Create Ad",
+    "update": "Update",
+    "cancel": "Cancel",
+    "confirmDelete": "Are you sure you want to delete this ad? This action cannot be undone.",
+    "success": {
+      "created": "Ad created successfully",
+      "updated": "Ad updated successfully",
+      "deleted": "Ad deleted successfully",
+      "displayUpdated": "Display status updated",
+      "activeUpdated": "Active status updated"
+    },
+    "errors": {
+      "loading": "Error loading ads",
+      "creating": "Error creating ad",
+      "updating": "Error updating ad",
+      "deleting": "Error deleting ad"
+    },
+    "validation": {
+      "titleRequired": "Title is required",
+      "urlRequired": "URL is required",
+      "urlInvalid": "Please enter a valid URL",
+      "imageRequired": "Image is required for new ads",
+      "imageSize": "Image size must be less than 5MB",
+      "imageFormat": "Please select a valid image file"
+    }
   },
   "common": {
     "loading": "Loading...",

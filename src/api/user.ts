@@ -53,4 +53,8 @@ export const UserAPI = {
   
   getRecommendedResellers: (): Promise<any> => 
     requests.get('users/resellers/recommended'),
+
+  // Certification methods
+  setUserCertified: (userId: string, isCertified: boolean): Promise<any> => 
+    requests.put(`users/certified/${userId}`, { isCertified }),
 };

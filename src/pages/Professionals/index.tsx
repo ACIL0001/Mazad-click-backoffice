@@ -409,6 +409,9 @@ export default function Professionals() {
     const [currentUserId, setCurrentUserId] = useState('');
     const [updatingDocument, setUpdatingDocument] = useState<string | null>(null);
 
+    // Loading states for status toggles
+    const [togglingStatus, setTogglingStatus] = useState<{ [key: string]: boolean }>({});
+
     useEffect(() => {
         fetchProfessionals();
         return () => { };
@@ -913,6 +916,95 @@ export default function Professionals() {
         }
     };
 
+    // Toggle handler functions for direct label clicks
+    const toggleVerified = async (id: string, currentValue: boolean) => {
+        const statusKey = `verified-${id}`;
+        setTogglingStatus(prev => ({ ...prev, [statusKey]: true }));
+        try {
+            await UserAPI.verifyUser(id, !currentValue);
+            enqueueSnackbar(`Compte ${!currentValue ? 'vérifié' : 'non vérifié'} avec succès.`, { variant: 'success' });
+            fetchProfessionals();
+        } catch (error: any) {
+            console.error('Failed to toggle verified status:', error);
+            enqueueSnackbar(error?.response?.data?.message || 'Échec de la modification du statut.', { variant: 'error' });
+        } finally {
+            setTogglingStatus(prev => ({ ...prev, [statusKey]: false }));
+        }
+    };
+
+    const toggleCertified = async (id: string, name: string, currentValue: boolean) => {
+        const statusKey = `certified-${id}`;
+        setTogglingStatus(prev => ({ ...prev, [statusKey]: true }));
+        try {
+            if (!currentValue) {
+                // Certify
+                const documents = await IdentityAPI.getUserDocuments(id);
+                if (!documents?._id) {
+                    enqueueSnackbar(`Impossible de certifier ${name} : documents d'identité introuvables.`, { variant: 'warning' });
+                    setTogglingStatus(prev => ({ ...prev, [statusKey]: false }));
+                    return;
+                }
+                await IdentityAPI.certifyIdentity(documents._id);
+                enqueueSnackbar(`${name} a été certifié avec succès.`, { variant: 'success' });
+            } else {
+                // Uncertify
+                await UserAPI.setUserCertified(id, false);
+                enqueueSnackbar(`${name} a été décertifié avec succès.`, { variant: 'success' });
+            }
+            fetchProfessionals();
+        } catch (error: any) {
+            console.error('Failed to toggle certified status:', error);
+            enqueueSnackbar(error?.response?.data?.message || 'Échec de la modification du statut.', { variant: 'error' });
+        } finally {
+            setTogglingStatus(prev => ({ ...prev, [statusKey]: false }));
+        }
+    };
+
+    const toggleActive = async (id: string, currentValue: boolean) => {
+        const statusKey = `active-${id}`;
+        setTogglingStatus(prev => ({ ...prev, [statusKey]: true }));
+        try {
+            await UserAPI.setUserActive(id, !currentValue);
+            enqueueSnackbar(`Compte ${!currentValue ? 'activé' : 'désactivé'} avec succès.`, { variant: 'success' });
+            fetchProfessionals();
+        } catch (error: any) {
+            console.error('Failed to toggle active status:', error);
+            enqueueSnackbar(error?.response?.data?.message || 'Échec de la modification du statut.', { variant: 'error' });
+        } finally {
+            setTogglingStatus(prev => ({ ...prev, [statusKey]: false }));
+        }
+    };
+
+    const toggleBanned = async (id: string, currentValue: boolean) => {
+        const statusKey = `banned-${id}`;
+        setTogglingStatus(prev => ({ ...prev, [statusKey]: true }));
+        try {
+            await UserAPI.setUserBanned(id, !currentValue);
+            enqueueSnackbar(`Compte ${!currentValue ? 'banni' : 'débanni'} avec succès.`, { variant: 'success' });
+            fetchProfessionals();
+        } catch (error: any) {
+            console.error('Failed to toggle banned status:', error);
+            enqueueSnackbar(error?.response?.data?.message || 'Échec de la modification du statut.', { variant: 'error' });
+        } finally {
+            setTogglingStatus(prev => ({ ...prev, [statusKey]: false }));
+        }
+    };
+
+    const toggleRecommended = async (id: string, currentValue: boolean) => {
+        const statusKey = `recommended-${id}`;
+        setTogglingStatus(prev => ({ ...prev, [statusKey]: true }));
+        try {
+            await UserAPI.recommendUser(id, !currentValue);
+            enqueueSnackbar(`Recommandation ${!currentValue ? 'ajoutée' : 'retirée'} avec succès.`, { variant: 'success' });
+            fetchProfessionals();
+        } catch (error: any) {
+            console.error('Failed to toggle recommended status:', error);
+            enqueueSnackbar(error?.response?.data?.message || 'Échec de la modification du statut.', { variant: 'error' });
+        } finally {
+            setTogglingStatus(prev => ({ ...prev, [statusKey]: false }));
+        }
+    };
+
     const handleDeleteSelected = () => {
         console.log("handleDeleteSelected invoked!");
         const selectedIds = professionals.filter(p => selected.includes(`${p.firstName} ${p.lastName}`)).map(p => p._id);
@@ -1151,52 +1243,162 @@ export default function Professionals() {
                             </TableCell>
 
                             <TableCell align="left">
-                                <Label variant="ghost" color={isVerified ? 'success' : 'error'} sx={{ fontSize: isMobile ? '0.7rem' : '0.75rem' }}>
-                                    {sentenceCase(isVerified ? "Compte Valide" : 'Compte Non Valide')}
-                                </Label>
-                            </TableCell>
-
-                            <TableCell align="left">
-                                <Label variant="ghost" color={isCertified ? 'primary' : 'default'} sx={{ fontSize: isMobile ? '0.7rem' : '0.75rem' }}>
-                                    {sentenceCase(isCertified ? 'Certifié' : 'Non Certifié')}
-                                </Label>
-                            </TableCell>
-
-                            <TableCell align="left" sx={{ display: isMobile ? 'none' : 'table-cell' }}>
-                                <Label variant="ghost" color={isActive ? 'success' : 'error'} sx={{ fontSize: isMobile ? '0.7rem' : '0.75rem' }}>
-                                    {sentenceCase(isActive ? 'Actif' : 'Inactif')}
-                                </Label>
-                            </TableCell>
-
-                            <TableCell align="left" sx={{ display: isMobile ? 'none' : 'table-cell' }}>
-                                <Label variant="ghost" color={isBanned ? 'error' : 'success'} sx={{ fontSize: isMobile ? '0.7rem' : '0.75rem' }}>
-                                    {sentenceCase(isBanned ? 'Banni' : 'Non Banni')}
-                                </Label>
-                            </TableCell>
-
-                            <TableCell align="left">
-                                <Label 
-                                    variant="ghost" 
-                                    color={isRecommended ? 'primary' : 'default'} 
-                                    sx={{ 
-                                        display: 'inline-flex', 
-                                        alignItems: 'center', 
-                                        fontSize: isMobile ? '0.7rem' : '0.75rem' 
+                                <Box
+                                    onClick={() => !togglingStatus[`verified-${_id}`] && toggleVerified(_id, isVerified)}
+                                    sx={{
+                                        cursor: togglingStatus[`verified-${_id}`] ? 'wait' : 'pointer',
+                                        opacity: togglingStatus[`verified-${_id}`] ? 0.6 : 1,
+                                        pointerEvents: togglingStatus[`verified-${_id}`] ? 'none' : 'auto',
+                                        display: 'inline-block'
                                     }}
                                 >
-                                    {isRecommended && <RecommendIcon sx={{ fontSize: isMobile ? 14 : 16, mr: 0.5 }} />}
-                                    {isRecommended ? 'Recommandé' : 'Non Recommandé'}
-                                </Label>
+                                    <Label 
+                                        variant="ghost" 
+                                        color={isVerified ? 'success' : 'error'} 
+                                        sx={{ 
+                                            fontSize: isMobile ? '0.7rem' : '0.75rem'
+                                        }}
+                                    >
+                                        {togglingStatus[`verified-${_id}`] ? '...' : sentenceCase(isVerified ? "Compte Valide" : 'Compte Non Valide')}
+                                    </Label>
+                                </Box>
+                            </TableCell>
+
+                            <TableCell align="left">
+                                <Box
+                                    onClick={() => !togglingStatus[`certified-${_id}`] && toggleCertified(_id, professionalFullName, isCertified)}
+                                    sx={{
+                                        cursor: togglingStatus[`certified-${_id}`] ? 'wait' : 'pointer',
+                                        opacity: togglingStatus[`certified-${_id}`] ? 0.6 : 1,
+                                        pointerEvents: togglingStatus[`certified-${_id}`] ? 'none' : 'auto',
+                                        display: 'inline-block'
+                                    }}
+                                >
+                                    <Label 
+                                        variant="ghost" 
+                                        color={isCertified ? 'primary' : 'default'} 
+                                        sx={{ 
+                                            fontSize: isMobile ? '0.7rem' : '0.75rem'
+                                        }}
+                                    >
+                                        {togglingStatus[`certified-${_id}`] ? '...' : sentenceCase(isCertified ? 'Certifié' : 'Non Certifié')}
+                                    </Label>
+                                </Box>
+                            </TableCell>
+
+                            <TableCell align="left" sx={{ display: isMobile ? 'none' : 'table-cell' }}>
+                                <Box
+                                    onClick={() => !togglingStatus[`active-${_id}`] && toggleActive(_id, isActive)}
+                                    sx={{
+                                        cursor: togglingStatus[`active-${_id}`] ? 'wait' : 'pointer',
+                                        opacity: togglingStatus[`active-${_id}`] ? 0.6 : 1,
+                                        pointerEvents: togglingStatus[`active-${_id}`] ? 'none' : 'auto',
+                                        display: 'inline-block'
+                                    }}
+                                >
+                                    <Label 
+                                        variant="ghost" 
+                                        color={isActive ? 'success' : 'error'} 
+                                        sx={{ 
+                                            fontSize: isMobile ? '0.7rem' : '0.75rem'
+                                        }}
+                                    >
+                                        {togglingStatus[`active-${_id}`] ? '...' : sentenceCase(isActive ? 'Actif' : 'Inactif')}
+                                    </Label>
+                                </Box>
+                            </TableCell>
+
+                            <TableCell align="left" sx={{ display: isMobile ? 'none' : 'table-cell' }}>
+                                <Box
+                                    onClick={() => !togglingStatus[`banned-${_id}`] && toggleBanned(_id, isBanned)}
+                                    sx={{
+                                        cursor: togglingStatus[`banned-${_id}`] ? 'wait' : 'pointer',
+                                        opacity: togglingStatus[`banned-${_id}`] ? 0.6 : 1,
+                                        pointerEvents: togglingStatus[`banned-${_id}`] ? 'none' : 'auto',
+                                        display: 'inline-block'
+                                    }}
+                                >
+                                    <Label 
+                                        variant="ghost" 
+                                        color={isBanned ? 'error' : 'success'} 
+                                        sx={{ 
+                                            fontSize: isMobile ? '0.7rem' : '0.75rem'
+                                        }}
+                                    >
+                                        {togglingStatus[`banned-${_id}`] ? '...' : sentenceCase(isBanned ? 'Banni' : 'Non Banni')}
+                                    </Label>
+                                </Box>
+                            </TableCell>
+
+                            <TableCell align="left">
+                                <Box
+                                    onClick={() => !togglingStatus[`recommended-${_id}`] && toggleRecommended(_id, isRecommended)}
+                                    sx={{
+                                        cursor: togglingStatus[`recommended-${_id}`] ? 'wait' : 'pointer',
+                                        opacity: togglingStatus[`recommended-${_id}`] ? 0.6 : 1,
+                                        pointerEvents: togglingStatus[`recommended-${_id}`] ? 'none' : 'auto',
+                                        display: 'inline-block'
+                                    }}
+                                >
+                                    <Label 
+                                        variant="ghost" 
+                                        color={isRecommended ? 'primary' : 'default'} 
+                                        sx={{ 
+                                            display: 'inline-flex', 
+                                            alignItems: 'center', 
+                                            fontSize: isMobile ? '0.7rem' : '0.75rem'
+                                        }}
+                                    >
+                                        {togglingStatus[`recommended-${_id}`] ? '...' : (
+                                            <>
+                                                {isRecommended && <RecommendIcon sx={{ fontSize: isMobile ? 14 : 16, mr: 0.5 }} />}
+                                                {isRecommended ? 'Recommandé' : 'Non Recommandé'}
+                                            </>
+                                        )}
+                                    </Label>
+                                </Box>
                             </TableCell>
 
                             <TableCell align="left">
                                 {rate !== undefined && rate !== null ? (
-                                    <Label variant="ghost" color={rateColor} sx={{ display: 'inline-flex', alignItems: 'center', fontSize: isMobile ? '0.7rem' : '0.75rem' }}>
-                                        <StarIcon sx={{ fontSize: isMobile ? 14 : 16, mr: 0.5 }} />
-                                        {rate.toFixed(1)}
-                                    </Label>
+                                    <Box
+                                        onClick={() => handleOpenRateDialog(_id, professionalFullName, rate)}
+                                        sx={{
+                                            cursor: 'pointer',
+                                            display: 'inline-block'
+                                        }}
+                                    >
+                                        <Label 
+                                            variant="ghost" 
+                                            color={rateColor} 
+                                            sx={{ 
+                                                display: 'inline-flex', 
+                                                alignItems: 'center', 
+                                                fontSize: isMobile ? '0.7rem' : '0.75rem'
+                                            }}
+                                        >
+                                            <StarIcon sx={{ fontSize: isMobile ? 14 : 16, mr: 0.5 }} />
+                                            {rate.toFixed(1)}
+                                        </Label>
+                                    </Box>
                                 ) : (
-                                    <Label variant="ghost" color="info" sx={{ fontSize: isMobile ? '0.7rem' : '0.75rem' }}>N/A</Label>
+                                    <Box
+                                        onClick={() => handleOpenRateDialog(_id, professionalFullName, undefined)}
+                                        sx={{
+                                            cursor: 'pointer',
+                                            display: 'inline-block'
+                                        }}
+                                    >
+                                        <Label 
+                                            variant="ghost" 
+                                            color="info" 
+                                            sx={{ 
+                                                fontSize: isMobile ? '0.7rem' : '0.75rem'
+                                            }}
+                                        >
+                                            N/A
+                                        </Label>
+                                    </Box>
                                 )}
                             </TableCell>
 
@@ -1207,22 +1409,6 @@ export default function Professionals() {
                                     _id={_id}
                                     actions={[
                                         { label: 'Voir Documents', onClick: () => handleViewDocuments(_id, professionalFullName), icon: 'eva:file-text-outline', color: 'info' },
-                                        { label: 'Modifier Rate', onClick: () => handleOpenRateDialog(_id, professionalFullName, rate), icon: 'eva:edit-fill', color: 'warning' },
-                                        isRecommended
-                                            ? { label: 'Retirer Recommandation', onClick: () => unrecommendProfessional(_id, professionalFullName), icon: 'eva:star-outline', color: 'secondary' }
-                                            : { label: 'Recommander', onClick: () => recommendProfessional(_id, professionalFullName), icon: 'eva:star-fill', color: 'secondary' },
-                                        isActive
-                                            ? { label: 'Désactiver', onClick: () => disableProfessional(_id, professionalFullName), icon: 'mdi:user-block-outline', color: 'default' }
-                                            : { label: 'Activer', onClick: () => enableProfessional(_id, professionalFullName), icon: 'mdi:user-check-outline', color: 'default' },
-                                        isBanned
-                                            ? { label: 'Débannir', onClick: () => unbanProfessional(_id, professionalFullName), icon: 'eva:person-done-outline', color: 'success' }
-                                            : { label: 'Bannir', onClick: () => banProfessional(_id, professionalFullName), icon: 'eva:slash-outline', color: 'error' },
-                                        isVerified
-                                            ? { label: 'Annuler la vérification', onClick: () => unverifyProfessional(_id, professionalFullName), icon: 'eva:close-circle-outline', color: 'error' }
-                                            : { label: 'Vérifier', onClick: () => verifyProfessional(_id, professionalFullName), icon: 'eva:checkmark-circle-outline', color: 'success' },
-                                        isCertified
-                                            ? undefined
-                                            : { label: 'Certifier', onClick: () => certifyProfessional(_id, professionalFullName), icon: 'eva:award-outline', color: 'info' },
                                         { label: 'Supprimer', onClick: () => deleteProfessional(_id), icon: 'eva:trash-2-outline', color: 'error' }
                                     ]}
                                 />

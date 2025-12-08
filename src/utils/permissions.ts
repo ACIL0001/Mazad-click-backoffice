@@ -74,6 +74,9 @@ export const canAccessRoute = (userRole?: RoleCode, route?: string): boolean => 
     case route.includes('/sous-sous-categories'):
       return hasPermission(userRole, 'MANAGE_CATEGORIES');
     
+    case route.includes('/ads'):
+      return hasPermission(userRole, 'MANAGE_CATEGORIES'); // Use same permission as categories
+    
     case route.includes('/configuration'):
       return hasPermission(userRole, 'SYSTEM_CONFIGURATION');
     

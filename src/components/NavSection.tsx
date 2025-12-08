@@ -391,6 +391,12 @@ export default function NavSection({ ...other }) {
         requiresAdmin: true,
       },
       {
+        title: 'Publicités',
+        path: '/dashboard/ads',
+        icon: getIcon('mdi:image-multiple-outline'),
+        requiresAdmin: true,
+      },
+      {
         title: 'Abonnements',
         path: '/dashboard/subscription',
         icon: getIcon('mdi:credit-card-multiple'),
