@@ -16,6 +16,8 @@ import TenderDetail from './pages/Tenders/TendersDetail';
 import DirectSales from './pages/DirectSales/index';
 import DirectSaleDetail from './pages/DirectSales/DirectSaleDetail';
 
+import Ads from './pages/Ads';
+
 import Login from './pages/Login';
 import NotFound from './pages/Page404';
 import Register from './pages/Register';
@@ -101,6 +103,8 @@ export default function Router() {
                 // DirectSales routes
                 { path: 'direct-sales', element: <RequirePhoneVerification><DirectSales /></RequirePhoneVerification> },
                 { path: 'direct-sales/:id', element: <RequirePhoneVerification><DirectSaleDetail /></RequirePhoneVerification> },
+                
+                { path: 'ads', element: <RequirePhoneVerification><Ads /></RequirePhoneVerification> },
                 
                 { path: 'identities', element: <RequirePhoneVerification><Identity /></RequirePhoneVerification> },
                 { path: 'identities/:id', element: <RequirePhoneVerification><IdentityVerificationDetailsPage /></RequirePhoneVerification> },
