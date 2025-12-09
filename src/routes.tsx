@@ -31,6 +31,9 @@ import AddCategory from './pages/Categories/AddCategory';
 import UpdateCategory from './pages/Categories/UpdateCategory';
 import CategoryDetailsPage from './pages/Categories/CategoryDetailsPage';
 
+// Ads imports
+import Ads from './pages/Ads';
+
 // Subscription imports
 import Subscription from './pages/Subscription';
 
@@ -108,6 +111,8 @@ export default function Router() {
                 { path: 'categories/edit/:id', element: <RequirePhoneVerification><UpdateCategory /></RequirePhoneVerification> }, 
                 { path: 'categories/:id', element: <RequirePhoneVerification><CategoryDetailsPage /></RequirePhoneVerification> }, 
                 { path: 'categories', element: <RequirePhoneVerification><Categories /></RequirePhoneVerification> }, 
+                
+                { path: 'ads', element: <RequirePhoneVerification><Ads /></RequirePhoneVerification> },
                 
                 { path: 'subscription', element: <RequirePhoneVerification><Subscription /></RequirePhoneVerification> },
 
