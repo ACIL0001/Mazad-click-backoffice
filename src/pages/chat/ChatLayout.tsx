@@ -209,9 +209,11 @@ export function ChatLayout() {
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Auto-scroll to bottom
+  // Auto-scroll to bottom (since new messages are at top in reverse column)
   const scrollToBottom = useCallback(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (messagesEndRef.current && messagesEndRef.current.parentElement) {
+      messagesEndRef.current.parentElement.scrollTop = 0;
+    }
   }, []);
 
   useEffect(() => {
@@ -1506,7 +1508,7 @@ export function ChatLayout() {
               </Box>
             ) : (
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                {messages.map((msg, index) => (
+                {[...messages].reverse().map((msg, index) => (
                   <Zoom key={msg._id || index} in={true} timeout={300}>
                     <Box
                       sx={{
@@ -1821,13 +1823,13 @@ export function ChatLayout() {
                               )}
                               {/* Show text message only if it's not just the file name */}
                               {msg.message && msg.message.trim() && !msg.message.startsWith('📎') && (
-                                <Typography variant="body1" sx={{ mb: 0.5, wordBreak: 'break-word' }}>
+                                <Typography variant="body1" sx={{ mb: 0.5, wordBreak: 'break-word' }} dir="auto">
                                   {msg.message}
                                 </Typography>
                               )}
                             </>
                           ) : (
-                            <Typography variant="body1" sx={{ mb: 0.5, wordBreak: 'break-word' }}>
+                            <Typography variant="body1" sx={{ mb: 0.5, wordBreak: 'break-word' }} dir="auto">
                               {msg.message}
                             </Typography>
                           )}

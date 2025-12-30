@@ -31,6 +31,8 @@ import { UserListToolbar } from '../components/user/user-list-toolbar';
 import { useTheme } from '@mui/material/styles';
 import { UserAPI } from '@/api/user';
 import { useTranslation } from 'react-i18next';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import TableSkeleton from '../components/skeletons/TableSkeleton';
 
 /// <devdoc>
 ///    <para>  User Page for users management. </para>
@@ -54,42 +56,30 @@ export default function User() {
 
     const { enqueueSnackbar } = useSnackbar();
     const navigate = useNavigate();
+    const queryClient = useQueryClient();
 
-    const [users, setUsers] = useState([]);
+    // Refactored to React Query
+    const { data: usersData, isLoading } = useQuery({
+        queryKey: ['users'],
+        queryFn: async () => {
+            const { data } = await UserAPI.getAll();
+            return data;
+        },
+        staleTime: Infinity,
+    });
+    
+    const users = usersData || [];
+
     const [page, setPage] = useState(0);
     const [order, setOrder] = useState<'asc' | 'desc'>('asc');
     const [selected, setSelected] = useState([]);
     const [orderBy, setOrderBy] = useState('createdAt');
     const [filterName, setFilterName] = useState('');
     const [rowsPerPage, setRowsPerPage] = useState(10);
-    // Fix: Add a loading state for the table
-    const [loading, setLoading] = useState(true);
+    // Loading managed by useQuery
 
-    /// <summary>
-    /// Set users data, gets updated on users state change
-    /// <Returns> returns cleanup function</Returns>
-    /// </summary>
-
-    useEffect(() => {
-        get();
-        return () => { };
-    }, []);
-
-    /// <summary>
-    /// Load users api.
-    /// <Exception>throw UnauthorizedAccessException if access is denied</Exception>
-    /// </summary>
-
-    const get = () => {
-        setLoading(true);
-        UserAPI.getAll()
-            .then(({ data }) => {
-                setUsers(data);
-                // console.log("users", data);
-            })
-            .catch((e) => enqueueSnackbar(t('common.loadingFailed') || 'Chargement échoué.', { variant: 'error' }))
-            .finally(() => setLoading(false));
-    };
+    // Data fetching handled by useQuery
+    // Removed get() and useEffect
 
     /// <summary>
     /// enable user api.
@@ -104,7 +94,7 @@ export default function User() {
             UserAPI.enable(id)
                 .then((res) => {
                     enqueueSnackbar(t('users.userEnabled') || 'Utilisateur activé.', { variant: 'success' });
-                    get();
+                    queryClient.invalidateQueries({ queryKey: ['users'] });
                 })
                 .catch((e) => enqueueSnackbar(e.response.data.message, { variant: 'error' }));
         }
@@ -123,7 +113,7 @@ export default function User() {
             UserAPI.disable(id)
                 .then((res) => {
                     enqueueSnackbar(t('users.userDisabled') || 'Utilisateur désactivé.', { variant: 'success' });
-                    get();
+                    queryClient.invalidateQueries({ queryKey: ['users'] });
                 })
                 .catch((e) => enqueueSnackbar(e.response.data.message, { variant: 'error' }));
         }
@@ -248,7 +238,10 @@ export default function User() {
         <Page title="Users">
             <Container>
                 <UserListToolbar />
-                {users && (
+                {isLoading ? (
+                    <TableSkeleton rows={10} columns={COLUMNS.length} />
+                ) : (
+                    users && (
                     <MuiTable
                         data={users}
                         columns={COLUMNS}
@@ -267,9 +260,9 @@ export default function User() {
                         // Fix: Add required props for MuiTable
                         TableBodyComponent={TableBodyComponent}
                         numSelected={selected.length}
-                        loading={loading}
+                        loading={isLoading}
                     />
-                )}
+                ))}
             </Container>
         </Page>
     );

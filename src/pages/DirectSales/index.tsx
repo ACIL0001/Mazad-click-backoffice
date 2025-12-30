@@ -36,6 +36,8 @@ import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
 import { useTheme } from '@mui/material/styles';
 import useMediaQuery from '@mui/material/useMediaQuery';
 import { useTranslation } from 'react-i18next';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import TableSkeleton from '../../components/skeletons/TableSkeleton';
 
 interface DirectSale {
   _id: string;
@@ -75,34 +77,37 @@ export default function DirectSales() {
     { id: 'actions', label: '', alignRight: true, searchable: false },
   ];
 
-  const [directSales, setDirectSales] = useState<DirectSale[]>([]);
   const [page, setPage] = useState(0);
   const [order, setOrder] = useState<'asc' | 'desc'>('desc');
   const [orderBy, setOrderBy] = useState('createdAt');
   const [filterName, setFilterName] = useState('');
   const [rowsPerPage, setRowsPerPage] = useState(10);
-  const [loading, setLoading] = useState(false);
+  // Refactored to React Query
+  const { data: directSalesData, isLoading: loading } = useQuery({
+    queryKey: ['admin-direct-sales'],
+    queryFn: async () => {
+      const data = await DirectSaleAPI.getDirectSales();
+      return Array.isArray(data) ? data : [];
+    },
+    staleTime: Infinity,
+  });
+  const directSales = directSalesData || [];
+  
   const [selected, setSelected] = useState<string[]>([]);
   const [expandedRows, setExpandedRows] = useState<{ [key: string]: boolean }>({});
   const [salePurchases, setSalePurchases] = useState<{ [key: string]: any[] }>({});
   const [loadingPurchases, setLoadingPurchases] = useState<{ [key: string]: boolean }>({});
 
+  // Data fetching handled by useQuery
+  /*
   useEffect(() => {
     fetchDirectSales();
   }, []);
 
   const fetchDirectSales = async () => {
-    try {
-      setLoading(true);
-      const data = await DirectSaleAPI.getDirectSales();
-      setDirectSales(Array.isArray(data) ? data : []);
-    } catch (error: any) {
-      console.error('Error fetching direct sales:', error);
-      enqueueSnackbar(t('directSales.errors.loading'), { variant: 'error' });
-    } finally {
-      setLoading(false);
-    }
+    // ...
   };
+  */
 
   const fetchPurchasesForSale = async (saleId: string) => {
     if (salePurchases[saleId]) return; // Already loaded
@@ -406,6 +411,9 @@ export default function DirectSales() {
           </Typography>
         </Stack>
 
+        {loading ? (
+          <TableSkeleton rows={10} columns={COLUMNS.length} />
+        ) : (
         <MuiTable
           data={sortedData}
           columns={COLUMNS}
@@ -426,6 +434,7 @@ export default function DirectSales() {
           numSelected={selected.length}
           getRowId={(row) => row._id}
         />
+        )}
       </Container>
     </Page>
   );

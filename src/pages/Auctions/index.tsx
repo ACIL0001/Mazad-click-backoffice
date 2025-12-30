@@ -44,6 +44,8 @@ import { AuctionsAPI } from '@/api/auctions';
 import { OffersAPI } from '@/api/offers';
 import { format } from 'date-fns';
 import { useTranslation } from 'react-i18next';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import TableSkeleton from '../../components/skeletons/TableSkeleton';
 
 // ----------------------------------------------------------------------
 
@@ -51,6 +53,7 @@ export default function Auctions() {
   const { t } = useTranslation();
   const theme = useTheme();
   const { enqueueSnackbar } = useSnackbar();
+  const queryClient = useQueryClient();
 
   const COLUMNS = [
     { id: 'expand', label: '', alignRight: false, searchable: false },
@@ -67,8 +70,8 @@ export default function Auctions() {
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const isTablet = useMediaQuery(theme.breakpoints.down('md'));
 
-  const [auctions, setAuctions] = useState<Auction[]>([]);
-  const [loading, setLoading] = useState(false);
+
+  const [loadingParticipantCounts, setLoadingParticipantCounts] = useState(true);
   const [page, setPage] = useState(0);
   const [order, setOrder] = useState<'asc' | 'desc'>('asc');
   const [selected, setSelected] = useState<string[]>([]);
@@ -80,41 +83,41 @@ export default function Auctions() {
   const [auctionOffers, setAuctionOffers] = useState<{ [key: string]: any[] }>({});
   const [loadingOffers, setLoadingOffers] = useState<{ [key: string]: boolean }>({});
   const [participantCounts, setParticipantCounts] = useState<{ [key: string]: number }>({});
-  const [loadingParticipantCounts, setLoadingParticipantCounts] = useState(true);
 
+  // Refactored to React Query
+  const { data: auctionsData, isLoading: loading } = useQuery({
+    queryKey: ['admin-auctions'],
+    queryFn: async () => {
+      const response = await AuctionsAPI.getAuctions();
+      if (response && Array.isArray(response)) {
+        return response;
+      } else if (response && response.data && Array.isArray(response.data)) {
+        return response.data;
+      }
+      return [];
+    },
+    staleTime: Infinity,
+  });
+
+  const auctions = auctionsData || [];
+
+  // Update total auctions when data changes
+  useEffect(() => {
+    if (auctionsData) {
+      setTotalAuctions(auctionsData.length);
+      fetchAllParticipantCounts(auctionsData);
+    }
+  }, [auctionsData]);
+
+  // Removed manual get() function
+  /*
   const get = () => {
-    setLoading(true);
-    AuctionsAPI.getAuctions()
-      .then((response) => {
-        let auctionsData = [];
-        if (response && Array.isArray(response)) {
-          auctionsData = response;
-          setTotalAuctions(response.length);
-          console.log("Auctions state (direct response):", response);
-        } else if (response && response.data && Array.isArray(response.data)) {
-          auctionsData = response.data;
-          setTotalAuctions(response.data.length);
-          console.log("Auctions state (response.data):", response.data);
-        } else {
-          console.error("Unexpected response format:", response);
-          enqueueSnackbar(t('common.unexpectedFormat') || 'Format de réponse inattendu.', { variant: 'error' });
-          setAuctions([]);
-          setTotalAuctions(0);
-          return;
-        }
-        
-        setAuctions(auctionsData);
-        // Fetch participant counts for all auctions
-        fetchAllParticipantCounts(auctionsData);
-      })
-      .catch((e) => {
-        console.error("Error fetching auctions:", e);
-        enqueueSnackbar('Erreur lors du chargement des enchères.', { variant: 'error' });
-        setAuctions([]);
-        setTotalAuctions(0);
-      })
-      .finally(() => setLoading(false));
+    // ...
   };
+  */
+
+  // get() is removed/commented out above, removing logic
+  // fetchAllParticipantCounts remains the same
 
   const fetchAllParticipantCounts = async (auctionsData: any[]) => {
     setLoadingParticipantCounts(true);
@@ -179,9 +182,9 @@ export default function Auctions() {
     }
   };
 
-  useEffect(() => {
+  /* useEffect(() => {
     get();
-  }, []);
+  }, []); */
 
   const handleChangePage = (event: unknown, newPage: number) => {
     setPage(newPage);
@@ -201,7 +204,7 @@ export default function Auctions() {
     try {
       await Promise.all(selectedIds.map(id => AuctionsAPI.remove(id)));
       enqueueSnackbar('Enchères sélectionnées supprimées avec succès!', { variant: 'success' });
-      get();
+      queryClient.invalidateQueries({ queryKey: ['admin-auctions'] });
       setSelected([]);
     } catch (error) {
       console.error("Error deleting selected auctions:", error);
@@ -424,9 +427,9 @@ export default function Auctions() {
 
         <Box sx={{ mt: { xs: 2, sm: 3 } }}>
           {loading && (
-            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '200px' }}>
-              <CircularProgress size={isMobile ? 36 : 48} />
-            </Box>
+             <Box sx={{ mt: 2 }}>
+               <TableSkeleton rows={5} columns={COLUMNS.length} />
+             </Box>
           )}
 
           {!loading && auctions.length === 0 && filterName === '' && (

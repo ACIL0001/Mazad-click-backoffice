@@ -25,7 +25,9 @@ import {
   Edit as EditIcon,
   Delete as DeleteIcon,
   Add as AddIcon,
-  Visibility as ViewIcon
+  Visibility as ViewIcon,
+  CloudUpload as UploadIcon,
+  InsertDriveFile as FileIcon
 } from '@mui/icons-material';
 import { Terms, CreateTermsDto, UpdateTermsDto } from '../../types/terms';
 import { TermsAPI } from '../../api/terms';
@@ -43,9 +45,9 @@ const TermsManagement: React.FC = () => {
   const [viewTerm, setViewTerm] = useState<Terms | null>(null);
   const [formData, setFormData] = useState<CreateTermsDto>({
     title: '',
-    content: '',
     version: ''
   });
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [updateLoading, setUpdateLoading] = useState<boolean>(false);
   const [deleteLoading, setDeleteLoading] = useState<boolean>(false);
 
@@ -70,7 +72,17 @@ const TermsManagement: React.FC = () => {
 
   const handleCreate = async () => {
     try {
-      const newTerm = await TermsAPI.create(formData);
+      if (!formData.title || !formData.version) {
+        setError('Please fill all required fields');
+        return;
+      }
+
+      const formPayload = new FormData();
+      formPayload.append('title', formData.title);
+      formPayload.append('version', formData.version);
+      if (selectedFile) formPayload.append('file', selectedFile);
+
+      const newTerm = await TermsAPI.create(formPayload);
       setTerms([...terms, newTerm]);
       setSuccess('Terms created successfully!');
       setOpenDialog(false);
@@ -89,7 +101,13 @@ const TermsManagement: React.FC = () => {
     
     try {
       setUpdateLoading(true);
-      const updatedTerm = await TermsAPI.update(currentTerm._id, formData);
+      
+      const formPayload = new FormData();
+      if (formData.title) formPayload.append('title', formData.title);
+      if (formData.version) formPayload.append('version', formData.version);
+      if (selectedFile) formPayload.append('file', selectedFile);
+
+      const updatedTerm = await TermsAPI.update(currentTerm._id, formPayload);
       setTerms(terms.map(term => term._id === updatedTerm._id ? updatedTerm : term));
       setSuccess('Terms updated successfully!');
       setOpenDialog(false);
@@ -134,9 +152,9 @@ const TermsManagement: React.FC = () => {
     setCurrentTerm(term);
     setFormData({
       title: term.title,
-      content: term.content,
       version: term.version
     });
+    setSelectedFile(null);
     setOpenDialog(true);
   };
 
@@ -171,9 +189,10 @@ const TermsManagement: React.FC = () => {
   const resetForm = () => {
     setFormData({
       title: '',
-      content: '',
+      content: '', // Keeping it in state type to avoid major refactors but ignoring it
       version: ''
     });
+    setSelectedFile(null);
   };
 
   const handleCloseDialog = () => {
@@ -314,16 +333,44 @@ const TermsManagement: React.FC = () => {
                 onChange={(e) => setFormData({ ...formData, version: e.target.value })}
                 placeholder="e.g., 1.0.0"
               />
-              <TextField
-                margin="normal"
-                required
-                fullWidth
-                multiline
-                rows={6}
-                label="Content"
-                value={formData.content}
-                onChange={(e) => setFormData({ ...formData, content: e.target.value })}
-              />
+              <Box sx={{ mt: 2, mb: 1 }}>
+                <Typography variant="body2" color="textSecondary" gutterBottom>
+                  Document File (PDF, DOC, DOCX)
+                </Typography>
+                <input
+                  accept=".pdf,.doc,.docx"
+                  style={{ display: 'none' }}
+                  id="raised-button-file"
+                  type="file"
+                  onChange={(e) => {
+                    if (e.target.files && e.target.files[0]) {
+                      setSelectedFile(e.target.files[0]);
+                    }
+                  }}
+                />
+                <label htmlFor="raised-button-file">
+                  <Button variant="outlined" component="span" startIcon={<UploadIcon />}>
+                    Upload Document
+                  </Button>
+                </label>
+                {selectedFile && (
+                  <Box display="flex" alignItems="center" mt={1}>
+                    <FileIcon color="action" fontSize="small" />
+                    <Typography variant="caption" sx={{ ml: 1 }}>
+                      {selectedFile.name}
+                    </Typography>
+                  </Box>
+                )}
+                { currentTerm && currentTerm.attachment && !selectedFile && (
+                   <Box display="flex" alignItems="center" mt={1}>
+                    <FileIcon color="primary" fontSize="small" />
+                    <Typography variant="caption" sx={{ ml: 1 }}>
+                      Current file: {currentTerm.attachment.filename}
+                    </Typography>
+                  </Box>
+                )}
+              </Box>
+
             </Box>
           </DialogContent>
           <DialogActions>
@@ -331,7 +378,7 @@ const TermsManagement: React.FC = () => {
             <Button
               onClick={currentTerm ? handleUpdate : handleCreate}
               variant="contained"
-              disabled={!formData.title || !formData.content || !formData.version || updateLoading}
+              disabled={!formData.title || !formData.version || updateLoading}
             >
               {updateLoading ? <CircularProgress size={24} /> : (currentTerm ? 'Update' : 'Create')}
             </Button>
@@ -377,9 +424,24 @@ const TermsManagement: React.FC = () => {
                   </Typography>
                 </Box>
                 <Paper variant="outlined" sx={{ p: 2, maxHeight: '50vh', overflow: 'auto' }}>
-                  <Typography variant="body1" whiteSpace="pre-wrap">
-                    {viewTerm.content}
-                  </Typography>
+                  {viewTerm.content && (
+                    <Typography variant="body1" whiteSpace="pre-wrap" sx={{ mb: 2 }}>
+                      {viewTerm.content}
+                    </Typography>
+                  )}
+                  {viewTerm.attachment && (
+                    <Box sx={{ mt: 2, p: 2, bgcolor: '#f5f5f5', borderRadius: 1 }}>
+                      <Typography variant="subtitle2" gutterBottom>Attached Document:</Typography>
+                      <Button 
+                        variant="outlined" 
+                        startIcon={<FileIcon />}
+                        href={viewTerm.attachment.url}
+                        target="_blank"
+                      >
+                         {viewTerm.attachment.filename || 'Download Document'}
+                      </Button>
+                    </Box>
+                  )}
                 </Paper>
               </Box>
             )}

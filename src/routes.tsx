@@ -16,8 +16,6 @@ import TenderDetail from './pages/Tenders/TendersDetail';
 import DirectSales from './pages/DirectSales/index';
 import DirectSaleDetail from './pages/DirectSales/DirectSaleDetail';
 
-import Ads from './pages/Ads';
-
 import Login from './pages/Login';
 import NotFound from './pages/Page404';
 import Register from './pages/Register';
@@ -32,6 +30,9 @@ import Categories from './pages/Categories';
 import AddCategory from './pages/Categories/AddCategory';
 import UpdateCategory from './pages/Categories/UpdateCategory';
 import CategoryDetailsPage from './pages/Categories/CategoryDetailsPage';
+
+// Ads imports
+import Ads from './pages/Ads';
 
 // Subscription imports
 import Subscription from './pages/Subscription';
@@ -104,14 +105,14 @@ export default function Router() {
                 { path: 'direct-sales', element: <RequirePhoneVerification><DirectSales /></RequirePhoneVerification> },
                 { path: 'direct-sales/:id', element: <RequirePhoneVerification><DirectSaleDetail /></RequirePhoneVerification> },
                 
-                { path: 'ads', element: <RequirePhoneVerification><Ads /></RequirePhoneVerification> },
-                
                 { path: 'identities', element: <RequirePhoneVerification><Identity /></RequirePhoneVerification> },
                 { path: 'identities/:id', element: <RequirePhoneVerification><IdentityVerificationDetailsPage /></RequirePhoneVerification> },
                 { path: 'categories/new', element: <RequirePhoneVerification><AddCategory /></RequirePhoneVerification> }, 
                 { path: 'categories/edit/:id', element: <RequirePhoneVerification><UpdateCategory /></RequirePhoneVerification> }, 
                 { path: 'categories/:id', element: <RequirePhoneVerification><CategoryDetailsPage /></RequirePhoneVerification> }, 
                 { path: 'categories', element: <RequirePhoneVerification><Categories /></RequirePhoneVerification> }, 
+                
+                { path: 'ads', element: <RequirePhoneVerification><Ads /></RequirePhoneVerification> },
                 
                 { path: 'subscription', element: <RequirePhoneVerification><Subscription /></RequirePhoneVerification> },
 

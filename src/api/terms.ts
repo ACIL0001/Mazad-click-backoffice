@@ -16,12 +16,12 @@ export const TermsAPI = {
   /**
    * Create new terms and conditions (Admin only)
    */
-  create: (data: CreateTermsDto): Promise<Terms> => requests.post('terms', data),
+  create: (data: CreateTermsDto | FormData): Promise<Terms> => requests.post('terms', data),
 
   /**
    * Update terms and conditions (Admin only)
    */
-  update: (id: string, data: UpdateTermsDto): Promise<Terms> => 
+  update: (id: string, data: UpdateTermsDto | FormData): Promise<Terms> =>
     requests.patch(`terms/${id}`, data),
 
   /**

@@ -2,7 +2,13 @@
 export interface Terms {
   _id: string;
   title: string;
-  content: string;
+  content?: string;
+  attachment?: {
+    _id: string;
+    url: string;
+    filename: string;
+    mimetype: string;
+  };
   version: string;
   createdBy: string;
   updatedBy?: string;
@@ -12,8 +18,9 @@ export interface Terms {
 
 export interface CreateTermsDto {
   title: string;
-  content: string;
+  content?: string;
   version: string;
+  file?: File;
 }
 
 export interface UpdateTermsDto {

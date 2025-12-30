@@ -14,9 +14,18 @@ import { PersistGate } from 'redux-persist/integration/react';
 import { persistStore } from 'redux-persist';
 import store from './app/store';
 import { Provider } from 'react-redux';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 // ----------------------------------------------------------------------
 
 let persistor = persistStore(store);
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: Infinity,
+    },
+  },
+});
 
 // ReactDOM.render(
 //   <Provider store={store}>
@@ -32,15 +41,17 @@ let persistor = persistStore(store);
 // );
 
 ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
-  <Provider store={store}>
-    <PersistGate loading={null} persistor={persistor}>
-      <HelmetProvider>
-        <BrowserRouter>
-          <App />
-        </BrowserRouter>
-      </HelmetProvider>
-    </PersistGate>
-  </Provider>
+  <QueryClientProvider client={queryClient}>
+    <Provider store={store}>
+      <PersistGate loading={null} persistor={persistor}>
+        <HelmetProvider>
+          <BrowserRouter>
+            <App />
+          </BrowserRouter>
+        </HelmetProvider>
+      </PersistGate>
+    </Provider>
+  </QueryClientProvider>
 );
 
 // If you want to enable client cache, register instead.
