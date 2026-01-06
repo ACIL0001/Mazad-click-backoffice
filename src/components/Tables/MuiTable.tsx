@@ -72,7 +72,7 @@ const FloatingDeleteButton = styled(Fab)(({ theme }) => ({
 const InlineActionBar = styled(Box)(({ theme }) => ({
   position: "sticky",
   top: 0,
-  zIndex: 100,
+  zIndex: 1100,
   backgroundColor: alpha(theme.palette.error.main, 0.08),
   border: `1px solid ${alpha(theme.palette.error.main, 0.2)}`,
   borderRadius: theme.spacing(2),

@@ -141,14 +141,29 @@ export default function DirectSales() {
   };
 
   const handleDeleteSelected = async () => {
+    console.log('🗑️ handleDeleteSelected Triggered');
+    console.log('Selected IDs:', selected);
+
+    if (!selected || selected.length === 0) {
+      console.warn('⚠️ No items selected for deletion');
+      enqueueSnackbar(t('Aucun élément sélectionné'), { variant: 'warning' });
+      return;
+    }
+
     try {
-      await Promise.all(selected.map((id) => DirectSaleAPI.delete(id)));
+      const deletePromises = selected.map((id) => {
+        console.log(`Deleting ID: ${id}`);
+        return DirectSaleAPI.delete(id);
+      });
+
+      await Promise.all(deletePromises);
       
+      console.log('✅ Deletion successful');
       enqueueSnackbar(t('Supprimé avec succès'), { variant: 'success' });
       setSelected([]);
       queryClient.invalidateQueries({ queryKey: ['admin-direct-sales'] });
     } catch (error) {
-      console.error(error);
+      console.error('❌ Error during deletion:', error);
       enqueueSnackbar(t('Erreur lors de la suppression'), { variant: 'error' });
     }
   };
