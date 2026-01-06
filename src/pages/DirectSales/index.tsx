@@ -62,6 +62,7 @@ export default function DirectSales() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { enqueueSnackbar } = useSnackbar();
+  const queryClient = useQueryClient();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
@@ -136,6 +137,19 @@ export default function DirectSales() {
 
     if (!isExpanded) {
       await fetchPurchasesForSale(saleId);
+    }
+  };
+
+  const handleDeleteSelected = async () => {
+    try {
+      await Promise.all(selected.map((id) => DirectSaleAPI.delete(id)));
+      
+      enqueueSnackbar(t('Supprimé avec succès'), { variant: 'success' });
+      setSelected([]);
+      queryClient.invalidateQueries({ queryKey: ['admin-direct-sales'] });
+    } catch (error) {
+      console.error(error);
+      enqueueSnackbar(t('Erreur lors de la suppression'), { variant: 'error' });
     }
   };
 
@@ -433,6 +447,7 @@ export default function DirectSales() {
           TableBodyComponent={TableBodyComponent}
           numSelected={selected.length}
           getRowId={(row) => row._id}
+          onDeleteSelected={handleDeleteSelected}
         />
         )}
       </Container>
