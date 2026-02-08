@@ -107,6 +107,7 @@ interface DashboardData {
   categoryStats: any
   identityStats: any
   subscriptionStats: any
+  sectorStats: any[]
   revenueData: any[]
   userGrowth: any[]
   categoryDistribution: any[]
@@ -187,6 +188,11 @@ export default function ComprehensiveDashboard() {
         return { total: 0, subscriptions: 0, commissions: 0, growth: 0 };
       });
 
+      const sectorStats = await StatsAPI.getUsersBySector().catch(err => {
+        console.warn('Sector stats failed:', err);
+        return [];
+      });
+
       // Process category distribution for pie chart
       const categoryDistribution = categoryStats.slice(0, 5).map((cat, index) => ({
         name: cat.name,
@@ -237,6 +243,7 @@ export default function ComprehensiveDashboard() {
           verified: Math.floor((userStats.total || 0) * 0.85)
         },
         subscriptionStats,
+        sectorStats,
         revenueData: auctionTrendData,
         userGrowth: userGrowthData,
         categoryDistribution,
@@ -266,6 +273,7 @@ export default function ComprehensiveDashboard() {
         categoryStats: [],
         identityStats: { pending: 0, verified: 0 },
         subscriptionStats: { total: 0, subscriptions: 0, commissions: 0, growth: 0 },
+        sectorStats: [],
         revenueData: [],
         userGrowth: [],
         categoryDistribution: [],
@@ -277,7 +285,15 @@ export default function ComprehensiveDashboard() {
   }
 
   useEffect(() => {
+    // Initial fetch
     fetchAllData()
+    
+    // Set up polling every 30 seconds for real-time updates
+    const interval = setInterval(() => {
+      fetchAllData()
+    }, 30000)
+    
+    return () => clearInterval(interval)
   }, [])
 
   if (loading) {
@@ -492,6 +508,55 @@ export default function ComprehensiveDashboard() {
                 </Box>
                 <LocalOffer sx={{ fontSize: 40, opacity: 0.7 }} />
               </Box>
+            </CardContent>
+          </Card>
+        </Grid>
+      </Grid>
+
+      {/* Sector Statistics Row */}
+      <Grid container spacing={3} mb={4}>
+        <Grid item xs={12}>
+          <Card>
+            <CardContent>
+              <Box display="flex" alignItems="center" justifyContent="space-between" mb={2}>
+                <Typography variant="h6" fontWeight="bold">
+                  Utilisateurs par Secteur
+                </Typography>
+                <Chip 
+                  label={`${dashboardData.sectorStats.reduce((sum, s) => sum + s.count, 0)} Total`} 
+                  color="primary" 
+                />
+              </Box>
+              
+              <Grid container spacing={2}>
+                {dashboardData.sectorStats.length > 0 ? (
+                  dashboardData.sectorStats.map((sector, index) => (
+                    <Grid item xs={12} sm={6} md={3} key={sector.sector}>
+                      <Box 
+                        sx={{ 
+                          p: 2, 
+                          bgcolor: COLORS[index % COLORS.length] + '20',
+                          borderLeft: `4px solid ${COLORS[index % COLORS.length]}`,
+                          borderRadius: 1
+                        }}
+                      >
+                        <Typography variant="h4" color={COLORS[index % COLORS.length]} fontWeight="bold">
+                          {sector.count}
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary">
+                          {sector.sector || 'Non spécifié'}
+                        </Typography>
+                      </Box>
+                    </Grid>
+                  ))
+                ) : (
+                  <Grid item xs={12}>
+                    <Alert severity="info">
+                      Aucune donnée de secteur disponible
+                    </Alert>
+                  </Grid>
+                )}
+              </Grid>
             </CardContent>
           </Card>
         </Grid>

@@ -82,8 +82,17 @@ export default function IdentityVerificationDetailsPage() {
             // Always fetch user details if a user ID is available to ensure latest verification status
             if (userProfile._id && userProfile._id !== 'unknown') {
                 try {
-                    const userDetails = await UserAPI.findById(userProfile._id);
-                    userProfile = { ...userProfile, ...userDetails }; // Merge existing userProfile with fresh userDetails
+                    const userDetailsResponse = await UserAPI.findById(userProfile._id);
+                    const userDetails = userDetailsResponse.user || userDetailsResponse.data || userDetailsResponse;
+                    
+                    userProfile = { 
+                        ...userProfile, 
+                        ...userDetails,
+                        // Add fallbacks for potentially missing fields
+                        secteur: userDetails.secteur || userDetails.activitySector || userProfile.secteur,
+                        entreprise: userDetails.entreprise || userDetails.companyName || userDetails.socialReason || userProfile.entreprise,
+                        postOccupé: userDetails.postOccupé || userDetails.jobTitle || userProfile.postOccupé
+                    }; 
                 } catch (userErr) {
                     console.warn("Failed to fetch full user details, using partial data:", userErr);
                     // Continue with the existing userProfile if fetching full details fails

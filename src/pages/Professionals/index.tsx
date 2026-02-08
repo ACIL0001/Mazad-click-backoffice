@@ -345,6 +345,7 @@ export default function Professionals() {
         { id: 'firstName', label: t('professionals.name') || 'Nom', alignRight: false, searchable: true },
         { id: 'phone', label: t('common.phone'), alignRight: false, searchable: true },
         { id: 'entreprise', label: t('professionals.company') || 'Entreprise', alignRight: false, searchable: false },
+        { id: 'secteur', label: t('professionals.sector') || 'Secteur', alignRight: false, searchable: false },
         { id: 'postOccupé', label: t('professionals.position') || 'Post occupé', alignRight: false, searchable: false },
         { id: 'promoCode', label: t('professionals.promoCode') || 'Code promo', alignRight: false, searchable: true },
         { id: 'isVerified', label: t('professionals.verified') || 'Vérifié', alignRight: false, searchable: false },
@@ -1227,6 +1228,12 @@ export default function Professionals() {
                             <TableCell align="left" sx={{ display: isMobile ? 'none' : 'table-cell' }}>
                                 <Typography variant="body2" sx={{ fontSize: isMobile ? '0.75rem' : '0.875rem' }}>
                                     {entreprise || 'N/A'}
+                                </Typography>
+                            </TableCell>
+
+                            <TableCell align="left" sx={{ display: isMobile ? 'none' : 'table-cell' }}>
+                                <Typography variant="body2" sx={{ fontSize: isMobile ? '0.75rem' : '0.875rem' }}>
+                                    {row.secteur || 'N/A'}
                                 </Typography>
                             </TableCell>
 

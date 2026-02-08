@@ -31,6 +31,9 @@ import {
   Container,
   Dialog,
   DialogContent,
+  DialogTitle,
+  DialogActions,
+  Button,
 } from '@mui/material';
 import {
   Search as SearchIcon,
@@ -48,6 +51,7 @@ import {
   Mic as MicIcon,
   PlayArrow as PlayArrowIcon,
   Pause as PauseIcon,
+  Campaign as CampaignIcon,
 } from '@mui/icons-material';
 import { SocketContext } from '../../contexts/SocketContext';
 import { ChatAPI } from '../../api/Chat';
@@ -207,6 +211,11 @@ export function ChatLayout() {
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   
+  // State for Broadcast
+  const [broadcastOpen, setBroadcastOpen] = useState(false);
+  const [broadcastMessage, setBroadcastMessage] = useState('');
+  const [isBroadcasting, setIsBroadcasting] = useState(false);
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Auto-scroll to bottom (since new messages are at top in reverse column)
@@ -1094,6 +1103,28 @@ export function ChatLayout() {
       alert('Failed to download file. Please try again.');
     }
   }, []);
+
+  const handleSendBroadcast = async () => {
+    if (!broadcastMessage.trim() || !auth?.user) return;
+    
+    setIsBroadcasting(true);
+    try {
+      await ChatAPI.broadcast({
+        message: broadcastMessage,
+        sender: auth.user._id
+      });
+      alert('Message diffusé avec succès !');
+      setBroadcastOpen(false);
+      setBroadcastMessage('');
+      // Refresh chats potentially
+      await silentlyUpdateChats();
+    } catch (error) {
+      console.error('Failed to broadcast message:', error);
+      alert('Erreur lors de la diffusion du message.');
+    } finally {
+      setIsBroadcasting(false);
+    }
+  };
 
   // Handle audio playback - useRef to store audio elements
   const audioRefs = useRef<Map<string, HTMLAudioElement>>(new Map());
@@ -2087,8 +2118,8 @@ export function ChatLayout() {
             </Box>
           </Paper>
 
-          {/* Search Bar */}
-          <Box sx={{ mb: 3, px: 1 }}>
+          {/* Search Bar & Actions */}
+          <Box sx={{ mb: 3, px: 1, display: 'flex', gap: 2 }}>
             <TextField
               fullWidth
               placeholder="Rechercher des conversations..."
@@ -2108,6 +2139,21 @@ export function ChatLayout() {
                 },
               }}
             />
+            <Button 
+                variant="contained" 
+                startIcon={<CampaignIcon />}
+                onClick={() => setBroadcastOpen(true)}
+                sx={{
+                    background: `linear-gradient(135deg, ${theme.palette.secondary.main} 0%, ${theme.palette.secondary.dark} 100%)`,
+                    height: 56,
+                    borderRadius: 4,
+                    px: 3,
+                    whiteSpace: 'nowrap',
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
+                }}
+            >
+                Diffuser
+            </Button>
           </Box>
 
           {/* Client Type Tabs */}
@@ -2459,6 +2505,34 @@ export function ChatLayout() {
           </DialogContent>
         </Dialog>
       )}
+      {/* Broadcast Dialog */}
+      <Dialog open={broadcastOpen} onClose={() => setBroadcastOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>Diffuser un message</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" paragraph color="text.secondary">
+            Ce message sera envoyé à TOUS les utilisateurs (Clients, Professionnels, Revendeurs) comme un message direct de l'admin.
+          </Typography>
+          <TextField
+            autoFocus
+            margin="dense"
+            id="broadcast-message"
+            label="Message"
+            type="text"
+            fullWidth
+            multiline
+            rows={4}
+            variant="outlined"
+            value={broadcastMessage}
+            onChange={(e) => setBroadcastMessage(e.target.value)}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setBroadcastOpen(false)}>Annuler</Button>
+          <Button onClick={handleSendBroadcast} disabled={isBroadcasting || !broadcastMessage.trim()}>
+            {isBroadcasting ? <CircularProgress size={24} /> : 'Envoyer'}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Page>
   );
 }

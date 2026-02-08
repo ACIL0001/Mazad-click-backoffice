@@ -66,6 +66,11 @@ export interface DashboardStats {
   widgets: DashboardWidget[];
 }
 
+export interface SectorStats {
+  sector: string;
+  count: number;
+}
+
 export const StatsAPI = {
   getUserStats: (): Promise<UserStats> => requests.get('stats/users'),
   getAuctionStats: (): Promise<AuctionStats> => requests.get('stats/auctions'),
@@ -78,4 +83,5 @@ export const StatsAPI = {
   getTenderTimeSeries: (): Promise<{ labels: string[]; data: number[] }> => requests.get('stats/tenders/timeseries'),
   getAuctionStatusTimeSeries: (): Promise<{ labels: string[]; series: { name: string; data: number[] }[] }> => requests.get('stats/auctions/status-timeseries'),
   getAuctionCategoryTimeSeries: (): Promise<{ labels: string[]; series: { name: string; data: number[] }[] }> => requests.get('stats/auctions/category-timeseries'),
+  getUsersBySector: (): Promise<SectorStats[]> => requests.get('stats/users/by-sector'),
 };

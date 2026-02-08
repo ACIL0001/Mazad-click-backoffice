@@ -121,16 +121,17 @@ export default function Identity() {
                     if (identity.user?._id) {
                         try {
                             // Always fetch full user data to ensure we have secteur, entreprise, postOccupé
-                            const fullUserData = await UserAPI.findById(identity.user._id);
+                            const response = await UserAPI.findById(identity.user._id);
+                            const fullUserData = response.user || response.data || response;
                             return {
                                 ...identity,
                                 user: {
                                     ...identity.user,
                                     ...fullUserData,
-                                    // Prefer backend populated data, fallback to enriched data
-                                    secteur: identity.user.secteur || fullUserData.secteur || undefined,
-                                    entreprise: identity.user.entreprise || fullUserData.entreprise || undefined,
-                                    postOccupé: identity.user.postOccupé || fullUserData.postOccupé || undefined,
+                                    // Prefer backend populated data, fallback to enriched data, then fallback to alternate field names
+                                    secteur: identity.user.secteur || fullUserData.secteur || fullUserData.activitySector || undefined,
+                                    entreprise: identity.user.entreprise || fullUserData.entreprise || fullUserData.companyName || fullUserData.socialReason || undefined,
+                                    postOccupé: identity.user.postOccupé || fullUserData.postOccupé || fullUserData.jobTitle || undefined,
                                 }
                             };
                         } catch (err) {

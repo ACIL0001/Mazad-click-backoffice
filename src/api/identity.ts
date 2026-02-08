@@ -49,6 +49,7 @@ export interface IdentityDocument {
     avatarUrl?: string;
     type: string;
     isVerified: boolean;
+    isCertified?: boolean;
     secteur?: string;
     entreprise?: string;
     postOccupé?: string;
@@ -76,47 +77,47 @@ export interface IdentityDocument {
 }
 
 export const IdentityAPI = {
-  getUserDocuments: (userId: string): Promise<UserDocuments> => 
+  getUserDocuments: (userId: string): Promise<UserDocuments> =>
     requests.get(`identities/user/${userId}`),
-  
+
   // Get all identities
-  getAllIdentities: (): Promise<IdentityDocument[]> => 
+  getAllIdentities: (): Promise<IdentityDocument[]> =>
     requests.get('identities'),
-  
+
   // Get pending identities
-  getPendingIdentities: (): Promise<IdentityDocument[]> => 
+  getPendingIdentities: (): Promise<IdentityDocument[]> =>
     requests.get('identities/pending'),
-  
+
   // Get pending professionals
-  getPendingProfessionals: (): Promise<IdentityDocument[]> => 
+  getPendingProfessionals: (): Promise<IdentityDocument[]> =>
     requests.get('identities/pending/professionals'),
-  
+
   // Get pending resellers
-  getPendingResellers: (): Promise<IdentityDocument[]> => 
+  getPendingResellers: (): Promise<IdentityDocument[]> =>
     requests.get('identities/pending/resellers'),
-  
+
   // Get accepted identities
-  getAcceptedIdentities: (): Promise<IdentityDocument[]> => 
+  getAcceptedIdentities: (): Promise<IdentityDocument[]> =>
     requests.get('identities/accepted'),
-  
+
   // Get rejected identities
-  getRejectedIdentities: (): Promise<IdentityDocument[]> => 
+  getRejectedIdentities: (): Promise<IdentityDocument[]> =>
     requests.get('identities/rejected'),
-  
+
   // Verify identity
-  verifyIdentity: (identityId: string, action: 'accept' | 'reject'): Promise<any> => 
+  verifyIdentity: (identityId: string, action: 'accept' | 'reject'): Promise<any> =>
     requests.put(`identities/${identityId}/verify`, { action }),
 
   // Verify certification
-  verifyCertification: (identityId: string, action: 'accept' | 'reject'): Promise<any> => 
+  verifyCertification: (identityId: string, action: 'accept' | 'reject'): Promise<any> =>
     requests.put(`identities/${identityId}/verify-certification`, { action }),
 
   // Certify identity (marks user as certified and verified, rate -> 5)
   certifyIdentity: (identityId: string): Promise<any> =>
     requests.put(`identities/${identityId}/certify`, {}),
-  
+
   // Delete identity
-  deleteIdentity: (identityId: string): Promise<any> => 
+  deleteIdentity: (identityId: string): Promise<any> =>
     requests.delete(`identities/${identityId}`),
 
   // Delete multiple identities
@@ -124,7 +125,7 @@ export const IdentityAPI = {
     const results = await Promise.allSettled(
       identityIds.map(id => requests.delete(`identities/${id}`))
     );
-    
+
     // Check which requests failed (not counting 404 as failures since item might already be deleted)
     const failed = results.filter((r, index) => {
       if (r.status === 'rejected') {
@@ -139,22 +140,22 @@ export const IdentityAPI = {
       }
       return false;
     });
-    
+
     if (failed.length > 0) {
       throw new Error(`${failed.length} identité(s) n'ont pas pu être supprimée(s)`);
     }
-    
+
     // Count successful deletions (including already-deleted items)
-    const successful = results.filter(r => 
-      r.status === 'fulfilled' || 
+    const successful = results.filter(r =>
+      r.status === 'fulfilled' ||
       (r.status === 'rejected' && (r.reason?.response?.status === 400 || r.reason?.response?.status === 404))
     ).length;
-    
+
     return { success: true, deleted: successful };
   },
 
   // Delete document  
-  deleteDocument: (identityId: string, field: string): Promise<any> => 
+  deleteDocument: (identityId: string, field: string): Promise<any> =>
     requests.delete(`identities/${identityId}/documents/${field}`),
 
   // Update document
@@ -166,9 +167,9 @@ export const IdentityAPI = {
   },
 
   // Get identity by ID
-  getIdentityById: (identityId: string): Promise<IdentityDocument> => 
+  getIdentityById: (identityId: string): Promise<IdentityDocument> =>
     requests.get(`identities/${identityId}`),
-  
+
   // Helper function to determine conversion type from identity
   getConversionTypeFromIdentity: (identity: IdentityDocument): string => {
     if (identity.conversionType) {

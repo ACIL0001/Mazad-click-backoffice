@@ -31,9 +31,10 @@ const AdForm: React.FC<AdFormProps> = ({ open, onClose, onSuccess, ad }) => {
   const [formData, setFormData] = useState({
     title: '',
     url: '',
-    isActive: true,
     isDisplayed: false,
     order: 0,
+    duration: 0, // Duration value
+    durationUnit: 'days' as 'hours' | 'days', // Duration unit
   });
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
@@ -43,9 +44,10 @@ const AdForm: React.FC<AdFormProps> = ({ open, onClose, onSuccess, ad }) => {
       setFormData({
         title: ad.title || '',
         url: ad.url || '',
-        isActive: ad.isActive ?? true,
         isDisplayed: ad.isDisplayed ?? false,
         order: ad.order ?? 0,
+        duration: (ad as any).duration ?? 0,
+        durationUnit: (ad as any).durationUnit || 'days',
       });
       
       // Set image preview if ad has image
@@ -65,9 +67,10 @@ const AdForm: React.FC<AdFormProps> = ({ open, onClose, onSuccess, ad }) => {
       setFormData({
         title: '',
         url: '',
-        isActive: true,
         isDisplayed: false,
         order: 0,
+        duration: 0,
+        durationUnit: 'days',
       });
       setImageFile(null);
       setImagePreview(null);
@@ -146,9 +149,12 @@ const AdForm: React.FC<AdFormProps> = ({ open, onClose, onSuccess, ad }) => {
       const formDataToSend = new FormData();
       formDataToSend.append('title', formData.title);
       formDataToSend.append('url', formData.url);
-      formDataToSend.append('isActive', formData.isActive.toString());
       formDataToSend.append('isDisplayed', formData.isDisplayed.toString());
       formDataToSend.append('order', formData.order.toString());
+      if (formData.duration > 0) {
+        formDataToSend.append('duration', formData.duration.toString());
+        formDataToSend.append('durationUnit', formData.durationUnit);
+      }
       
       if (imageFile) {
         formDataToSend.append('image', imageFile);
@@ -269,16 +275,55 @@ const AdForm: React.FC<AdFormProps> = ({ open, onClose, onSuccess, ad }) => {
             helperText="Lower numbers appear first"
           />
 
-          <FormControlLabel
-            control={
-              <Switch
-                checked={formData.isActive}
-                onChange={(e) => setFormData(prev => ({ ...prev, isActive: e.target.checked }))}
-                name="isActive"
-              />
-            }
-            label="Active"
-          />
+          <Box sx={{ display: 'flex', gap: 2 }}>
+            <TextField
+              fullWidth
+              label="Duration"
+              name="duration"
+              type="number"
+              value={formData.duration}
+              onChange={handleInputChange}
+              helperText="Ad will expire after this duration. 0 means no expiration"
+              inputProps={{ min: 0 }}
+            />
+            <TextField
+              select
+              label="Unit"
+              name="durationUnit"
+              value={formData.durationUnit}
+              onChange={handleInputChange}
+              sx={{ minWidth: 120 }}
+              SelectProps={{
+                native: true,
+              }}
+            >
+              <option value="hours">Hours</option>
+              <option value="days">Days</option>
+            </TextField>
+          </Box>
+
+          {formData.duration > 0 && (
+            <Box sx={{ p: 2, bgcolor: '#f5f5f5', borderRadius: 1 }}>
+              <Typography variant="body2" color="text.secondary">
+                <strong>Expiration Date:</strong>{' '}
+                {(() => {
+                  const now = Date.now();
+                  const multiplier = formData.durationUnit === 'hours' ? 60 * 60 * 1000 : 24 * 60 * 60 * 1000;
+                  const expirationDate = new Date(now + formData.duration * multiplier);
+                  return expirationDate.toLocaleString('en-US', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                  });
+                })()}
+              </Typography>
+              <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 0.5 }}>
+                ({formData.duration} {formData.durationUnit} from now)
+              </Typography>
+            </Box>
+          )}
 
           <FormControlLabel
             control={

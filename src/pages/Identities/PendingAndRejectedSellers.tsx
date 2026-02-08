@@ -263,7 +263,7 @@ function SellersTableBody({
                   fontSize: "0.875rem",
                 }}
               >
-                {user?.secteur || "N/A"}
+                {user?.secteur || (user as any)?.sector || (user as any)?.activitySector || "N/A"}
               </Typography>
             </TableCell>
             

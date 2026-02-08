@@ -301,7 +301,24 @@ function SellerItem({ seller, selected, setSelected, onOpenVerificationModal, on
               <Iconify icon="solar:arrow-right-bold" width={18} height={18} />
             </IconButton>
           </Tooltip>
-          {user?.isVerified && (
+          {user?.isCertified && (
+            <Tooltip title="Utilisateur certifié" placement="top">
+              <IconButton
+                size="small"
+                sx={{
+                  width: 36,
+                  height: 36,
+                  borderRadius: 2,
+                  backgroundColor: alpha(theme.palette.info.main, 0.08),
+                  color: theme.palette.info.main,
+                  border: `1px solid ${alpha(theme.palette.info.main, 0.2)}`,
+                }}
+              >
+                <Iconify icon="solar:shield-check-bold" width={18} height={18} />
+              </IconButton>
+            </Tooltip>
+          )}
+          {user?.isVerified && !user?.isCertified && (
             <Tooltip title="Utilisateur vérifié" placement="top">
               <IconButton
                 size="small"
