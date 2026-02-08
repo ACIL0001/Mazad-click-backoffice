@@ -1744,17 +1744,17 @@
   resolved "https://registry.npmjs.org/@svgdotjs/svg.select.js/-/svg.select.js-4.0.3.tgz"
   integrity sha512-qkMgso1sd2hXKd1FZ1weO7ANq12sNmQJeGDjs46QwDVsxSRcHmvWKL2NDF7Yimpwf3sl5esOLkPqtV2bQ3v/Jg==
 
-"@tanstack/query-core@5.90.15":
-  version "5.90.15"
-  resolved "https://registry.npmjs.org/@tanstack/query-core/-/query-core-5.90.15.tgz"
-  integrity sha512-mInIZNUZftbERE+/Hbtswfse49uUQwch46p+27gP9DWJL927UjnaWEF2t3RMOqBcXbfMdcNkPe06VyUIAZTV1g==
+"@tanstack/query-core@5.90.16":
+  version "5.90.16"
+  resolved "https://registry.npmjs.org/@tanstack/query-core/-/query-core-5.90.16.tgz"
+  integrity sha512-MvtWckSVufs/ja463/K4PyJeqT+HMlJWtw6PrCpywznd2NSgO3m4KwO9RqbFqGg6iDE8vVMFWMeQI4Io3eEYww==
 
-"@tanstack/react-query@^5.0.0":
-  version "5.90.15"
-  resolved "https://registry.npmjs.org/@tanstack/react-query/-/react-query-5.90.15.tgz"
-  integrity sha512-uQvnDDcTOgJouNtAyrgRej+Azf0U5WDov3PXmHFUBc+t1INnAYhIlpZtCGNBLwCN41b43yO7dPNZu8xWkUFBwQ==
+"@tanstack/react-query@^5.90.16":
+  version "5.90.16"
+  resolved "https://registry.npmjs.org/@tanstack/react-query/-/react-query-5.90.16.tgz"
+  integrity sha512-bpMGOmV4OPmif7TNMteU/Ehf/hoC0Kf98PDc0F4BZkFrEapRMEqI/V6YS0lyzwSV6PQpY1y4xxArUIfBW5LVxQ==
   dependencies:
-    "@tanstack/query-core" "5.90.15"
+    "@tanstack/query-core" "5.90.16"
 
 "@testing-library/jest-dom@^5.16.2":
   version "5.17.0"
