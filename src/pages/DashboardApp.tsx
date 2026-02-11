@@ -49,6 +49,8 @@ import {
   PieChart,
   Pie,
   Cell,
+  BarChart,
+  Bar,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -56,6 +58,8 @@ import {
   Legend,
   ResponsiveContainer,
 } from "recharts"
+import { TextField, InputAdornment } from "@mui/material"
+import { Search } from "@mui/icons-material"
 
 // Import your existing API modules
 import { StatsAPI } from '../api/stats'
@@ -121,6 +125,7 @@ export default function ComprehensiveDashboard() {
   const [error, setError] = useState<string | null>(null)
   const [tabValue, setTabValue] = useState(0)
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(null)
+  const [sectorFilter, setSectorFilter] = useState("")
 
   const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
     setTabValue(newValue)
@@ -518,45 +523,78 @@ export default function ComprehensiveDashboard() {
         <Grid item xs={12}>
           <Card>
             <CardContent>
-              <Box display="flex" alignItems="center" justifyContent="space-between" mb={2}>
-                <Typography variant="h6" fontWeight="bold">
-                  Utilisateurs par Secteur
-                </Typography>
-                <Chip 
-                  label={`${dashboardData.sectorStats.reduce((sum, s) => sum + s.count, 0)} Total`} 
-                  color="primary" 
+              <Box display="flex" alignItems="center" justifyContent="space-between" mb={3} flexWrap="wrap" gap={2}>
+                <Box display="flex" alignItems="center" gap={2}>
+                  <Typography variant="h6" fontWeight="bold">
+                    Utilisateurs par Secteur
+                  </Typography>
+                  <Chip 
+                    label={`${dashboardData.sectorStats.reduce((sum, s) => sum + s.count, 0)} Total`} 
+                    color="primary" 
+                    size="small"
+                  />
+                </Box>
+                <TextField
+                  placeholder="Rechercher un secteur..."
+                  size="small"
+                  value={sectorFilter}
+                  onChange={(e) => setSectorFilter(e.target.value)}
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <Search fontSize="small" />
+                      </InputAdornment>
+                    ),
+                  }}
+                  sx={{ width: { xs: '100%', sm: 300 } }}
                 />
               </Box>
               
-              <Grid container spacing={2}>
-                {dashboardData.sectorStats.length > 0 ? (
-                  dashboardData.sectorStats.map((sector, index) => (
-                    <Grid item xs={12} sm={6} md={3} key={sector.sector}>
-                      <Box 
-                        sx={{ 
-                          p: 2, 
-                          bgcolor: COLORS[index % COLORS.length] + '20',
-                          borderLeft: `4px solid ${COLORS[index % COLORS.length]}`,
-                          borderRadius: 1
-                        }}
-                      >
-                        <Typography variant="h4" color={COLORS[index % COLORS.length]} fontWeight="bold">
-                          {sector.count}
-                        </Typography>
-                        <Typography variant="body2" color="text.secondary">
-                          {sector.sector || 'Non spécifié'}
-                        </Typography>
-                      </Box>
-                    </Grid>
-                  ))
-                ) : (
-                  <Grid item xs={12}>
-                    <Alert severity="info">
-                      Aucune donnée de secteur disponible
-                    </Alert>
-                  </Grid>
-                )}
-              </Grid>
+              <TableContainer sx={{ maxHeight: 450 }}>
+                <Table stickyHeader size="small">
+                  <TableHead>
+                    <TableRow>
+                      <TableCell sx={{ fontWeight: 'bold', bgcolor: '#f8fafc' }}>Secteur</TableCell>
+                      <TableCell align="right" sx={{ fontWeight: 'bold', bgcolor: '#f8fafc' }}>Utilisateurs</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {dashboardData.sectorStats
+                      .filter(s => (s.sector || '').toLowerCase().includes(sectorFilter.toLowerCase()))
+                      .sort((a, b) => b.count - a.count)
+                      .map((sector, index) => {
+                        const totalUsers = dashboardData.sectorStats.reduce((sum, s) => sum + s.count, 0);
+                        const percentage = totalUsers > 0 ? (sector.count / totalUsers) * 100 : 0;
+                        
+                        return (
+                          <TableRow hover key={index}>
+                            <TableCell>
+                              <Typography variant="body2" fontWeight="500">
+                                {sector.sector || 'Non spécifié'}
+                              </Typography>
+                            </TableCell>
+                            <TableCell align="right">
+                              <Chip 
+                                label={sector.count} 
+                                size="small" 
+                                color="primary" 
+                                variant={index < 3 ? "filled" : "outlined"}
+                                sx={{ fontWeight: 'bold', minWidth: 40 }}
+                              />
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    {dashboardData.sectorStats.filter(s => (s.sector || '').toLowerCase().includes(sectorFilter.toLowerCase())).length === 0 && (
+                       <TableRow>
+                         <TableCell colSpan={2} align="center" sx={{ py: 4 }}>
+                           <Typography color="text.secondary">Aucun secteur trouvé</Typography>
+                         </TableCell>
+                       </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              </TableContainer>
             </CardContent>
           </Card>
         </Grid>

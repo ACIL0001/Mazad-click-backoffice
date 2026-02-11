@@ -42,7 +42,7 @@ import HowToRegIcon from '@mui/icons-material/HowToReg';
 import { UserAPI } from '@/api/user';
 import { ReviewAPI } from '@/api/review';
 import Iconify from '../../components/Iconify';
-import UserListToolbar from '../../sections/@dashboard/user/UserListToolbar';
+
 
 // Fixed COLUMNS to match the professional table structure (without checkbox in COLUMNS array)
 const COLUMNS = [
@@ -636,14 +636,6 @@ export default function Clients() {
                     </Grid>
                 </Grid>
 
-                {/* FIXED: Add UserListToolbar with proper props */}
-                <UserListToolbar
-                    numSelected={selected.length}
-                    filterName={filterName}
-                    onFilterName={setFilterName}
-                    onDeleteSelected={handleDeleteSelectedClients}
-                />
-
                 {clients && (
                     <MuiTable
                         data={clients}
@@ -664,8 +656,7 @@ export default function Clients() {
                         searchFields={['firstName', 'lastName', 'phone']}
                         numSelected={selected.length}
                         loading={false}
-                        // REMOVED: onDeleteSelected and onDeleteSingle props that don't exist in MuiTableProps
-                        // Delete functionality is now handled through UserListToolbar and ActionsMenu
+                        onDeleteSelected={handleDeleteSelectedClients}
                     />
                 )}
                 <Dialog
