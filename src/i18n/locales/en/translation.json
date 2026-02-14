@@ -39,6 +39,11 @@
     "address": "Address",
     "email": "Email",
     "phone": "Phone",
+    "nom": "First Name",
+    "prenom": "Last Name",
+    "firstName": "First Name",
+    "lastName": "Last Name",
+    "wilaya": "Province",
     "role": "Role",
     "unexpectedFormat": "Unexpected response format.",
     "loadingFailed": "Loading failed."

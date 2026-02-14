@@ -39,6 +39,11 @@
     "address": "العنوان",
     "email": "البريد الإلكتروني",
     "phone": "الهاتف",
+    "nom": "الاسم الأول",
+    "prenom": "اللقب",
+    "firstName": "الاسم الأول",
+    "lastName": "اللقب",
+    "wilaya": "الولاية",
     "role": "الدور",
     "unexpectedFormat": "تنسيق استجابة غير متوقع.",
     "loadingFailed": "فشل التحميل."

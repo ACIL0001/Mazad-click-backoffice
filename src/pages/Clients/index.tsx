@@ -47,8 +47,10 @@ import Iconify from '../../components/Iconify';
 // Fixed COLUMNS to match the professional table structure (without checkbox in COLUMNS array)
 const COLUMNS = [
     { id: 'firstName', label: 'Nom', alignRight: false, searchable: true },
+    { id: 'lastName', label: 'Prénom', alignRight: false, searchable: true },
+    { id: 'email', label: 'Email', alignRight: false, searchable: true },
     { id: 'phone', label: 'Tel', alignRight: false, searchable: true },
-    { id: 'isVerified', label: 'Vérifié', alignRight: false, searchable: false },
+    { id: 'wilaya', label: 'Wilaya', alignRight: false, searchable: true },
     { id: 'isActive', label: 'Activé', alignRight: false, searchable: false },
     { id: 'isBanned', label: 'Banni', alignRight: false, searchable: false },
     { id: 'rate', label: 'Rate', alignRight: false, searchable: false },
@@ -437,33 +439,37 @@ export default function Clients() {
                                 />
                             </TableCell>
 
-                            {/* Name cell */}
+                            {/* First Name cell */}
                             <TableCell component="th" scope="row" padding="none">
                                 <Stack direction="row" alignItems="center" spacing={isMobile ? 1 : 2}>
                                     <Typography variant="subtitle2" noWrap sx={{ fontSize: isMobile ? '0.8rem' : '0.9rem' }}>
-                                        <Chip onClick={() => goToProfile(row)} label={clientFullName} component="a" href="#" clickable sx={{ fontSize: isMobile ? '0.7rem' : '0.8rem' }} />
+                                        <Chip onClick={() => goToProfile(row)} label={firstName || 'N/A'} component="a" href="#" clickable sx={{ fontSize: isMobile ? '0.7rem' : '0.8rem' }} />
                                     </Typography>
                                 </Stack>
+                            </TableCell>
+
+                            {/* Last Name cell */}
+                            <TableCell align="left" sx={{ display: isMobile ? 'none' : 'table-cell' }}>
+                                <Typography variant="body2" sx={{ fontSize: isMobile ? '0.75rem' : '0.875rem' }}>
+                                    {lastName || 'N/A'}
+                                </Typography>
+                            </TableCell>
+
+                            {/* Email cell */}
+                            <TableCell align="left" sx={{ display: isMobile ? 'none' : 'table-cell' }}>
+                                <Typography variant="body2" sx={{ fontSize: isMobile ? '0.75rem' : '0.875rem' }}>
+                                    {row.email || 'N/A'}
+                                </Typography>
                             </TableCell>
 
                             {/* Phone cell */}
                             <TableCell align="left" sx={{ display: isMobile ? 'none' : 'table-cell' }}>{phone}</TableCell>
 
-                            {/* Verified cell */}
-                            <TableCell align="left">
-                                <Box
-                                    onClick={() => !togglingStatus[`verified-${_id}`] && toggleVerified(_id, isVerified)}
-                                    sx={{
-                                        cursor: togglingStatus[`verified-${_id}`] ? 'wait' : 'pointer',
-                                        opacity: togglingStatus[`verified-${_id}`] ? 0.6 : 1,
-                                        pointerEvents: togglingStatus[`verified-${_id}`] ? 'none' : 'auto',
-                                        display: 'inline-block'
-                                    }}
-                                >
-                                    <Label variant="ghost" color={isVerified ? 'success' : 'error'} sx={{ fontSize: isMobile ? '0.7rem' : '0.75rem' }}>
-                                        {togglingStatus[`verified-${_id}`] ? '...' : sentenceCase(isVerified ? "Compte Valide" : 'Compte Non Valide')}
-                                    </Label>
-                                </Box>
+                            {/* Wilaya cell */}
+                            <TableCell align="left" sx={{ display: isMobile ? 'none' : 'table-cell' }}>
+                                <Typography variant="body2" sx={{ fontSize: isMobile ? '0.75rem' : '0.875rem' }}>
+                                    {row.wilaya || 'N/A'}
+                                </Typography>
                             </TableCell>
 
                             {/* Active cell */}
@@ -653,7 +659,7 @@ export default function Clients() {
                         rowsPerPage={rowsPerPage}
                         setRowsPerPage={setRowsPerPage}
                         TableBodyComponent={TableBodyComponent}
-                        searchFields={['firstName', 'lastName', 'phone']}
+                        searchFields={['firstName', 'lastName', 'email', 'phone', 'wilaya']}
                         numSelected={selected.length}
                         loading={false}
                         onDeleteSelected={handleDeleteSelectedClients}

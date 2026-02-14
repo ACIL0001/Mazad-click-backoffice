@@ -342,14 +342,17 @@ export default function Professionals() {
     const { enqueueSnackbar } = useSnackbar();
 
     const COLUMNS = [
-        { id: 'firstName', label: t('professionals.name') || 'Nom', alignRight: false, searchable: true },
-        { id: 'phone', label: t('common.phone'), alignRight: false, searchable: true },
-        { id: 'entreprise', label: t('professionals.company') || 'Entreprise', alignRight: false, searchable: false },
-        { id: 'secteur', label: t('professionals.sector') || 'Secteur', alignRight: false, searchable: false },
+        { id: 'firstName', label: t('common.nom') || 'Nom', alignRight: false, searchable: true },
+        { id: 'lastName', label: t('common.prenom') || 'Prénom', alignRight: false, searchable: true },
+        { id: 'email', label: t('common.email') || 'Email', alignRight: false, searchable: true },
+        { id: 'phone', label: t('common.phone') || 'Téléphone', alignRight: false, searchable: true },
+        { id: 'wilaya', label: t('common.wilaya') || 'Wilaya', alignRight: false, searchable: true },
+        { id: 'entreprise', label: t('professionals.company') || 'Entreprise', alignRight: false, searchable: true },
+        { id: 'secteur', label: t('professionals.sector') || 'Secteur', alignRight: false, searchable: true },
         { id: 'postOccupé', label: t('professionals.position') || 'Post occupé', alignRight: false, searchable: false },
-        { id: 'promoCode', label: t('professionals.promoCode') || 'Code promo', alignRight: false, searchable: true },
-        { id: 'isVerified', label: t('professionals.verified') || 'Vérifié', alignRight: false, searchable: false },
-        { id: 'isCertified', label: t('professionals.certified') || 'Certifié', alignRight: false, searchable: false },
+        { id: 'promoCode', label: t('professionals.promoCode') || 'Code promo', alignRight: false, searchable: false },
+        { id: 'isVerified', label: t('professionals.verified') || 'Vérifié', alignRight: false, searchable: true },
+        { id: 'isCertified', label: t('professionals.certified') || 'Certifié', alignRight: false, searchable: true },
         { id: 'isActive', label: t('professionals.active') || 'Activé', alignRight: false, searchable: false },
         { id: 'isBanned', label: t('professionals.banned') || 'Banni', alignRight: false, searchable: false },
         { id: 'isRecommended', label: t('professionals.recommended') || 'Recommandé', alignRight: false, searchable: false },
@@ -1211,7 +1214,7 @@ export default function Professionals() {
                                     <Typography variant="subtitle2" noWrap sx={{ fontSize: isMobile ? '0.8rem' : '0.9rem' }}>
                                         <Chip
                                             onClick={() => goToProfile(row)}
-                                            label={professionalFullName}
+                                            label={firstName || 'N/A'}
                                             component="a"
                                             href="#"
                                             clickable
@@ -1223,7 +1226,25 @@ export default function Professionals() {
                                 </Stack>
                             </TableCell>
 
+                            <TableCell align="left" sx={{ display: isMobile ? 'none' : 'table-cell' }}>
+                                <Typography variant="body2" sx={{ fontSize: isMobile ? '0.75rem' : '0.875rem' }}>
+                                    {lastName || 'N/A'}
+                                </Typography>
+                            </TableCell>
+
+                            <TableCell align="left" sx={{ display: isMobile ? 'none' : 'table-cell' }}>
+                                <Typography variant="body2" sx={{ fontSize: isMobile ? '0.75rem' : '0.875rem' }}>
+                                    {row.email || 'N/A'}
+                                </Typography>
+                            </TableCell>
+
                             <TableCell align="left" sx={{ display: isMobile ? 'none' : 'table-cell' }}>{phone}</TableCell>
+
+                            <TableCell align="left" sx={{ display: isMobile ? 'none' : 'table-cell' }}>
+                                <Typography variant="body2" sx={{ fontSize: isMobile ? '0.75rem' : '0.875rem' }}>
+                                    {row.wilaya || 'N/A'}
+                                </Typography>
+                            </TableCell>
 
                             <TableCell align="left" sx={{ display: isMobile ? 'none' : 'table-cell' }}>
                                 <Typography variant="body2" sx={{ fontSize: isMobile ? '0.75rem' : '0.875rem' }}>

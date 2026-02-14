@@ -39,6 +39,11 @@
     "address": "Adresse",
     "email": "Email",
     "phone": "Téléphone",
+    "nom": "Nom",
+    "prenom": "Prénom",
+    "firstName": "Nom",
+    "lastName": "Prénom",
+    "wilaya": "Wilaya",
     "role": "Rôle",
     "unexpectedFormat": "Format de réponse inattendu.",
     "loadingFailed": "Chargement échoué."
