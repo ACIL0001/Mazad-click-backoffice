@@ -100,6 +100,7 @@
     "position": "المنصب",
     "promoCode": "رمز الخصم",
     "certified": "معتمد",
+    "uncertified": "غير معتمد",
     "rate": "التقييم",
     "infoMessage": "تعرض هذه الصفحة جميع المهنيين (الم verified وغير الم verified). استخدم المرشحات أدناه لتحسين بحثك."
   },

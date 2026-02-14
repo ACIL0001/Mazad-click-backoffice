@@ -100,6 +100,7 @@
     "position": "Position",
     "promoCode": "Promo Code",
     "certified": "Certified",
+    "uncertified": "Uncertified",
     "rate": "Rating",
     "infoMessage": "This page displays all professionals (verified and unverified). Use the filters below to refine your search."
   },

@@ -99,7 +99,8 @@
     "sector": "Secteur",
     "position": "Post occupé",
     "promoCode": "Code promo",
-    "certified": "Certifié",
+    "certified": "Certifiés",
+    "uncertified": "Non Certifiés",
     "rate": "Note",
     "infoMessage": "Cette page affiche tous les professionnels (vérifiés et non vérifiés). Utilisez les filtres ci-dessous pour affiner votre recherche."
   },

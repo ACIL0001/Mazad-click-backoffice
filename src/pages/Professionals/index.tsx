@@ -351,8 +351,8 @@ export default function Professionals() {
         { id: 'secteur', label: t('professionals.sector') || 'Secteur', alignRight: false, searchable: true },
         { id: 'postOccupé', label: t('professionals.position') || 'Post occupé', alignRight: false, searchable: false },
         { id: 'promoCode', label: t('professionals.promoCode') || 'Code promo', alignRight: false, searchable: false },
-        { id: 'isVerified', label: t('professionals.verified') || 'Vérifié', alignRight: false, searchable: true },
-        { id: 'isCertified', label: t('professionals.certified') || 'Certifié', alignRight: false, searchable: true },
+        { id: 'isVerified', label: t('professionals.verified') || 'Vérifié', alignRight: false, searchable: false },
+        { id: 'isCertified', label: t('professionals.certified') || 'Certifié', alignRight: false, searchable: false },
         { id: 'isActive', label: t('professionals.active') || 'Activé', alignRight: false, searchable: false },
         { id: 'isBanned', label: t('professionals.banned') || 'Banni', alignRight: false, searchable: false },
         { id: 'isRecommended', label: t('professionals.recommended') || 'Recommandé', alignRight: false, searchable: false },
@@ -386,6 +386,10 @@ export default function Professionals() {
     const [rowsPerPage, setRowsPerPage] = useState(() => {
         const rowsParam = initialSearchParams.get('rowsPerPage');
         return rowsParam ? parseInt(rowsParam, 10) : 10;
+    });
+    const [certifiedFilter, setCertifiedFilter] = useState<'all' | 'certified' | 'uncertified'>(() => {
+        const filterParam = initialSearchParams.get('certifiedFilter');
+        return (filterParam === 'certified' || filterParam === 'uncertified') ? filterParam : 'all';
     });
     const [verifiedFilter, setVerifiedFilter] = useState<'all' | 'verified' | 'unverified'>(() => {
         const filterParam = initialSearchParams.get('verifiedFilter');
@@ -428,6 +432,7 @@ export default function Professionals() {
         const pageParam = searchParams.get('page');
         const rowsPerPageParam = searchParams.get('rowsPerPage');
         const filterNameParam = searchParams.get('filterName');
+        const certifiedFilterParam = searchParams.get('certifiedFilter');
         const verifiedFilterParam = searchParams.get('verifiedFilter');
 
         // Always update page from URL - force update to ensure correct page is displayed
@@ -464,6 +469,15 @@ export default function Professionals() {
             setFilterName(filterNameParam);
         } else if (filterNameParam === null && filterName !== '') {
             setFilterName('');
+        }
+
+        // Update certifiedFilter
+        if (certifiedFilterParam === 'certified' || certifiedFilterParam === 'uncertified') {
+            if (certifiedFilter !== certifiedFilterParam) {
+                setCertifiedFilter(certifiedFilterParam);
+            }
+        } else if (certifiedFilterParam === null && certifiedFilter !== 'all') {
+            setCertifiedFilter('all');
         }
 
         // Update verifiedFilter
@@ -677,15 +691,15 @@ export default function Professionals() {
             );
             
             console.log(`📋 Total professionals to display: ${professionalsWithPlans.length}`);
-            const verifiedCount = professionalsWithPlans.filter((p: any) => p?.isVerified === true).length;
-            const unverifiedCount = professionalsWithPlans.length - verifiedCount;
-                console.log(`✅ Verified: ${verifiedCount}, ❌ Unverified: ${unverifiedCount}`);
-                
+            const certifiedCount = professionalsWithPlans.filter((p: any) => p?.isCertified === true).length;
+            const uncertifiedCount = professionalsWithPlans.length - certifiedCount;
+            console.log(`✅ Certified: ${certifiedCount}, ❌ Uncertified: ${uncertifiedCount}`);
+            
             setProfessionals(professionalsWithPlans);
-                enqueueSnackbar(
-                `${professionalsWithPlans.length} professionnel${professionalsWithPlans.length > 1 ? 's' : ''} chargé${professionalsWithPlans.length > 1 ? 's' : ''} avec succès (${verifiedCount} vérifié${verifiedCount > 1 ? 's' : ''}, ${unverifiedCount} non vérifié${unverifiedCount > 1 ? 's' : ''}).`, 
-                    { variant: 'success' }
-                );
+            enqueueSnackbar(
+                `${professionalsWithPlans.length} professionnel${professionalsWithPlans.length > 1 ? 's' : ''} chargé${professionalsWithPlans.length > 1 ? 's' : ''} avec succès (${certifiedCount} certifié${certifiedCount > 1 ? 's' : ''}, ${uncertifiedCount} non certifié${uncertifiedCount > 1 ? 's' : ''}).`, 
+                { variant: 'success' }
+            );
         } catch (e: any) {
                 console.error("❌ Failed to load professionals:", e);
                 console.error("❌ Error details:", e.response?.data || e.message);
@@ -1038,6 +1052,7 @@ export default function Professionals() {
         params.set('page', page.toString());
         params.set('rowsPerPage', rowsPerPage.toString());
         if (filterName) params.set('filterName', filterName);
+        if (certifiedFilter !== 'all') params.set('certifiedFilter', certifiedFilter);
         if (verifiedFilter !== 'all') params.set('verifiedFilter', verifiedFilter);
         // Also save the user ID so we can potentially scroll to it later
         params.set('returnUserId', user._id);
@@ -1045,6 +1060,7 @@ export default function Professionals() {
             page, 
             rowsPerPage, 
             filterName, 
+            certifiedFilter,
             verifiedFilter,
             url: `/dashboard/users/professionals/${user._id}?${params.toString()}`
         });
@@ -1450,7 +1466,7 @@ export default function Professionals() {
 
     const totalProfessionals = professionals.length;
     const bannedProfessionals = professionals.filter(p => p.isBanned).length;
-    const verifiedProfessionals = professionals.filter(p => p.isVerified).length;
+    const certifiedProfessionals = professionals.filter(p => p.isCertified).length;
     const activeProfessionals = professionals.filter(p => p.isActive).length;
     const recommendedProfessionals = professionals.filter(p => p.isRecommended).length;
 
@@ -1463,7 +1479,7 @@ export default function Professionals() {
                     sx={{ mb: 3 }}
                     icon={<InfoIcon />}
                 >
-                    {t('professionals.infoMessage') || 'Cette page affiche tous les professionnels (vérifiés et non vérifiés). Utilisez les filtres ci-dessous pour affiner votre recherche.'}
+                    {t('professionals.infoMessage') || 'Cette page affiche tous les professionnels. Utilisez les filtres ci-dessous pour affiner votre recherche par certification et validation.'}
                 </Alert>
 
                 <Grid container spacing={isMobile ? 2 : 3} sx={{ mb: { xs: 2, sm: 3 } }}>
@@ -1496,10 +1512,10 @@ export default function Professionals() {
                             </IconWrapperStyle>
                             <Box>
                                 <Typography variant={isMobile ? "body2" : "h6"} color="textSecondary" sx={{ opacity: 0.72 }}>
-                                    {t('professionals.verified') || 'Comptes Validés'}
+                                    {t('professionals.certified') || 'Certifiés'}
                                 </Typography>
                                 <Typography variant={isMobile ? "h5" : "h4"} component="div">
-                                    {verifiedProfessionals}
+                                    {certifiedProfessionals}
                                 </Typography>
                             </Box>
                         </StyledCard>
@@ -1563,27 +1579,37 @@ export default function Professionals() {
                     </Grid>
                 </Grid>
 
-                {/* Verified Filter Toggle */}
+                {/* Filters Container */}
+                <Box sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 3, flexWrap: 'wrap' }}>
+                {/* Combined Filter Toggle */}
                 <Box sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
                     <Typography variant="body2" sx={{ fontWeight: 600, color: 'text.secondary' }}>
-                        {t('professionals.filterByVerification') || 'Filtrer par vérification'}:
+                        Filtrer par statut:
                     </Typography>
                     <ToggleButtonGroup
-                        value={verifiedFilter}
+                        value={verifiedFilter !== 'all' ? verifiedFilter : (certifiedFilter !== 'all' ? certifiedFilter : 'all')}
                         exclusive
                         onChange={(event, newValue) => {
-                            if (newValue !== null && newValue !== verifiedFilter) {
-                                // Only reset page if filter is actually changing (not when restoring from URL)
-                                setVerifiedFilter(newValue);
-                                setPage(0); // Reset to first page when filter changes
-                                // Update URL params when filter changes
+                            if (newValue !== null) {
+                                setPage(0);
                                 const params = new URLSearchParams(location.search);
                                 params.delete('page');
-                                if (newValue === 'all') {
-                                    params.delete('verifiedFilter');
-                                } else {
+                                
+                                // Reset both first
+                                setVerifiedFilter('all');
+                                setCertifiedFilter('all');
+                                params.delete('verifiedFilter');
+                                params.delete('certifiedFilter');
+
+                                if (newValue === 'verified' || newValue === 'unverified') {
+                                    setVerifiedFilter(newValue);
                                     params.set('verifiedFilter', newValue);
+                                } else if (newValue === 'certified' || newValue === 'uncertified') {
+                                    setCertifiedFilter(newValue);
+                                    params.set('certifiedFilter', newValue);
                                 }
+                                // if newValue is 'all', we already reset everything above
+
                                 navigate({ search: params.toString() }, { replace: true });
                             }
                         }}
@@ -1609,26 +1635,42 @@ export default function Professionals() {
                             {t('professionals.all') || 'Tous'} ({professionals.length})
                         </ToggleButton>
                         <ToggleButton value="verified">
-                            {t('professionals.verified') || 'Vérifiés'} ({professionals.filter((p: any) => p.isVerified).length})
+                            {t('professionals.verified') || 'Compte Validé'} ({professionals.filter((p: any) => p.isVerified).length})
                         </ToggleButton>
                         <ToggleButton value="unverified">
-                            {t('professionals.unverified') || 'Non vérifiés'} ({professionals.filter((p: any) => !p.isVerified).length})
+                            {t('professionals.unverified') || 'Compte Non Validé'} ({professionals.filter((p: any) => !p.isVerified).length})
+                        </ToggleButton>
+                        <ToggleButton value="certified">
+                            {t('professionals.certified') || 'Certifié'} ({professionals.filter((p: any) => p.isCertified).length})
+                        </ToggleButton>
+                        <ToggleButton value="uncertified">
+                            {t('professionals.uncertified') || 'Non Certifié'} ({professionals.filter((p: any) => !p.isCertified).length})
                         </ToggleButton>
                     </ToggleButtonGroup>
                 </Box>
+                </Box>
 
                 {professionals && (() => {
-                    // Filter professionals by verification status first
-                    let filteredByVerification = professionals;
+                    // Filter professionals by certification status first
+                    let filteredProfessionals = professionals;
+                    
+                    // Apply Certification Filter
+                    if (certifiedFilter === 'certified') {
+                        filteredProfessionals = filteredProfessionals.filter((p: any) => p.isCertified === true);
+                    } else if (certifiedFilter === 'uncertified') {
+                        filteredProfessionals = filteredProfessionals.filter((p: any) => p.isCertified !== true);
+                    }
+
+                    // Apply Verification Filter
                     if (verifiedFilter === 'verified') {
-                        filteredByVerification = professionals.filter((p: any) => p.isVerified === true);
+                        filteredProfessionals = filteredProfessionals.filter((p: any) => p.isVerified === true);
                     } else if (verifiedFilter === 'unverified') {
-                        filteredByVerification = professionals.filter((p: any) => p.isVerified !== true);
+                        filteredProfessionals = filteredProfessionals.filter((p: any) => p.isVerified !== true);
                     }
 
                     // Calculate numSelected based on filtered data only
                     // This ensures the checkbox state reflects only the filtered items
-                    const filteredSelectedCount = filteredByVerification.filter((p: any) => 
+                    const filteredSelectedCount = filteredProfessionals.filter((p: any) => 
                         selected.includes(`${p.firstName} ${p.lastName}`)
                     ).length;
 
@@ -1647,9 +1689,9 @@ export default function Professionals() {
                     console.log('Rendering MuiTable - URL page:', displayPage, 'State page:', page, 'Using:', displayPage);
                     
                     return (
-                    <MuiTable
-                            key={`table-${displayPage}-${rowsPerPage}-${verifiedFilter}`} // Force re-render when page/rowsPerPage/filter changes
-                            data={filteredByVerification}
+                     <MuiTable
+                            key={`table-${displayPage}-${rowsPerPage}-${certifiedFilter}-${verifiedFilter}`} // Force re-render when page/rowsPerPage/filter changes
+                            data={filteredProfessionals}
                         columns={COLUMNS}
                         page={displayPage}
                         setPage={(newPage) => {
