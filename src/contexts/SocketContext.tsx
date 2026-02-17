@@ -80,9 +80,9 @@ export default function SocketProvider({ children }: any) {
       ? config.socket.trim()
       : (import.meta.env.MODE === 'production'
         ? 'https://mazadclick-server.onrender.com/'
-        : 'http://localhost:3000/')).replace(/\/$/, '');
+        : 'http://127.0.0.1:3000/')).replace(/\/$/, '');
 
-    // const so: Socket = io('http://localhost:3000', {
+    // const so: Socket = io('http://127.0.0.1:3000', {
     const so: Socket = io(socketUrl, {
       query: { userId: auth.user._id },
       transports: ['websocket', 'polling'],
@@ -107,20 +107,14 @@ export default function SocketProvider({ children }: any) {
     
     setSocket(so);
 
+    /* 
+    // Internal listener commented out to prevent interference with ChatLayout
     so.on('sendMessage', (data) => {
-      console.log('📨 Admin received message via socket:', data);
+      console.log('📨 Admin received message via socket (Internal Context):', data);
       
       // Check if this message is for admin (reciver === 'admin' or sender is not admin)
       const isAdminMessage = data.reciver === 'admin' || data.reciver === 'ADMIN';
       const isFromAdmin = data.sender === 'admin' || data.sender === 'ADMIN';
-      
-      console.log('🔍 Message analysis:', {
-        isAdminMessage,
-        isFromAdmin,
-        sender: data.sender,
-        reciver: data.reciver,
-        currentUserId: auth?.user?._id
-      });
       
       // Only add messages that are either:
       // 1. From users to admin (reciver === 'admin')
@@ -142,10 +136,9 @@ export default function SocketProvider({ children }: any) {
           
           return [...prev, data];
         });
-      } else {
-        console.log('❌ Message not for admin, ignoring');
       }
-    });
+    }); 
+    */
     
     // Also listen for adminMessage events (for consistency)
     so.on('adminMessage', (data) => {
@@ -194,25 +187,24 @@ export default function SocketProvider({ children }: any) {
   }, [socket]);
 
   const addListener = useCallback((eventName: string, handler: (data: any) => void) => {
-    console.log(`[socket event] =>>> adding event name ${eventName}`);
-
+    // console.log(`[socket event] =>>> adding event name ${eventName}`);
     setEventListeners((prev) => {
-      const index = prev.findIndex((e) => e.eventName === eventName);
-      console.log(index, eventName);
-
-      if (index > -1) {
-        prev[index] = { eventName: prev[index].eventName, handler };
-        return prev;
-      }
-
-      prev.push({ eventName, handler });
-      return prev;
+      // Check if this exact handler is already added to avoid duplicates from strict mode double-mounts
+      const exists = prev.some(l => l.eventName === eventName && l.handler === handler);
+      if (exists) return prev;
+      return [...prev, { eventName, handler }];
     });
   }, []);
 
-  const removeListener = useCallback((eventName: string) => {
-    console.log(`[socket event] =>>> remove event name ${eventName}`);
-    setEventListeners((prev) => prev.filter((ev) => ev.eventName !== eventName));
+  const removeListener = useCallback((eventName: string, handler?: (data: any) => void) => {
+    // console.log(`[socket event] =>>> remove event name ${eventName}`);
+    setEventListeners((prev) => {
+      if (handler) {
+        return prev.filter(l => !(l.eventName === eventName && l.handler === handler));
+      }
+      // If no handler specified, remove all for this event name (legacy behavior support)
+      return prev.filter((ev) => ev.eventName !== eventName);
+    });
   }, []);
 
   const emit = useCallback((eventName: string, data?: any) => {
@@ -227,13 +219,19 @@ export default function SocketProvider({ children }: any) {
   useEffect(() => {
     if (!socket) return;
     
+    // Subscribe all listeners
     eventListeners.forEach(({ eventName, handler }) => {
+      // Check if listener is already attached to socket to prevent max listeners warning
+      // Socket.io doesn't easily let us check this, so rely on our state management
+      // But we can be safe:
+      socket.off(eventName, handler); // Remove first to ensure no duplicates
       socket.on(eventName, handler);
     });
 
     return () => {
-      eventListeners.forEach(({ eventName }) => {
-        socket.off(eventName);
+      // Unsubscribe all listeners in this effect's scope
+      eventListeners.forEach(({ eventName, handler }) => {
+        socket.off(eventName, handler);
       });
     };
   }, [eventListeners, socket]);

@@ -45,9 +45,10 @@ const TermsManagement: React.FC = () => {
   const [viewTerm, setViewTerm] = useState<Terms | null>(null);
   const [formData, setFormData] = useState<CreateTermsDto>({
     title: '',
-    version: ''
+    version: '',
+    content: ''
   });
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  // const [selectedFile, setSelectedFile] = useState<File | null>(null); // Removed file state
   const [updateLoading, setUpdateLoading] = useState<boolean>(false);
   const [deleteLoading, setDeleteLoading] = useState<boolean>(false);
 
@@ -80,7 +81,7 @@ const TermsManagement: React.FC = () => {
       const formPayload = new FormData();
       formPayload.append('title', formData.title);
       formPayload.append('version', formData.version);
-      if (selectedFile) formPayload.append('file', selectedFile);
+      if (formData.content) formPayload.append('content', formData.content);
 
       const newTerm = await TermsAPI.create(formPayload);
       setTerms([...terms, newTerm]);
@@ -105,7 +106,7 @@ const TermsManagement: React.FC = () => {
       const formPayload = new FormData();
       if (formData.title) formPayload.append('title', formData.title);
       if (formData.version) formPayload.append('version', formData.version);
-      if (selectedFile) formPayload.append('file', selectedFile);
+      if (formData.content) formPayload.append('content', formData.content);
 
       const updatedTerm = await TermsAPI.update(currentTerm._id, formPayload);
       setTerms(terms.map(term => term._id === updatedTerm._id ? updatedTerm : term));
@@ -152,9 +153,10 @@ const TermsManagement: React.FC = () => {
     setCurrentTerm(term);
     setFormData({
       title: term.title,
-      version: term.version
+      version: term.version,
+      content: term.content || ''
     });
-    setSelectedFile(null);
+    // setSelectedFile(null);
     setOpenDialog(true);
   };
 
@@ -189,10 +191,9 @@ const TermsManagement: React.FC = () => {
   const resetForm = () => {
     setFormData({
       title: '',
-      content: '', // Keeping it in state type to avoid major refactors but ignoring it
+      content: '', 
       version: ''
     });
-    setSelectedFile(null);
   };
 
   const handleCloseDialog = () => {
@@ -333,43 +334,17 @@ const TermsManagement: React.FC = () => {
                 onChange={(e) => setFormData({ ...formData, version: e.target.value })}
                 placeholder="e.g., 1.0.0"
               />
-              <Box sx={{ mt: 2, mb: 1 }}>
-                <Typography variant="body2" color="textSecondary" gutterBottom>
-                  Document File (PDF, DOC, DOCX)
-                </Typography>
-                <input
-                  accept=".pdf,.doc,.docx"
-                  style={{ display: 'none' }}
-                  id="raised-button-file"
-                  type="file"
-                  onChange={(e) => {
-                    if (e.target.files && e.target.files[0]) {
-                      setSelectedFile(e.target.files[0]);
-                    }
-                  }}
-                />
-                <label htmlFor="raised-button-file">
-                  <Button variant="outlined" component="span" startIcon={<UploadIcon />}>
-                    Upload Document
-                  </Button>
-                </label>
-                {selectedFile && (
-                  <Box display="flex" alignItems="center" mt={1}>
-                    <FileIcon color="action" fontSize="small" />
-                    <Typography variant="caption" sx={{ ml: 1 }}>
-                      {selectedFile.name}
-                    </Typography>
-                  </Box>
-                )}
-                { currentTerm && currentTerm.attachment && !selectedFile && (
-                   <Box display="flex" alignItems="center" mt={1}>
-                    <FileIcon color="primary" fontSize="small" />
-                    <Typography variant="caption" sx={{ ml: 1 }}>
-                      Current file: {currentTerm.attachment.filename}
-                    </Typography>
-                  </Box>
-                )}
-              </Box>
+              <TextField
+                margin="normal"
+                required
+                fullWidth
+                label="Content"
+                multiline
+                rows={10}
+                value={formData.content}
+                onChange={(e) => setFormData({ ...formData, content: e.target.value })}
+                placeholder="Enter terms and conditions content here..."
+              />
 
             </Box>
           </DialogContent>

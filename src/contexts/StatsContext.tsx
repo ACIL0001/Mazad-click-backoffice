@@ -18,8 +18,6 @@ interface StatsContextType {
   // FIXED: Added the missing 'online' property to the interface
   online?: {
     client: any[];
-    restaurant: any[];
-    rider: any[];
     admin: any[];
   } | null;
   loading: boolean;

@@ -36,8 +36,6 @@ export const UserAPI = {
   // Additional methods needed by components
   getBuyers: (): Promise<any> => requests.get('users/buyers'),
   getSellers: (): Promise<any> => requests.get('users/sellers'),
-  getRestaurants: (): Promise<any> => requests.get('users/restaurants'),
-  getRiders: (): Promise<any> => requests.get('users/riders'),
   enable: (userId: string): Promise<any> => requests.put(`users/enable/${userId}`, {}),
   disable: (userId: string): Promise<any> => requests.put(`users/disable/${userId}`, {}),
   

@@ -28,23 +28,17 @@ const initialValues: IComminucation = {
   title: '',
   description: '',
   client: false,
-  rider: false,
-  restaurant: false,
 };
 
 const CommunicationSchema = Yup.object().shape({
   title: Yup.string().optional(),
   description: Yup.string().email('Adresse e-mail invalide').optional(),
   client: Yup.boolean().optional(),
-  rider: Yup.boolean().optional(),
-  restaurant: Yup.boolean().optional(),
 });
 
 export default function Communication() {
   const [checkedItems, setCheckedItems] = useState({
     client: false,
-    rider: false,
-    restaurant: false,
   });
 
   const formik = useFormik({
@@ -63,7 +57,7 @@ export default function Communication() {
 
   const { errors, touched, handleSubmit, getFieldProps, setFieldValue }: any = formik;
 
-  const handleCheckboxChange = (type: 'client' | 'rider') => (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleCheckboxChange = (type: 'client') => (event: React.ChangeEvent<HTMLInputElement>) => {
     setFieldValue(type, event.target.checked);
   };
 
@@ -131,16 +125,6 @@ export default function Communication() {
                   <Grid item md={6} xs={12}>
                     <FormControl component="fieldset">
                       <FormGroup row>
-                        <FormControlLabel
-                          control={
-                            <Checkbox
-                              checked={checkedItems.rider}
-                              onChange={handleCheckboxChange('rider')}
-                              name="rider"
-                            />
-                          }
-                          label="Chauffeur"
-                        />
                         <FormControlLabel
                           control={
                             <Checkbox

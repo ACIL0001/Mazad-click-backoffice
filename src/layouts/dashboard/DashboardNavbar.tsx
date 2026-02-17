@@ -9,6 +9,7 @@ import Searchbar from './Searchbar';
 import AccountPopover from './AccountPopover';
 import LanguagePopover from './LanguagePopover';
 import NotificationsPopover from './NotificationsPopover';
+import MessagePopover from './MessagePopover';
 import LinearLoader from '@/components/LinearLoader';
 import ThemeSwitch from '@/components/ThemeSwitch';
 import { useEffect, useState } from 'react';
@@ -18,6 +19,8 @@ import { StyledBadge } from './OnlineSidebar';
 import { NotificationAPI } from '@/api/notification';
 import { useContext } from 'react';
 import { SocketContext } from '@/contexts/SocketContext';
+import { Link as RouterLink } from 'react-router-dom';
+import { isValidToken } from '@/utils/jwt';
 
 
 const DRAWER_WIDTH = 280;
@@ -46,8 +49,6 @@ const ToolbarStyle = styled(Toolbar)(({ theme }) => ({
 interface StatsContextType {
   online?: {
     client: any[];
-    restaurant: any[];
-    rider: any[];
     admin: any[];
   } | null;
   // Add any other properties that exist on your StatsContextType
@@ -77,20 +78,18 @@ function DashboardNavbar({ onOpenSidebar, onOpenRightSidebar }) {
     if (isReady && isLogged && auth?.tokens?.accessToken && auth?.user?._id) {
       console.log('🔐 Auth ready, fetching notifications...');
       getNotifications();
+      
       // Set up polling for notifications every 30 seconds as fallback
       const interval = setInterval(() => {
-        getNotifications();
+        // Double check auth inside interval to be safe
+        if (auth?.tokens?.accessToken) {
+          getNotifications();
+        }
       }, 30000);
       
       return () => clearInterval(interval);
-    } else {
-      console.log('🔐 Auth not ready yet:', { 
-        isReady,
-        isLogged, 
-        hasToken: !!auth?.tokens?.accessToken, 
-        hasUser: !!auth?.user?._id 
-      });
-    }
+    } 
+    // If not logged in, we don't do anything (interval is cleared by cleanup if dependency changes)
   }, [isReady, isLogged, auth?.tokens?.accessToken, auth?.user?._id]);
 
   // Listen for real-time notifications via socket
@@ -112,20 +111,11 @@ function DashboardNavbar({ onOpenSidebar, onOpenRightSidebar }) {
   const getNotifications = async () => {
     // Only fetch if we have a valid auth token and user
     if (!auth?.tokens?.accessToken || !auth?.user?._id) {
-      console.log('🔐 Skipping notification fetch - auth not ready:', {
-        hasToken: !!auth?.tokens?.accessToken,
-        hasUser: !!auth?.user?._id,
-        tokenPreview: auth?.tokens?.accessToken ? auth.tokens.accessToken.substring(0, 20) + '...' : 'none',
-        userId: auth?.user?._id
-      });
       return;
     }
 
-    console.log('🔐 Fetching notifications with valid auth...', {
-      tokenPreview: auth.tokens.accessToken.substring(0, 20) + '...',
-      userId: auth.user._id,
-      userType: auth.user.type
-    });
+    // prevent concurrent requests if already loading
+    if (notificationsLoading) return;
     
     try {
       setNotificationsLoading(true);
@@ -140,7 +130,13 @@ function DashboardNavbar({ onOpenSidebar, onOpenRightSidebar }) {
       setNotifications(newNotifications);
       setPreviousNotificationCount(newNotifications.length);
       console.log('✅ Notifications fetched successfully:', newNotifications.length);
-    } catch (err) {
+    } catch (err: any) {
+      // Silence 401 errors as they are handled by the global interceptor
+      if (err.response?.status === 401) {
+        setNotifications([]);
+        return;
+      }
+
       console.error('❌ Error fetching notifications:', err);
       console.error('❌ Error details:', {
         status: err.response?.status,
@@ -155,7 +151,6 @@ function DashboardNavbar({ onOpenSidebar, onOpenRightSidebar }) {
   };
 
 
-
   const handleRefreshNotifications = () => {
     getNotifications();
   };
@@ -163,8 +158,6 @@ function DashboardNavbar({ onOpenSidebar, onOpenRightSidebar }) {
   // Safe access to online properties with proper null checks
   const totalOnline = online ? (
     (online.client?.length || 0) +
-    (online.restaurant?.length || 0) +
-    (online.rider?.length || 0) +
     (online.admin?.length || 0)
   ) : 0;
 
@@ -182,6 +175,8 @@ function DashboardNavbar({ onOpenSidebar, onOpenRightSidebar }) {
           <ThemeSwitch />
           
           <LanguagePopover />
+
+          <MessagePopover />
 
           <NotificationsPopover 
             notifications={notifications} 

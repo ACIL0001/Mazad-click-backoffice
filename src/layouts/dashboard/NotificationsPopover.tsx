@@ -326,12 +326,14 @@ function NotificationItem({ notification, onMarkAsRead, onClose }) {
   };
 
   const body = (
-    <Typography variant="subtitle2" sx={{ lineHeight: 1.4 }}>
-      {title}
+    <Box component="span" sx={{ display: 'block' }}>
+      <Typography component="span" variant="subtitle2" sx={{ lineHeight: 1.4, display: 'block' }}>
+        {title}
+      </Typography>
       <Typography component="span" variant="body2" sx={{ color: 'text.secondary', display: 'block', mt: 0.5 }}>
         {description}
       </Typography>
-    </Typography>
+    </Box>
   );
 
   return (

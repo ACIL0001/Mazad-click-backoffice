@@ -1,30 +1,20 @@
-import { Box, Button, Card, CardContent, CardHeader, Divider, TextField } from '@mui/material';
+import { Button, Card, CardContent, CardHeader, Divider } from '@mui/material';
 import { useSnackbar } from 'notistack';
-import { jsPDF } from "jspdf";
-const QRCode = require('qrcode')
+import { generateUserQrPdf } from '../../services/pdf';
+import type { UserInfo } from '../../services/pdf';
 
 
-
-
-export const SettingsPassword = ({ user }) => {
+export const SettingsPassword = ({ user }: { user: UserInfo }) => {
   const { enqueueSnackbar } = useSnackbar();
 
 
-  const generateQrCode = async (text) => {
+  const generateQrCode = async () => {
     try {
-      const qrcode = await QRCode.toDataURL(text)
-      var logo = new Image()
-      logo.src = '/static/logo.png'
-
-      var doc = new jsPDF();
-      doc.addImage(logo, 'png', doc.internal.pageSize.getWidth() / 2.6, 10, 50, 60)
-      doc.text(`${user.name} | ${user.network.name}`, doc.internal.pageSize.getWidth() / 2, 90, { align: "center" })
-      doc.text(new Date().toDateString(), doc.internal.pageSize.getWidth() / 2, 100, { align: "center" })
-      doc.addImage(qrcode, 'png', doc.internal.pageSize.getWidth() / 3.25, 110, 80, 80)
-      doc.text('Merci de ne pas partager ce document.', doc.internal.pageSize.getWidth() / 2, 210, { align: "center" })
-      doc.save(`${user.name}_info.pdf`);
+      await generateUserQrPdf(user);
+      enqueueSnackbar('PDF généré avec succès.', { variant: 'success' });
     } catch (e) {
-      enqueueSnackbar('Une erreur est survenue.', { variant: 'error' })
+      console.error('PDF generation error:', e);
+      enqueueSnackbar('Une erreur est survenue.', { variant: 'error' });
     }
   }
 
@@ -50,6 +40,7 @@ export const SettingsPassword = ({ user }) => {
         <Divider />
         <CardContent>
           <Button onClick={updateState} style={{ textTransform: 'none' }}> Générer un nouveau mot de passe?</Button>
+          <Button onClick={generateQrCode} style={{ textTransform: 'none', marginLeft: 8 }}> Générer QR Code PDF</Button>
         </CardContent>
         {/*
         <Divider />

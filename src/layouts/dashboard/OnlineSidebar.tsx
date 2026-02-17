@@ -112,65 +112,7 @@ export default function OnlineSidebar({ isOpenSidebar, onCloseSidebar }: OnlineS
         </SectionStyle>
       )}
 
-      {/* Restaurants section */}
-      {online && online.restaurant && (
-        <SectionStyle>
-          <Typography variant="subtitle2" sx={{ color: 'text.secondary', mb: 2 }}>
-            Restaurants ({online.restaurant.length})
-          </Typography>
-          <List>
-            {online.restaurant.map((restaurant: any) => (
-              <ListItem key={restaurant.user._id}>
-                <ListItemAvatar>
-                  <StyledBadge
-                    overlap="circular"
-                    anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-                    variant="dot"
-                  >
-                    <Avatar alt={restaurant.user.name} src={restaurant.user.picture?.filename ? app.route + restaurant.user.picture.filename : undefined} />
-                  </StyledBadge>
-                </ListItemAvatar>
-                <ListItemText
-                  primary={restaurant.user.name}
-                  secondary={restaurant.user.email}
-                  primaryTypographyProps={{ variant: 'subtitle2', noWrap: true }}
-                  secondaryTypographyProps={{ variant: 'caption', noWrap: true }}
-                />
-              </ListItem>
-            ))}
-          </List>
-        </SectionStyle>
-      )}
 
-      {/* Riders section */}
-      {online && online.rider && (
-        <SectionStyle>
-          <Typography variant="subtitle2" sx={{ color: 'text.secondary', mb: 2 }}>
-            Riders ({online.rider.length})
-          </Typography>
-          <List>
-            {online.rider.map((rider: any) => (
-              <ListItem key={rider.user._id}>
-                <ListItemAvatar>
-                  <StyledBadge
-                    overlap="circular"
-                    anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-                    variant="dot"
-                  >
-                    <Avatar alt={rider.user.name} src={rider.user.picture?.filename ? app.route + rider.user.picture.filename : undefined} />
-                  </StyledBadge>
-                </ListItemAvatar>
-                <ListItemText
-                  primary={rider.user.name}
-                  secondary={rider.user.email}
-                  primaryTypographyProps={{ variant: 'subtitle2', noWrap: true }}
-                  secondaryTypographyProps={{ variant: 'caption', noWrap: true }}
-                />
-              </ListItem>
-            ))}
-          </List>
-        </SectionStyle>
-      )}
 
       {/* Clients section */}
       {online && online.client && (

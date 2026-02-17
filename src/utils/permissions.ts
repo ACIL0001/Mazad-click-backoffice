@@ -166,10 +166,20 @@ export const isNavItemInactive = (userRole?: RoleCode, route?: string): boolean 
   return false;
 };
 
+export interface NavItem {
+  path?: string;
+  adminOnly?: boolean;
+  requiresAdmin?: boolean;
+  inactive?: boolean;
+  children?: NavItem[];
+  title?: string;
+  icon?: any;
+}
+
 /**
  * Enhanced filter navigation items based on user permissions with inactive state support
  */
-export const filterNavItemsByPermissions = (navItems: any[], userRole?: RoleCode): any[] => {
+export const filterNavItemsByPermissions = (navItems: NavItem[], userRole?: RoleCode): NavItem[] => {
   return navItems.filter(item => {
     // Check if user can access this route
     if (item.path && !canAccessRoute(userRole, item.path)) {
@@ -193,13 +203,13 @@ export const filterNavItemsByPermissions = (navItems: any[], userRole?: RoleCode
     
     // Filter children recursively
     if (item.children) {
-      item.children = item.children.map((child: any) => {
+      item.children = item.children.map((child: NavItem) => {
         // Add inactive state to children as well
         if (child.path && isNavItemInactive(userRole, child.path)) {
           child.inactive = true;
         }
         return child;
-      }).filter((child: any) => {
+      }).filter((child: NavItem) => {
         // Check permissions for children
         if (child.adminOnly && !isFullAdmin(userRole)) {
           return false;

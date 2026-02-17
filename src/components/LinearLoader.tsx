@@ -1,12 +1,11 @@
 // @mui
 import { LinearProgress, Box } from '@mui/material';
-// @redux
-import { useSelector } from 'react-redux'
-import { RootState } from '@/app/store';
+// @zustand
+import { useLoaderStore } from '@/app/stores/loaderStore';
 
 
 export default function LinearLoader() {
-    const isLoading = useSelector((state: RootState) => state.loader)
+    const isLoading = useLoaderStore((state) => state.isLoading);
 
     if (isLoading) {
         return (

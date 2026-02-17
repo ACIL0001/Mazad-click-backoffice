@@ -58,6 +58,7 @@ import { ChatAPI } from '../../api/Chat';
 import { MessageAPI } from '../../api/message';
 import useAuth from '../../hooks/useAuth';
 import Page from '../../components/Page';
+import DeffuserModal from './DeffuserModal';
 
 const API_BASE_URL = (() => {
   const envUrl = import.meta.env.VITE_API_URL;
@@ -66,7 +67,7 @@ const API_BASE_URL = (() => {
   }
   return (import.meta.env.MODE === 'production'
     ? 'https://mazadclick-server.onrender.com'
-    : 'http://localhost:3000').replace(/\/$/, '');
+    : 'http://127.0.0.1:3000').replace(/\/$/, '');
 })();
 
 const STATIC_BASE_URL = (() => {
@@ -136,6 +137,8 @@ interface Chat {
   unreadCount?: number;
 }
 
+import { useLocation } from 'react-router-dom';
+
 interface ClientType {
   id: string;
   title: string;
@@ -154,14 +157,7 @@ const clientTypes: ClientType[] = [
     color: '#1976d2',
     description: 'Clients B2B et entreprises'
   },
-  {
-    id: 'reseller',
-    title: 'Revendeurs',
-    icon: StoreIcon,
-    accountTypes: ['RESELLER'],
-    color: '#388e3c',
-    description: 'Partenaires de revente'
-  },
+
   {
     id: 'client',
     title: 'Clients Normaux',
@@ -185,9 +181,16 @@ export function ChatLayout() {
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const { auth } = useAuth();
   const socketContext = useContext(SocketContext);
+  const location = useLocation();
   
   const [selectedTab, setSelectedTab] = useState(0);
   const [selectedChat, setSelectedChat] = useState<Chat | null>(null);
+  const selectedChatRef = useRef<Chat | null>(null);
+  
+  // Update ref when selectedChat changes
+  useEffect(() => {
+    selectedChatRef.current = selectedChat;
+  }, [selectedChat]);
   const [chats, setChats] = useState<Chat[]>([]);
   const [messages, setMessages] = useState<Message[]>([]);
   const [message, setMessage] = useState('');
@@ -213,15 +216,14 @@ export function ChatLayout() {
   
   // State for Broadcast
   const [broadcastOpen, setBroadcastOpen] = useState(false);
-  const [broadcastMessage, setBroadcastMessage] = useState('');
-  const [isBroadcasting, setIsBroadcasting] = useState(false);
+
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Auto-scroll to bottom (since new messages are at top in reverse column)
   const scrollToBottom = useCallback(() => {
-    if (messagesEndRef.current && messagesEndRef.current.parentElement) {
-      messagesEndRef.current.parentElement.scrollTop = 0;
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
   }, []);
 
@@ -272,36 +274,31 @@ export function ChatLayout() {
       console.groupEnd();
       
       // Process chats to identify and enhance guest chats
-      const processedChats = await Promise.all((allChats || []).map(async (chat) => {
+      const processedChats = (allChats || []).map((chat) => {
         try {
-          // Get messages for this chat to check if it's a guest chat
-          const chatMessages = await MessageAPI.read(chat._id);
+          // Check for guest chat based on users array first (more reliable)
+          const isGuestUser = chat.users.some(u => u._id === 'guest' || u.AccountType === 'guest');
           
-          // Check if this chat has any guest messages
-          const guestMessages = chatMessages.filter((msg: any) => 
-            msg.sender === 'guest' || msg.isGuestMessage
-          );
-          
-          if (guestMessages.length > 0) {
+          if (isGuestUser) {
             // This is a guest chat - enhance the chat structure
+            // Use backend provided lastMessage and unreadCount if available
+            const lastMessage = chat.lastMessage;
+            
             const enhancedChat = {
               ...chat,
               isGuestChat: true,
-              lastMessage: guestMessages[guestMessages.length - 1], // Last guest message
-              unreadCount: guestMessages.filter((msg: any) => 
-                msg.sender === 'guest' && !msg.isRead
-              ).length
+              lastMessage: lastMessage,
+              unreadCount: chat.unreadCount !== undefined ? chat.unreadCount : 0
             };
             
-            // Update the guest user info if available from messages
-            const guestMessage = guestMessages.find((msg: any) => msg.guestName);
-            if (guestMessage) {
+            // Update the guest user info if available from last message
+            if (lastMessage && (lastMessage.guestName || lastMessage.guestPhone)) {
               enhancedChat.users = enhancedChat.users.map((user: any) => {
                 if (user._id === 'guest') {
                   return {
                     ...user,
-                    firstName: guestMessage.guestName || 'Guest',
-                    phone: guestMessage.guestPhone || ''
+                    firstName: lastMessage.guestName || user.firstName || 'Guest',
+                    phone: lastMessage.guestPhone || user.phone || ''
                   };
                 }
                 return user;
@@ -310,22 +307,19 @@ export function ChatLayout() {
             
             return enhancedChat;
           } else {
-            // Regular chat - calculate unread count normally
-            const unreadCount = chatMessages.filter((msg: Message) => 
-              msg.sender !== auth.user._id && !msg.isRead
-            ).length;
-            
+            // Regular chat
+            // Ensure we use the backend provided counts
             return {
               ...chat,
-              unreadCount,
-              lastMessage: chatMessages[chatMessages.length - 1] || null
+              unreadCount: chat.unreadCount !== undefined ? chat.unreadCount : 0,
+              lastMessage: chat.lastMessage || null
             };
           }
         } catch (error) {
           console.error('❌ Error processing chat:', chat._id, error);
           return { ...chat, unreadCount: 0 };
         }
-      }));
+      });
       
       console.log('🔍 Processed chats:', processedChats.length);
       
@@ -377,12 +371,12 @@ export function ChatLayout() {
     } finally {
       setIsLoading(false);
     }
-  }, [auth?.user]);
+  }, [auth?.user?._id]);
 
   // Silent update function for real-time updates (no loading indicator)
   // This function updates chat data without showing loading states to the user
   const silentlyUpdateChats = useCallback(async () => {
-    if (!auth?.user) return;
+    if (!auth?.user?._id) return;
 
     try {
       // Try the admin-chats endpoint first (more reliable)
@@ -397,37 +391,32 @@ export function ChatLayout() {
         });
       }
 
-      // Process chats to identify and enhance guest chats (same logic as loadChats)
-      const processedChats = await Promise.all((allChats || []).map(async (chat) => {
+      // Process chats to identify and enhance guest chats
+      const processedChats = (allChats || []).map((chat) => {
         try {
-          // Get messages for this chat to check if it's a guest chat
-          const chatMessages = await MessageAPI.read(chat._id);
+          // Check for guest chat based on users array first (more reliable)
+          const isGuestUser = chat.users.some(u => u._id === 'guest' || u.AccountType === 'guest');
           
-          // Check if this chat has any guest messages
-          const guestMessages = chatMessages.filter((msg: any) => 
-            msg.sender === 'guest' || msg.isGuestMessage
-          );
-          
-          if (guestMessages.length > 0) {
+          if (isGuestUser) {
             // This is a guest chat - enhance the chat structure
+            // Use backend provided lastMessage and unreadCount if available
+            const lastMessage = chat.lastMessage;
+            
             const enhancedChat = {
               ...chat,
               isGuestChat: true,
-              lastMessage: guestMessages[guestMessages.length - 1], // Last guest message
-              unreadCount: guestMessages.filter((msg: any) => 
-                msg.sender === 'guest' && !msg.isRead
-              ).length
+              lastMessage: lastMessage,
+              unreadCount: chat.unreadCount !== undefined ? chat.unreadCount : 0
             };
             
-            // Update the guest user info if available from messages
-            const guestMessage = guestMessages.find((msg: any) => msg.guestName);
-            if (guestMessage) {
+            // Update the guest user info if available from last message
+            if (lastMessage && (lastMessage.guestName || lastMessage.guestPhone)) {
               enhancedChat.users = enhancedChat.users.map((user: any) => {
                 if (user._id === 'guest') {
                   return {
                     ...user,
-                    firstName: guestMessage.guestName || 'Guest',
-                    phone: guestMessage.guestPhone || ''
+                    firstName: lastMessage.guestName || user.firstName || 'Guest',
+                    phone: lastMessage.guestPhone || user.phone || ''
                   };
                 }
                 return user;
@@ -436,28 +425,26 @@ export function ChatLayout() {
             
             return enhancedChat;
           } else {
-            // Regular chat - calculate unread count normally
-            const unreadCount = chatMessages.filter((msg: Message) => 
-              msg.sender !== auth.user._id && !msg.isRead
-            ).length;
-            
+            // Regular chat
+            // Ensure we use the backend provided counts
+            // If they are missing (e.g. old backend), fallback to 0 but DON'T fetch messages
             return {
               ...chat,
-              unreadCount,
-              lastMessage: chatMessages[chatMessages.length - 1] || null
+              unreadCount: chat.unreadCount !== undefined ? chat.unreadCount : 0,
+              lastMessage: chat.lastMessage || null
             };
           }
         } catch (error) {
           console.error('❌ Error processing chat:', chat._id, error);
           return { ...chat, unreadCount: 0 };
         }
-      }));
+      });
 
       setChats(processedChats);
     } catch (error) {
       console.error('Error silently updating chats:', error);
     }
-  }, [auth?.user]);
+  }, [auth?.user?._id]);
 
   // Load messages for selected chat - memoized with useCallback
   const loadMessages = useCallback(async (chatId: string) => {
@@ -468,8 +455,18 @@ export function ChatLayout() {
       console.log('📨 Messages received:', chatMessages);
       console.log('📨 Number of messages:', chatMessages?.length || 0);
       
+      // Strict deduplication of loaded messages
+      const uniqueMessagesMap = new Map();
+      (chatMessages || []).forEach(msg => {
+        if (!uniqueMessagesMap.has(msg._id)) {
+          uniqueMessagesMap.set(msg._id, msg);
+        }
+      });
+      const uniqueMessages = Array.from(uniqueMessagesMap.values());
+      console.log('📨 Unique messages after deduplication:', uniqueMessages.length);
+      
       // Log messages with attachments
-      const messagesWithAttachments = chatMessages?.filter(msg => msg.attachment) || [];
+      const messagesWithAttachments = uniqueMessages.filter(msg => msg.attachment);
       if (messagesWithAttachments.length > 0) {
         console.log('📎 ChatLayout found messages with attachments:', messagesWithAttachments.length);
         messagesWithAttachments.forEach(msg => {
@@ -477,7 +474,7 @@ export function ChatLayout() {
         });
       }
       
-      setMessages(chatMessages || []);
+      setMessages(uniqueMessages);
     } catch (error) {
       console.error('❌ Error loading messages:', error);
     }
@@ -494,6 +491,55 @@ export function ChatLayout() {
       console.error('❌ Error silently loading messages:', error);
     }
   }, []);
+
+  // Initial load
+  useEffect(() => {
+    if (auth?.user?._id) {
+      loadChats();
+    }
+  }, [auth?.user?._id, loadChats]); // Added loadChats to dependencies for completeness
+
+  // Effect to select chat from URL or navigation state
+  useEffect(() => {
+    if (!chats.length || isLoading) return;
+
+    let chatIdToSelect = (location.state as any)?.chatId;
+    
+    // Also check query params if state is not present
+    if (!chatIdToSelect) {
+      const searchParams = new URLSearchParams(location.search);
+      chatIdToSelect = searchParams.get('chatId');
+    }
+
+    if (chatIdToSelect) {
+      const chatToSelect = chats.find(c => c._id === chatIdToSelect);
+      if (chatToSelect) {
+        // Only select if not already selected or different
+        if (!selectedChat || selectedChat._id !== chatIdToSelect) {
+          console.log('🔗 Selecting chat from URL/State:', chatIdToSelect);
+          setSelectedChat(chatToSelect);
+          setView('chat');
+          loadMessages(chatToSelect._id);
+          
+          // Mark as read immediately when opening via notification
+          if (chatToSelect.unreadCount > 0) {
+             MessageAPI.markAllAsRead(chatToSelect._id)
+               .then(() => {
+                 // Update local state to reflect read status
+                 setChats(currentChats => 
+                   currentChats.map(c => 
+                     c._id === chatIdToSelect ? { ...c, unreadCount: 0 } : c
+                   )
+                 );
+               })
+               .catch(err => console.error('Error marking as read:', err));
+          }
+        }
+      }
+    }
+  }, [chats, location, isLoading, loadMessages]);
+
+
 
   // Send message - memoized with useCallback
   const sendMessage = useCallback(async () => {
@@ -728,7 +774,7 @@ export function ChatLayout() {
       console.log('📤 Uploading file...');
       // const apiUrl = typeof window !== 'undefined' && window.location ? 
       //   `${window.location.protocol}//${window.location.hostname}:3000` : 
-      //   'http://localhost:3000';
+      //   'http://127.0.0.1:3000';
       const apiUrl = resolveBrowserBaseUrl();
       const uploadResponse = await fetch(`${apiUrl.replace(/\/$/, '')}/attachments/upload`, {
         method: 'POST',
@@ -745,7 +791,7 @@ export function ChatLayout() {
       // Extract attachment info
       const attachmentInfo = {
         _id: uploadData._id || uploadData.id,
-      // url: uploadData.fullUrl || uploadData.url || `http://localhost:3000/static/${uploadData.filename}`,
+      // url: uploadData.fullUrl || uploadData.url || `http://127.0.0.1:3000/static/${uploadData.filename}`,
       url: uploadData.fullUrl || uploadData.url || buildAbsoluteUrl(`/static/${uploadData.filename}`),
         name: uploadData.originalname || selectedFile.name,
         type: uploadData.mimetype || selectedFile.type,
@@ -860,7 +906,7 @@ export function ChatLayout() {
 
       // const apiUrl = typeof window !== 'undefined' && window.location ? 
       //   `${window.location.protocol}//${window.location.hostname}:3000` : 
-      //   'http://localhost:3000';
+      //   'http://127.0.0.1:3000';
       const apiUrl = resolveBrowserBaseUrl();
       const response = await fetch(`${apiUrl.replace(/\/$/, '')}/message/voice-message`, {
         method: 'POST',
@@ -901,21 +947,51 @@ export function ChatLayout() {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
+  const processedMessageIds = useRef<Set<string>>(new Set());
+
   // Handle socket messages - memoized with useCallback
   const handleNewMessage = useCallback((data: Message) => {
-    console.log('📨 Admin received socket message:', data);
+    console.group('📨 INCOMING SOCKET MESSAGE');
+    console.log('Processed IDs Set Size:', processedMessageIds.current.size);
+    console.log('Message Data:', data);
+    console.log('Message ID (raw):', data._id, typeof data._id);
+    
+    if (!data._id) {
+       console.log('❌ Message has no ID, aborting');
+       console.groupEnd();
+       return;
+    }
+    const msgId = String(data._id); // Ensure string ID
+    console.log('Message ID (string):', msgId);
+
+    // Strict deduplication using ref (handles rapid double-events)
+    if (processedMessageIds.current.has(msgId)) {
+      console.log('🚫 BLOCKED: Message ID already in processed set:', msgId);
+      console.groupEnd();
+      return;
+    }
+
+    // Add to processed set and clear after 2 seconds
+    processedMessageIds.current.add(msgId);
+    setTimeout(() => {
+      processedMessageIds.current.delete(msgId);
+    }, 2000);
+    
+    const currentChat = selectedChatRef.current;
     
     // Check if this message belongs to the currently selected chat
-    if (selectedChat && data.idChat === selectedChat._id) {
-      console.log('✅ Message belongs to current chat, updating messages');
+    if (currentChat && data.idChat === currentChat._id) {
+      console.log('✅ Message matches current chat:', currentChat._id);
       setMessages(prev => {
-        // Check if message already exists to avoid duplicates
-        const exists = prev.some(msg => msg._id === data._id);
+        // Double check against state to be sure
+        const exists = prev.some(msg => String(msg._id) === msgId);
         if (exists) {
-          console.log('🚫 Message already exists, skipping duplicate');
+          console.log('🚫 BLOCKED: Message already exists in state:', msgId);
+          console.groupEnd();
           return prev;
         }
-        console.log('✅ Adding new message to current chat');
+        console.log('✅ ACCEPTED: Adding new message to state');
+        console.groupEnd();
         return [...prev, data];
       });
       
@@ -924,11 +1000,12 @@ export function ChatLayout() {
         scrollToBottom();
       }, 100);
     } else {
-      console.log('🚫 Message not for current chat, updating chat list instead');
+      console.log('🚫 Message NOT for current chat (Current:', currentChat?._id, ', MsgChat:', data.idChat, ')');
+      console.groupEnd();
       // Update chat list to show new message indicator
       silentlyUpdateChats();
     }
-  }, [selectedChat, scrollToBottom, silentlyUpdateChats]);
+  }, [scrollToBottom, silentlyUpdateChats]);
 
   // Handle notifications - memoized with useCallback
   const handleNewNotification = useCallback((notification: any) => {
@@ -949,17 +1026,34 @@ export function ChatLayout() {
   }, [auth?.user?.role, auth?.user?._id, silentlyUpdateChats]);
 
   // Handle socket messages - fixed useEffect
+  // Handle socket messages - fixed useEffect
+  // Handle socket messages - fixed useEffect
   useEffect(() => {
     if (!socketContext?.socket) return;
+    
+    const socket = socketContext.socket;
 
-    socketContext.addListener('sendMessage', handleNewMessage);
-    socketContext.addListener('adminMessage', handleNewMessage); // Add listener for adminMessage event
-    socketContext.addListener('notification', handleNewNotification);
+    // Use direct socket listeners to avoid Context state issues
+    console.log('🎧 Adding direct socket listeners for ChatLayout. Listener Count:', socket.listeners('sendMessage').length);
+    
+    const onMessage = (data: any) => {
+        console.log('🔥 RAW SOCKET EVENT: sendMessage', data._id);
+        handleNewMessage(data);
+    };
+    const onAdminMessage = (data: any) => {
+        console.log('🔥 RAW SOCKET EVENT: adminMessage', data._id);
+        handleNewMessage(data);
+    };
+
+    socket.on('sendMessage', onMessage);
+    socket.on('adminMessage', onAdminMessage);
+    socket.on('notification', handleNewNotification);
     
     return () => {
-      socketContext.removeListener('sendMessage');
-      socketContext.removeListener('adminMessage'); // Remove listener for adminMessage event
-      socketContext.removeListener('notification');
+      console.log('🧹 Unmounting ChatLayout - removing direct listeners');
+      socket.off('sendMessage', onMessage);
+      socket.off('adminMessage', onAdminMessage);
+      socket.off('notification', handleNewNotification);
     };
   }, [socketContext?.socket, handleNewMessage, handleNewNotification]);
 
@@ -1043,7 +1137,7 @@ export function ChatLayout() {
       if (fileUrl.startsWith('/static/')) {
         // const apiUrl = typeof window !== 'undefined' && window.location ? 
         //   `${window.location.protocol}//${window.location.hostname}:3000` : 
-        //   'http://localhost:3000';
+        //   'http://127.0.0.1:3000';
         const apiUrl = resolveBrowserBaseUrl();
         fullUrl = `${apiUrl}${fileUrl}`;
       }
@@ -1104,27 +1198,7 @@ export function ChatLayout() {
     }
   }, []);
 
-  const handleSendBroadcast = async () => {
-    if (!broadcastMessage.trim() || !auth?.user) return;
-    
-    setIsBroadcasting(true);
-    try {
-      await ChatAPI.broadcast({
-        message: broadcastMessage,
-        sender: auth.user._id
-      });
-      alert('Message diffusé avec succès !');
-      setBroadcastOpen(false);
-      setBroadcastMessage('');
-      // Refresh chats potentially
-      await silentlyUpdateChats();
-    } catch (error) {
-      console.error('Failed to broadcast message:', error);
-      alert('Erreur lors de la diffusion du message.');
-    } finally {
-      setIsBroadcasting(false);
-    }
-  };
+
 
   // Handle audio playback - useRef to store audio elements
   const audioRefs = useRef<Map<string, HTMLAudioElement>>(new Map());
@@ -1360,6 +1434,9 @@ export function ChatLayout() {
       console.groupEnd();
     }
     
+    // Reset processed message IDs when switching chats
+    processedMessageIds.current.clear();
+    
     setSelectedChat(chat);
     setView('chat');
     await loadMessages(chat._id);
@@ -1539,7 +1616,7 @@ export function ChatLayout() {
               </Box>
             ) : (
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                {[...messages].reverse().map((msg, index) => (
+                {[...messages].map((msg, index) => (
                   <Zoom key={msg._id || index} in={true} timeout={300}>
                     <Box
                       sx={{
@@ -1596,7 +1673,7 @@ export function ChatLayout() {
                                   if (audioUrl.startsWith('/static/')) {
                                     // const apiUrl = typeof window !== 'undefined' && window.location ? 
                                     //   `${window.location.protocol}//${window.location.hostname}:3000` : 
-                                    //   'http://localhost:3000';
+                                    //   'http://127.0.0.1:3000';
                                     const apiUrl = resolveBrowserBaseUrl();
                                     audioUrl = `${apiUrl}${audioUrl}`;
                                   }
@@ -1896,7 +1973,9 @@ export function ChatLayout() {
                     </Box>
                   </Zoom>
                 ))}
-                <div ref={messagesEndRef} />
+                
+                {/* Invisible element to scroll to */}
+                <div ref={messagesEndRef} style={{ float: 'left', clear: 'both' }} />
               </Box>
             )}
           </Box>
@@ -2285,6 +2364,8 @@ export function ChatLayout() {
                                     </ListItemAvatar>
                                     
                                     <ListItemText
+                                      primaryTypographyProps={{ component: 'div' }}
+                                      secondaryTypographyProps={{ component: 'div' }}
                                       primary={
                                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
                                           <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
@@ -2432,7 +2513,7 @@ export function ChatLayout() {
                   // Try to construct absolute URL if relative
                   const img = e.target as HTMLImageElement;
                   if (selectedImage.url.startsWith('/static/')) {
-                    // const absoluteUrl = `http://localhost:3000${selectedImage.url}`;
+                    // const absoluteUrl = `http://127.0.0.1:3000${selectedImage.url}`;
                     const absoluteUrl = `${resolveBrowserBaseUrl()}${selectedImage.url}`;
                     console.log('🔄 Trying absolute URL:', absoluteUrl);
                     img.src = absoluteUrl;
@@ -2506,33 +2587,14 @@ export function ChatLayout() {
         </Dialog>
       )}
       {/* Broadcast Dialog */}
-      <Dialog open={broadcastOpen} onClose={() => setBroadcastOpen(false)} maxWidth="sm" fullWidth>
-        <DialogTitle>Diffuser un message</DialogTitle>
-        <DialogContent>
-          <Typography variant="body2" paragraph color="text.secondary">
-            Ce message sera envoyé à TOUS les utilisateurs (Clients, Professionnels, Revendeurs) comme un message direct de l'admin.
-          </Typography>
-          <TextField
-            autoFocus
-            margin="dense"
-            id="broadcast-message"
-            label="Message"
-            type="text"
-            fullWidth
-            multiline
-            rows={4}
-            variant="outlined"
-            value={broadcastMessage}
-            onChange={(e) => setBroadcastMessage(e.target.value)}
-          />
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setBroadcastOpen(false)}>Annuler</Button>
-          <Button onClick={handleSendBroadcast} disabled={isBroadcasting || !broadcastMessage.trim()}>
-            {isBroadcasting ? <CircularProgress size={24} /> : 'Envoyer'}
-          </Button>
-        </DialogActions>
-      </Dialog>
+      <DeffuserModal 
+        open={broadcastOpen} 
+        onClose={() => setBroadcastOpen(false)}
+        currentUser={auth?.user}
+        onSuccess={() => {
+          silentlyUpdateChats();
+        }}
+      />
     </Page>
   );
 }

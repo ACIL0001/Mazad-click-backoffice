@@ -18,9 +18,16 @@ export interface GetChatsParams {
   from: string;
 }
 
+export interface BroadcastData {
+  message: string;
+  sender: string;
+  filterType: 'ALL' | 'SECTEUR' | 'WILAYA' | 'USERS';
+  filterValue?: string[];
+}
+
 export const ChatAPI = {
   createChat: (data: ChatData): Promise<any> => requests.post('/chat/create', data),
   getChats: (data: GetChatsParams): Promise<any> => requests.post('/chat/getchats', data),
   getAdminChats: (): Promise<any> => requests.get('/chat/admin-chats'),
-  broadcast: (data: { message: string; sender: string }): Promise<any> => requests.post('/chat/broadcast', data),
+  broadcast: (data: BroadcastData): Promise<any> => requests.post('/chat/broadcast', data),
 };

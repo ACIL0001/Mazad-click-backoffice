@@ -31,16 +31,12 @@ const initialValues: IComminucation = {
   title: '',
   description: '',
   client: false,
-  rider: false,
-  restaurant: false,
 };
 
 const CommunicationSchema = Yup.object().shape({
   title: Yup.string().required(),
   description: Yup.string().required(),
   client: Yup.boolean().required(),
-  rider: Yup.boolean().required(),
-  restaurant: Yup.boolean().required(),
 });
 
 export default function Communication() {
@@ -76,7 +72,7 @@ export default function Communication() {
 
   const { errors, touched, values, handleSubmit, getFieldProps, setFieldValue }: any = formik;
   const handleCheckboxChange =
-    (type: 'client' | 'rider' | 'restaurant') => (event: React.ChangeEvent<HTMLInputElement>) => {
+    (type: 'client') => (event: React.ChangeEvent<HTMLInputElement>) => {
       setFieldValue(type, event.target.checked);
     };
 
@@ -152,25 +148,9 @@ export default function Communication() {
                       <FormGroup row>
                         <FormControlLabel
                           control={
-                            <Checkbox checked={values.rider} onChange={handleCheckboxChange('rider')} name="rider" />
-                          }
-                          label="Chauffeur"
-                        />
-                        <FormControlLabel
-                          control={
                             <Checkbox checked={values.client} onChange={handleCheckboxChange('client')} name="client" />
                           }
                           label="Client"
-                        />
-                        <FormControlLabel
-                          control={
-                            <Checkbox
-                              checked={values.restaurant}
-                              onChange={handleCheckboxChange('restaurant')}
-                              name="restaurant"
-                            />
-                          }
-                          label="Restaurant"
                         />
                       </FormGroup>
                     </FormControl>

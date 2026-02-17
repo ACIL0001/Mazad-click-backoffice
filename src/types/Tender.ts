@@ -1,3 +1,8 @@
+import { PopulatedUser } from "./PopulatedUser";
+import { ICategory as Category } from "./Category";
+import SubCategory from "./SubCategory";
+import Attachment from "./Attachment";
+
 export enum TENDER_TYPE {
   PRODUCT = 'PRODUCT',
   SERVICE = 'SERVICE',
@@ -17,13 +22,13 @@ export enum TENDER_AUCTION_TYPE {
 
 export interface Tender {
   _id: string;
-  owner: string;
+  owner: string | PopulatedUser;
   title: string;
   description: string;
   requirements: string[];
-  category: any;
-  subCategory?: any;
-  attachments: any[];
+  category: string | Category;
+  subCategory?: string | SubCategory;
+  attachments: Attachment[];
   startingAt: Date;
   endingAt: Date;
   tenderType: TENDER_TYPE;
@@ -47,9 +52,9 @@ export enum TenderBidStatus {
 
 export interface TenderBid {
   _id: string;
-  bidder: any;
-  tenderOwner: any;
-  tender: any;
+  bidder: string | PopulatedUser;
+  tenderOwner: string | PopulatedUser;
+  tender: string | Tender;
   bidAmount: number;
   proposal?: string;
   deliveryTime?: number;

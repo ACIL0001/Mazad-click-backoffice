@@ -86,6 +86,17 @@ const AxiosInterceptor = ({ children }: any) => {
     const isPublicEndpoint = publicEndpoints.some(endpoint => req.url.includes(endpoint));
     const accessToken = getAccessToken();
 
+    // DEBUG AUTH
+    if (req.url.includes('/chat') || req.url.includes('/notification')) {
+      console.log(`🔒 AUTH DEBUG for ${req.url}:`);
+      console.log(`   - Access Token Present: ${!!accessToken}`);
+      if (accessToken) console.log(`   - Access Token Preview: ${accessToken.substring(0, 10)}...`);
+      console.log(`   - Is Public Endpoint: ${isPublicEndpoint}`);
+      const storeState = authStore.getState();
+      console.log(`   - Auth Store Logged In: ${storeState.isLogged}`);
+      console.log(`   - Auth Store Ready: ${storeState.isReady}`);
+    }
+
     if (accessToken && !isPublicEndpoint) {
       req.headers.Authorization = 'Bearer ' + accessToken;
     }
@@ -106,6 +117,8 @@ const AxiosInterceptor = ({ children }: any) => {
     setLoading(false);
     const originalRequest = error.config;
 
+    console.log(`❌ API ERROR for ${originalRequest?.url}:`, error.response?.status);
+
     if (error.response?.status === 304) {
       return Promise.resolve(error.response);
     }
@@ -114,6 +127,7 @@ const AxiosInterceptor = ({ children }: any) => {
 
     // Handle non-401 errors (Logging / Snackbar)
     if (!isTokenError) {
+      // ... existing error handling ...
       if (error.code === 'ECONNABORTED' || error.message?.includes('timeout')) {
         console.log('Request timeout:', error.message);
       } else if (error.code === 'ERR_NETWORK' || error.message?.includes('ERR_CONNECTION_REFUSED')) {
@@ -122,20 +136,22 @@ const AxiosInterceptor = ({ children }: any) => {
       } else {
         console.log('API Error:', error.response);
         const errorMessage = error.response?.data?.message || error.message || 'un problème est survenu';
-        enqueueSnackbar(errorMessage, { variant: 'error' });
+        // changing snackbar variant to warning to be less intrusive if it's just a connection blip
+        if (errorMessage !== 'Unauthorized') enqueueSnackbar(errorMessage, { variant: 'error' });
       }
-
-      if (error.response) {
-        console.log('\nStatus : ' + error.response.status + '\n Body : ');
-        console.log(error.response.data);
-      } else {
-        console.log('\nNetwork Error:', error.message);
-      }
-
       return Promise.reject(error);
     }
 
     // Handle 401 Token Refresh
+    console.log('🔄 401 DETECTED - ATTEMPTING REFRESH');
+
+    // Prevent infinite loops
+    if (originalRequest._retry) {
+      console.error('❌ REFRESH LOOP DETECTED - ABORTING');
+      clear();
+      return Promise.reject(error);
+    }
+
     originalRequest._retry = true;
 
     if (!isRefreshing) {
@@ -148,13 +164,20 @@ const AxiosInterceptor = ({ children }: any) => {
         };
         const refreshToken = getRefreshToken();
 
+        console.log(`🔄 Refresh Token Available: ${!!refreshToken}`);
+
         if (!currentAuth.isLogged || !refreshToken) {
+          console.warn('⚠️ No refresh token or not logged in - clearing session');
           isRefreshing = false;
           clear();
           throw error;
         }
 
-        const { data: tokens } = await AuthAPI.refresh(refreshToken);
+        console.log('🔄 Calling AuthAPI.refresh...');
+        const tokens = await AuthAPI.refresh(refreshToken);
+        console.log('✅ Refresh Successful! Tokens received.');
+
+        // ... (rest of the logic)
         const tokensData = {
           accessToken: tokens.accessToken || tokens.access_token || '',
           refreshToken: tokens.refreshToken || tokens.refresh_token || '',
@@ -186,12 +209,15 @@ const AxiosInterceptor = ({ children }: any) => {
         return instance(originalRequest);
 
       } catch (refreshError) {
+        console.error('❌ Refresh Failed:', refreshError);
         isRefreshing = false;
         onRefreshed(null);
         clear();
         throw refreshError;
       }
     } else {
+      console.log('⏳ Refresh already in progress - queuing request');
+      // ... existing queue logic ...
       return new Promise((resolve, reject) => {
         subscribeTokenRefresh((token) => {
           if (token) {

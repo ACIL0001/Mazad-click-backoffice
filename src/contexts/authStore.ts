@@ -3,6 +3,7 @@ import { create } from 'zustand';
 import { RoleCode } from '@/types/Role';
 import { getStorageKey } from '@/config';
 import { LoginResponseData } from '@/types/Auth';
+import { isValidToken } from '@/utils/jwt';
 
 const initialState: { tokens?: { accessToken: string; refreshToken: string }; user?: User } = {
   tokens: undefined,
@@ -58,14 +59,14 @@ export const authStore = create<IAuthStore>((zustandSet, zustandGet) => ({
   set: (data: LoginResponseData) => {
     console.log('🚨 AUTH STORE SET CALLED!');
     console.log('🚨 Data received:', data);
-    
+
     const storageKey = getStorageKey();
     console.log('🚨 Storage key:', storageKey);
-    
+
     // Extract tokens from backend response: { session: { accessToken, refreshToken }, user }
     const accessToken = data.session?.accessToken;
     const refreshToken = data.session?.refreshToken;
-    
+
     if (!accessToken || !refreshToken) {
       console.error('🚨 NO TOKENS FOUND!', data.session);
       return;
@@ -77,7 +78,7 @@ export const authStore = create<IAuthStore>((zustandSet, zustandGet) => ({
     });
 
     const tokens = { accessToken, refreshToken };
-    
+
     // Create user object
     const user: User = {
       _id: data.user._id,
@@ -101,7 +102,7 @@ export const authStore = create<IAuthStore>((zustandSet, zustandGet) => ({
     console.log('🚨 User object created:', user);
 
     const authState = { tokens, user };
-    
+
     // Update Zustand state
     console.log('🚨 Updating Zustand state...');
     zustandSet({
@@ -119,16 +120,16 @@ export const authStore = create<IAuthStore>((zustandSet, zustandGet) => ({
       const dataToStore = JSON.stringify(authState);
       console.log('🚨 Data string length:', dataToStore.length);
       console.log('🚨 Data preview:', dataToStore.substring(0, 100) + '...');
-      
+
       localStorage.setItem(storageKey, dataToStore);
       console.log('🚨 localStorage.setItem completed');
-      
+
       // Immediate verification
       const stored = localStorage.getItem(storageKey);
       if (stored) {
         console.log('🚨 ✅ VERIFICATION PASSED - Data found in localStorage!');
         console.log('🚨 Stored data length:', stored.length);
-        
+
         // Parse test
         try {
           const parsed = JSON.parse(stored);
@@ -144,23 +145,23 @@ export const authStore = create<IAuthStore>((zustandSet, zustandGet) => ({
     } catch (error) {
       console.error('🚨 ❌ LOCALSTORAGE ERROR:', error);
     }
-    
+
     console.log('🚨 AUTH STORE SET COMPLETED');
   },
 
   clear: () => {
     console.log('🚨 AUTH STORE CLEAR CALLED');
     const storageKey = getStorageKey();
-    
-    zustandSet({ 
-      auth: initialState, 
+
+    zustandSet({
+      auth: initialState,
       user: undefined,
       tokens: undefined,
-      isLogged: false, 
+      isLogged: false,
       isReady: true,
       refreshUserData: zustandGet().refreshUserData
     });
-    
+
     try {
       localStorage.removeItem(storageKey);
       console.log('🚨 localStorage cleared for key:', storageKey);
@@ -173,7 +174,7 @@ export const authStore = create<IAuthStore>((zustandSet, zustandGet) => ({
     console.log('🚨 AUTH INIT CALLED');
     const storageKey = getStorageKey();
     console.log('🚨 Init using storage key:', storageKey);
-    
+
     return new Promise<void>((resolve) => {
       zustandSet((state) => {
         if (typeof window === 'undefined') {
@@ -185,7 +186,7 @@ export const authStore = create<IAuthStore>((zustandSet, zustandGet) => ({
         try {
           const authString = localStorage.getItem(storageKey);
           console.log('🚨 Retrieved from localStorage:', authString ? 'FOUND' : 'NOT FOUND');
-          
+
           if (!authString) {
             console.log('🚨 No stored auth data');
             resolve();
@@ -199,7 +200,15 @@ export const authStore = create<IAuthStore>((zustandSet, zustandGet) => ({
           });
 
           if (parsedAuth?.tokens?.accessToken && parsedAuth?.user?._id) {
-            console.log('🚨 ✅ Valid stored auth found - restoring session');
+            // Check if token is valid (not expired)
+            const isValid = isValidToken(parsedAuth.tokens.accessToken);
+
+            if (isValid) {
+              console.log('🚨 ✅ Valid stored auth found - restoring session');
+            } else {
+              console.warn('🚨 ⚠️ Stored token is expired, but keeping session for refresh attempt');
+            }
+
             resolve();
             return {
               ...state,
