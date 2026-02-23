@@ -156,8 +156,7 @@ export class PdfService {
    */
   async addTable(tableData: TableData): Promise<void> {
     const doc = this.getDocument();
-    const { applyPlugin } = await loadAutoTable();
-    applyPlugin(doc);
+    const { autoTable } = await loadAutoTable();
 
     const defaultOptions = {
       startY: 100,
@@ -168,7 +167,7 @@ export class PdfService {
       tableLineWidth: 0.1,
     };
 
-    (doc as any).autoTable({
+    autoTable(doc, {
       head: [tableData.headers],
       body: tableData.rows,
       ...defaultOptions,
