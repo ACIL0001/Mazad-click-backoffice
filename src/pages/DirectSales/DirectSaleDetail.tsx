@@ -37,6 +37,8 @@ import PersonIcon from '@mui/icons-material/Person';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import LocalOfferIcon from '@mui/icons-material/LocalOffer';
 import Slide from '@mui/material/Slide';
+import { useQuery } from '@tanstack/react-query';
+import DetailSkeleton from '@/components/skeletons/DetailSkeleton';
 
 interface DirectSale {
   _id: string;
@@ -102,56 +104,32 @@ export default function DirectSaleDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { enqueueSnackbar } = useSnackbar();
-  const [directSale, setDirectSale] = useState<DirectSale | null>(null);
-  const [purchases, setPurchases] = useState<Purchase[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [purchasesLoading, setPurchasesLoading] = useState(true);
-
-  useEffect(() => {
-    if (id) {
-      fetchDirectSale();
-      fetchPurchases();
-    }
-  }, [id]);
-
-  const fetchDirectSale = async () => {
-    try {
-      setLoading(true);
+  const { data: directSale, isLoading: loading } = useQuery({
+    queryKey: ['directSale', id],
+    queryFn: async () => {
       const data = await DirectSaleAPI.getDirectSaleById(id!);
-      setDirectSale(data);
-    } catch (error: any) {
-      console.error('Error fetching direct sale:', error);
-      enqueueSnackbar(t('directSales.errors.loadingDetails'), { variant: 'error' });
-    } finally {
-      setLoading(false);
-    }
-  };
+      return data;
+    },
+    enabled: !!id,
+  });
 
-  const fetchPurchases = async () => {
-    setPurchasesLoading(true);
-    try {
+  const { data: purchasesData, isLoading: purchasesLoading } = useQuery({
+    queryKey: ['directSale', id, 'purchases'],
+    queryFn: async () => {
       const response = await DirectSaleAPI.getPurchasesByDirectSale(id!);
-      let purchasesData: Purchase[] = [];
-      
       if (response) {
         if (Array.isArray(response.data)) {
-          purchasesData = response.data;
+          return response.data;
         } else if (Array.isArray(response)) {
-          purchasesData = response;
-        } else {
-          purchasesData = [];
+          return response;
         }
       }
-      
-      setPurchases(purchasesData);
-    } catch (error: any) {
-      console.error('Error fetching purchases:', error);
-      enqueueSnackbar(t('directSales.errors.loadingOrders'), { variant: 'error' });
-      setPurchases([]);
-    } finally {
-      setPurchasesLoading(false);
-    }
-  };
+      return [];
+    },
+    enabled: !!id,
+  });
+
+  const purchases = purchasesData || [];
 
   const formatDate = (date: Date | string) => {
     if (!date) return 'N/A';
@@ -264,10 +242,8 @@ export default function DirectSaleDetail() {
   if (loading) {
     return (
       <Page title={t('directSales.detailsTitle')}>
-        <Container maxWidth="xl">
-          <Box display="flex" justifyContent="center" alignItems="center" minHeight="60vh">
-            <CircularProgress />
-          </Box>
+        <Container maxWidth="xl" sx={{ pt: { xs: '120px', sm: '130px', md: '140px' } }}>
+          <DetailSkeleton />
         </Container>
       </Page>
     );

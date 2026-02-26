@@ -301,7 +301,7 @@ NotificationItem.propTypes = {
 
 function NotificationItem({ notification, onMarkAsRead, onClose }) {
   const navigate = useNavigate();
-  const { avatar, title, description, createdAt, url } = renderContent(notification);
+  const { avatar, title, description, createdAt, url, customBadge } = renderContent(notification);
 
   const handleClick = async () => {
     // Mark notification as read if it's not already read
@@ -327,8 +327,9 @@ function NotificationItem({ notification, onMarkAsRead, onClose }) {
 
   const body = (
     <Box component="span" sx={{ display: 'block' }}>
-      <Typography component="span" variant="subtitle2" sx={{ lineHeight: 1.4, display: 'block' }}>
+      <Typography component="span" variant="subtitle2" sx={{ lineHeight: 1.4, display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 1 }}>
         {title}
+        {customBadge}
       </Typography>
       <Typography component="span" variant="body2" sx={{ color: 'text.secondary', display: 'block', mt: 0.5 }}>
         {description}
@@ -403,12 +404,41 @@ function renderContent(notification) {
 
   // Handle identity verification notifications
   if (type === 'IDENTITY_VERIFICATION') {
+    const isCertification = notification.data?.badgeType === 'certified';
+    const titleText = isCertification 
+      ? 'Nouvelle demande de certification' 
+      : (notification.title || 'Nouvelle demande de vérification d\'identité');
+    
+    // Badges based on verification type
+    let badgeText = isCertification ? 'Certifié' : 'Vérifié';
+    
+    let customBadge = (
+      <Box 
+        component="span" 
+        sx={{ 
+          px: 1, 
+          py: 0.25, 
+          borderRadius: 1, 
+          fontSize: '0.7rem', 
+          fontWeight: 'bold',
+          color: '#fff',
+          background: isCertification 
+            ? 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)' // Gold/Amber gradient for Certified
+            : 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)', // Blue gradient for Verified
+          boxShadow: isCertification ? '0 2px 4px rgba(245, 158, 11, 0.3)' : '0 2px 4px rgba(59, 130, 246, 0.3)'
+        }}
+      >
+        {badgeText}
+      </Box>
+    );
+
     return {
       ...notification,
-      title: notification.title || 'Nouvelle demande de vérification d\'identité',
-      description: notification.message || 'Une nouvelle demande de vérification d\'identité a été soumise',
-      avatar: <Iconify icon="mdi:account-check" sx={{ fontSize: 24, color: 'primary.main' }} />,
+      title: titleText,
+      description: notification.message || 'Une nouvelle demande a été soumise',
+      avatar: <Iconify icon={isCertification ? "mdi:certificate" : "mdi:account-check"} sx={{ fontSize: 24, color: isCertification ? '#f59e0b' : 'primary.main' }} />,
       url: "identities",
+      customBadge,
       createdAt: notification.createdAt ? new Date(notification.createdAt) : new Date()
     };
   }

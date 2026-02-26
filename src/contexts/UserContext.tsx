@@ -74,6 +74,12 @@ const UserProvider = ({ children }: any) => {
             return;
         }
         
+        // Prevent re-fetching if we already loaded it recently (3 minutes) to save bandwidth
+        if (users.length > 0 && now - lastFetchTime < 180000) {
+            console.log('UserContext: Skipping fetch - already cached');
+            return;
+        }
+        
         setLastFetchTime(now);
 
         // Add a small delay to ensure auth interceptor has the latest tokens

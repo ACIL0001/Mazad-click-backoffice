@@ -460,7 +460,6 @@ export default function Reseller() {
     };
 
     const TableBodyComponent = ({ data = [], selected, setSelected, onDeleteSingle }: { data: any[], selected: string[], setSelected: (selected: string[]) => void, onDeleteSingle?: (id: string) => void }) => {
-        const emptyRows = page > 0 ? Math.max(0, (1 + page) * rowsPerPage - data.length) : 0;
 
         const displayedData = applySortFilter(
             data,
@@ -692,11 +691,6 @@ export default function Reseller() {
                         </TableRow>
                     );
                 })}
-                {emptyRows > 0 && (
-                    <TableRow style={{ height: 53 * emptyRows }}>
-                        <TableCell colSpan={COLUMNS.length} />
-                    </TableRow>
-                )}
             </TableBody>
         );
     };

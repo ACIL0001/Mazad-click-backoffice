@@ -1,6 +1,8 @@
 "use client"
 import type React from "react"
-import { useState, useEffect } from "react"
+import { useState, useMemo } from "react"
+import { useQuery } from '@tanstack/react-query'
+import DashboardSkeleton from '../components/skeletons/DashboardSkeleton'
 import {
   Box,
   Typography,
@@ -16,10 +18,11 @@ import {
   ListItemText,
   ListItemAvatar,
   LinearProgress,
-  CircularProgress,
   Alert,
   Tabs,
   Tab,
+  Skeleton,
+  Stack,
   Table,
   TableBody,
   TableCell,
@@ -121,82 +124,39 @@ interface DashboardData {
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#82ca9d', '#ffc658']
 
 export default function ComprehensiveDashboard() {
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
   const [tabValue, setTabValue] = useState(0)
-  const [dashboardData, setDashboardData] = useState<DashboardData | null>(null)
   const [sectorFilter, setSectorFilter] = useState("")
 
   const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
     setTabValue(newValue)
   }
 
-  const fetchAllData = async () => {
-    setError(null)
-    
-    try {
-      
-      const userStats = await StatsAPI.getUserStats().catch(err => {
-        console.warn('User stats failed:', err);
-        return { total: 0, byType: { admin: 0, professional: 0, client: 0, reseller: 0 } };
-      });
-      
-      const auctionStats = await StatsAPI.getAuctionStats().catch(err => {
-        console.warn('Auction stats failed:', err);
-        return { 
-          total: 0, 
-          byStatus: { active: 0, completed: 0, pending: 0, cancelled: 0 },
-          byCategory: [],
-          dailyAverage: 0,
-          weeklyGrowth: 0
-        };
-      });
-      
-      const tenderStats = await StatsAPI.getTenderStats().catch(err => {
-        console.warn('Tender stats failed:', err);
-        return { 
-          total: 0, 
-          byStatus: { open: 0, awarded: 0, closed: 0, archived: 0 },
-          byType: { product: 0, service: 0 },
-          dailyAverage: 0,
-          weeklyGrowth: 0
-        };
-      });
-      
-      const categoryStats = await StatsAPI.getCategoryStats().catch(err => {
-        console.warn('Category stats failed:', err);
-        return [];
-      });
-      
-      const dashboardStats = await StatsAPI.getDashboardStats().catch(err => {
-        console.warn('Dashboard stats failed:', err);
-        return { widgets: [] };
-      });
-      
-      const userTimeSeries = await StatsAPI.getUserTimeSeries().catch(err => {
-        console.warn('User time series failed:', err);
-        return { labels: [], data: [] };
-      });
-      
-      const auctionTimeSeries = await StatsAPI.getAuctionTimeSeries().catch(err => {
-        console.warn('Auction time series failed:', err);
-        return { labels: [], data: [] };
-      });
-      
-      const pendingIdentities = await IdentityAPI.getPendingIdentities().catch(err => {
-        console.warn('Pending identities failed:', err);
-        return [];
-      });
-      
-      const subscriptionStats = await SubscriptionAPI.getStats().catch(err => {
-        console.warn('Subscription stats failed:', err);
-        return { total: 0, subscriptions: 0, commissions: 0, growth: 0 };
-      });
-
-      const sectorStats = await StatsAPI.getUsersBySector().catch(err => {
-        console.warn('Sector stats failed:', err);
-        return [];
-      });
+  const { data: dashboardData, isLoading: loading, error: queryError } = useQuery({
+    queryKey: ['dashboard-comprehensive'],
+    queryFn: async () => {
+      const [
+        userStats,
+        auctionStats,
+        tenderStats,
+        categoryStats,
+        dashboardStats,
+        userTimeSeries,
+        auctionTimeSeries,
+        pendingIdentities,
+        subscriptionStats,
+        sectorStats
+      ] = await Promise.all([
+        StatsAPI.getUserStats().catch(() => ({ total: 0, byType: { admin: 0, professional: 0, client: 0, reseller: 0 } })),
+        StatsAPI.getAuctionStats().catch(() => ({ total: 0, byStatus: { active: 0, completed: 0, pending: 0, cancelled: 0 }, byCategory: [], dailyAverage: 0, weeklyGrowth: 0 })),
+        StatsAPI.getTenderStats().catch(() => ({ total: 0, byStatus: { open: 0, awarded: 0, closed: 0, archived: 0 }, byType: { product: 0, service: 0 }, dailyAverage: 0, weeklyGrowth: 0 })),
+        StatsAPI.getCategoryStats().catch(() => []),
+        StatsAPI.getDashboardStats().catch(() => ({ widgets: [] })),
+        StatsAPI.getUserTimeSeries().catch(() => ({ labels: [], data: [] })),
+        StatsAPI.getAuctionTimeSeries().catch(() => ({ labels: [], data: [] })),
+        IdentityAPI.getPendingIdentities().catch(() => []),
+        SubscriptionAPI.getStats().catch(() => ({ total: 0, subscriptions: 0, commissions: 0, growth: 0 })),
+        StatsAPI.getUsersBySector().catch(() => [])
+      ]);
 
       // Process category distribution for pie chart
       const categoryDistribution = categoryStats.slice(0, 5).map((cat, index) => ({
@@ -227,7 +187,7 @@ export default function ComprehensiveDashboard() {
         { type: 'subscription', message: 'Revenus d\'abonnements mis à jour', time: '1 h' }
       ]
 
-      const processedData: DashboardData = {
+      return {
         stats: {
           totalUsers: userStats.total || 0,
           totalAuctions: auctionStats.total || 0,
@@ -235,8 +195,8 @@ export default function ComprehensiveDashboard() {
           activeTenders: tenderStats.byStatus?.open || 0,
           totalRevenue: subscriptionStats.total || 0,
           activeAuctions: auctionStats.byStatus?.active || 0,
-          totalOffers: 0, // Will be updated when offers API is called
-          verifiedUsers: Math.floor((userStats.total || 0) * 0.85), // Approximation
+          totalOffers: 0, 
+          verifiedUsers: Math.floor((userStats.total || 0) * 0.85),
           pendingIdentities: pendingIdentities.length || 0
         },
         userStats,
@@ -253,68 +213,16 @@ export default function ComprehensiveDashboard() {
         userGrowth: userGrowthData,
         categoryDistribution,
         recentActivities
-      }
+      } as DashboardData;
+    },
+    staleTime: 60000, // 1 minute stale time
+    refetchInterval: 30000, // Background polling every 30 seconds
+  })
 
-      setDashboardData(processedData)
-    } catch (err) {
-      setError("Erreur lors du chargement des données. Certaines données peuvent ne pas être disponibles.")
-      
-      // Set fallback data to prevent complete failure
-      setDashboardData({
-        stats: {
-          totalUsers: 0,
-          totalAuctions: 0,
-          totalTenders: 0,
-          activeTenders: 0,
-          totalRevenue: 0,
-          activeAuctions: 0,
-          totalOffers: 0,
-          verifiedUsers: 0,
-          pendingIdentities: 0
-        },
-        userStats: { total: 0, byType: { admin: 0, professional: 0, client: 0, reseller: 0 } },
-        auctionStats: { total: 0, byStatus: { active: 0, completed: 0, pending: 0, cancelled: 0 }, byCategory: [], dailyAverage: 0, weeklyGrowth: 0 },
-        tenderStats: { total: 0, byStatus: { open: 0, awarded: 0, closed: 0, archived: 0 }, byType: { product: 0, service: 0 }, dailyAverage: 0, weeklyGrowth: 0 },
-        categoryStats: [],
-        identityStats: { pending: 0, verified: 0 },
-        subscriptionStats: { total: 0, subscriptions: 0, commissions: 0, growth: 0 },
-        sectorStats: [],
-        revenueData: [],
-        userGrowth: [],
-        categoryDistribution: [],
-        recentActivities: []
-      })
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  useEffect(() => {
-    // Initial fetch
-    fetchAllData()
-    
-    // Set up polling every 30 seconds for real-time updates
-    const interval = setInterval(() => {
-      fetchAllData()
-    }, 30000)
-    
-    return () => clearInterval(interval)
-  }, [])
+  const error = queryError ? "Erreur lors du chargement des données. Certaines données peuvent ne pas être disponibles." : null
 
   if (loading) {
-    return (
-      <Container
-        maxWidth="xl"
-        sx={{ mt: 4, display: "flex", justifyContent: "center", alignItems: "center", minHeight: "60vh" }}
-      >
-        <Box textAlign="center">
-          <CircularProgress size={60} />
-          <Typography variant="h6" sx={{ mt: 2 }}>
-            Chargement du tableau de bord...
-          </Typography>
-        </Box>
-      </Container>
-    )
+    return <DashboardSkeleton />
   }
 
   if (!dashboardData) {

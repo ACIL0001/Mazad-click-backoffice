@@ -24,8 +24,7 @@ import {
 import Iconify from "@/components/Iconify"
 import { useSnackbar } from "notistack"
 import MuiTable from "../../components/Tables/MuiTable"
-import { IdentityDocument, IdentityAPI } from "../../api/identity"
-import { UserAPI } from "../../api/user"
+import { IdentityDocument, IdentityAPI } from "@/api/identity"
 
 interface PendingAndRejectedSellersProps {
   pendingAndRejectedSellers: IdentityDocument[]
@@ -34,6 +33,7 @@ interface PendingAndRejectedSellersProps {
   onVerifyIdentity: (identity: IdentityDocument, action: 'accept' | 'reject') => void
   title?: string
   subtitle?: string
+  loading?: boolean
 }
 
 const TABLE_HEAD = [
@@ -522,6 +522,7 @@ export default function PendingAndRejectedSellers({
   onVerifyIdentity,
   title = "Demandes en Attente",
   subtitle,
+  loading = false,
 }: PendingAndRejectedSellersProps) {
   const navigate = useNavigate()
   const { enqueueSnackbar } = useSnackbar()
@@ -698,7 +699,7 @@ export default function PendingAndRejectedSellers({
         searchFields={["user.firstName", "user.lastName", "user.email", "user.secteur", "user.entreprise", "user.postOccupé"]}
         numSelected={selected.length}
         onDeleteSelected={handleDeleteSelected}
-        loading={false}
+        loading={loading}
       />
 
       {/* Empty state */}

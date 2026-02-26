@@ -33,6 +33,8 @@ import app from '@/config';
 import { UserAPI } from '../../api/user';
 import { useSnackbar } from 'notistack';
 import useMediaQuery from '@mui/material/useMediaQuery';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import DetailSkeleton from '@/components/skeletons/DetailSkeleton';
 
 // Extended type to handle additional properties that might exist
 interface ExtendedPopulatedUser extends PopulatedUser {
@@ -110,10 +112,8 @@ export default function ClientDetailsPage() {
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
     const isTablet = useMediaQuery(theme.breakpoints.down('md'));
+    const queryClient = useQueryClient();
 
-    const [clientDetails, setClientDetails] = useState<ExtendedPopulatedUser | null>(null);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
     const [isVerifying, setIsVerifying] = useState(false);
     const [isUpdatingActiveStatus, setIsUpdatingActiveStatus] = useState(false);
     const [isUpdatingBannedStatus, setIsUpdatingBannedStatus] = useState(false);
@@ -122,14 +122,10 @@ export default function ClientDetailsPage() {
     // Promotion dialog state
     const [openPromotionDialog, setOpenPromotionDialog] = useState(false);
 
-    const fetchClientDetails = useCallback(async () => {
-        if (!id) {
-            setError("L'ID du client est manquant.");
-            setLoading(false);
-            return;
-        }
-        try {
-            setLoading(true);
+    const { data: clientDetails, isLoading: loading, error } = useQuery({
+        queryKey: ['client', id],
+        queryFn: async () => {
+            if (!id) throw new Error("L'ID du client est manquant.");
             console.log('Fetching client details for ID:', id);
             const response = await UserAPI.findById(id);
             console.log('API Response:', response);
@@ -148,23 +144,13 @@ export default function ClientDetailsPage() {
             }
             
             if (userData) {
-                setClientDetails(userData as ExtendedPopulatedUser);
-                console.log('Client details set:', userData);
+                return userData as ExtendedPopulatedUser;
             } else {
-                console.error('No valid user data found in response:', response);
-                setError('Aucune donnée utilisateur trouvée dans la réponse.');
+                throw new Error('Aucune donnée utilisateur trouvée dans la réponse.');
             }
-        } catch (err: any) {
-            console.error("Échec de la récupération des détails du client :", err);
-            setError(err.message || "Échec du chargement des détails du client.");
-        } finally {
-            setLoading(false);
-        }
-    }, [id]);
-
-    useEffect(() => {
-        fetchClientDetails();
-    }, [fetchClientDetails]);
+        },
+        enabled: !!id,
+    });
 
     const handleGoBack = () => {
         navigate(-1);
@@ -176,7 +162,8 @@ export default function ClientDetailsPage() {
         try {
             await UserAPI.verifyUser(clientDetails._id, isVerified);
             enqueueSnackbar(`Utilisateur ${isVerified ? 'vérifié' : 'non vérifié'} avec succès.`, { variant: 'success' });
-            fetchClientDetails();
+            queryClient.invalidateQueries({ queryKey: ['client', id] });
+            queryClient.invalidateQueries({ queryKey: ['users'] });
         } catch (err: any) {
             enqueueSnackbar(err.message || `Échec de la ${isVerified ? 'vérification' : 'désvérification'}.`, { variant: 'error' });
         } finally {
@@ -190,7 +177,8 @@ export default function ClientDetailsPage() {
         try {
             await UserAPI.setUserActive(clientDetails._id, isActive);
             enqueueSnackbar(`Utilisateur ${isActive ? 'activé' : 'désactivé'} avec succès.`, { variant: 'success' });
-            fetchClientDetails();
+            queryClient.invalidateQueries({ queryKey: ['client', id] });
+            queryClient.invalidateQueries({ queryKey: ['users'] });
         } catch (err: any) {
             enqueueSnackbar(err.message || `Échec de l'${isActive ? 'activation' : 'désactivation'}.`, { variant: 'error' });
         } finally {
@@ -204,7 +192,8 @@ export default function ClientDetailsPage() {
         try {
             await UserAPI.setUserBanned(clientDetails._id, isBanned);
             enqueueSnackbar(`Utilisateur ${isBanned ? 'banni' : 'débanni'} avec succès.`, { variant: 'success' });
-            fetchClientDetails();
+            queryClient.invalidateQueries({ queryKey: ['client', id] });
+            queryClient.invalidateQueries({ queryKey: ['users'] });
         } catch (err: any) {
             enqueueSnackbar(err.message || `Échec du ${isBanned ? 'bannissement' : 'débannissement'}.`, { variant: 'error' });
         } finally {
@@ -219,7 +208,8 @@ export default function ClientDetailsPage() {
             await UserAPI.promoteToReseller(clientDetails._id);
             enqueueSnackbar('Client promu au rang de revendeur avec succès!', { variant: 'success' });
             setOpenPromotionDialog(false);
-            fetchClientDetails();
+            queryClient.invalidateQueries({ queryKey: ['client', id] });
+            queryClient.invalidateQueries({ queryKey: ['users'] });
         } catch (err: any) {
             enqueueSnackbar(err.message || 'Échec de la promotion au rang de revendeur.', { variant: 'error' });
         } finally {
@@ -229,8 +219,8 @@ export default function ClientDetailsPage() {
 
     if (loading) {
         return (
-            <Container sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '80vh' }}>
-                <CircularProgress size={isMobile ? 36 : 48} />
+            <Container maxWidth="lg" sx={{ py: { xs: 2, sm: 4 } }}>
+                <DetailSkeleton />
             </Container>
         );
     }
@@ -238,7 +228,9 @@ export default function ClientDetailsPage() {
     if (error) {
         return (
             <Container sx={{ mt: { xs: 2, sm: 4 } }}>
-                <Alert severity="error" sx={{ borderRadius: 2, fontSize: isMobile ? '0.8rem' : 'inherit' }}>{error}</Alert>
+                <Alert severity="error" sx={{ borderRadius: 2, fontSize: isMobile ? '0.8rem' : 'inherit' }}>
+                    {error instanceof Error ? error.message : "Erreur inconnue."}
+                </Alert>
                 <Button variant="contained" onClick={handleGoBack} sx={{ mt: { xs: 1.5, sm: 2 }, borderRadius: 2, fontSize: isMobile ? '0.8rem' : 'inherit' }}>
                     Retour
                 </Button>

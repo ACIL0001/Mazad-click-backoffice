@@ -36,7 +36,7 @@ import AcceptedSellers from './AcceptedSellers';
 import PendingAndRejectedSellers from './PendingAndRejectedSellers';
 
 import { IdentityAPI, IdentityDocument } from '../../api/identity';
-import { UserAPI } from '../../api/user';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 export default function Identity() {
     const theme = useTheme();
@@ -44,55 +44,30 @@ export default function Identity() {
     const { isLogged } = useAuth();
     const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
     const navigate = useNavigate();
+    const queryClient = useQueryClient();
 
-    // Updated to use IdentityDocument from API
-    const [pendingProfessionals, setPendingProfessionals] = useState<IdentityDocument[]>([]);
-    const [pendingResellers, setPendingResellers] = useState<IdentityDocument[]>([]);
-    const [pendingClientToProfessional, setPendingClientToProfessional] = useState<IdentityDocument[]>([]);
-    const [acceptedIdentities, setAcceptedIdentities] = useState<IdentityDocument[]>([]);
-    const [rejectedIdentities, setRejectedIdentities] = useState<IdentityDocument[]>([]);
-    
     const [value, setValue] = useState(0);
     const [openVerificationModal, setOpenVerificationModal] = useState<IdentityDocument | undefined>(undefined);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
 
-    const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
-        setValue(newValue);
-    };
-
-    // Enhanced data fetching using the API methods
-    const fetchAllData = useCallback(async () => {
-        if (!isLogged) {
-            setLoading(false);
-            setError('User not logged in.');
-            return;
-        }
-        
-        try {
-            setLoading(true);
-            setError(null);
-
-            // Use the specific API endpoints for better performance
+    const { data: identitiesData, isLoading: loading, error } = useQuery({
+        queryKey: ['identities'],
+        queryFn: async () => {
             const [
                 professionalVerifications,
                 resellerConversions,
-                acceptedResponse
+                acceptedResponse,
+                allPending
             ] = await Promise.all([
                 IdentityAPI.getPendingProfessionals(),
                 IdentityAPI.getPendingResellers(),
-                IdentityAPI.getAcceptedIdentities()
+                IdentityAPI.getAcceptedIdentities(),
+                IdentityAPI.getPendingIdentities()
             ]);
 
-            // Get all pending to separate client-to-professional conversions
-            const allPending = await IdentityAPI.getPendingIdentities();
-            
-            // Filter for client-to-professional conversions
             const clientToProfessionalConversions = allPending.filter(identity => 
                 identity.conversionType === 'CLIENT_TO_PROFESSIONAL'
             );
 
-            // For legacy records without conversionType, use the API helper
             const legacyRecords = allPending.filter(identity => !identity.conversionType);
             const categorizedLegacy = {
                 professionals: [] as IdentityDocument[],
@@ -115,104 +90,54 @@ export default function Identity() {
                 }
             });
 
-            // Enrich identities with full user data to ensure all fields are available
-            const enrichIdentitiesWithUserData = async (identities: IdentityDocument[]): Promise<IdentityDocument[]> => {
-                return Promise.all(identities.map(async (identity) => {
-                    if (identity.user?._id) {
-                        try {
-                            // Always fetch full user data to ensure we have secteur, entreprise, postOccupé
-                            const response = await UserAPI.findById(identity.user._id);
-                            const fullUserData = response.user || response.data || response;
-                            return {
-                                ...identity,
-                                user: {
-                                    ...identity.user,
-                                    ...fullUserData,
-                                    // Prefer backend populated data, fallback to enriched data, then fallback to alternate field names
-                                    secteur: identity.user.secteur || fullUserData.secteur || fullUserData.activitySector || undefined,
-                                    entreprise: identity.user.entreprise || fullUserData.entreprise || fullUserData.companyName || fullUserData.socialReason || undefined,
-                                    postOccupé: identity.user.postOccupé || fullUserData.postOccupé || fullUserData.jobTitle || undefined,
-                                }
-                            };
-                        } catch (err) {
-                            console.warn(`Failed to enrich user data for identity ${identity._id}:`, err);
-                            // Return identity as is if enrichment fails - backend data should be enough
-                            return identity;
+            const enrichIdentitiesWithUserData = (identities: IdentityDocument[]): IdentityDocument[] => {
+                return identities.map(identity => {
+                    const user = identity.user as any;
+                    return {
+                        ...identity,
+                        user: {
+                            ...user,
+                            secteur: user?.secteur || user?.activitySector || undefined,
+                            entreprise: user?.entreprise || user?.companyName || user?.socialReason || undefined,
+                            postOccupé: user?.postOccupé || user?.jobTitle || undefined,
                         }
-                    }
-                    return identity;
-                }));
+                    } as IdentityDocument;
+                });
             };
 
-            // Enrich all identities with full user data
-            const [
-                enrichedProfessionalVerifications,
-                enrichedResellerConversions,
-                enrichedAcceptedIdentities,
-                enrichedClientToProfessional
-            ] = await Promise.all([
-                enrichIdentitiesWithUserData([...professionalVerifications, ...categorizedLegacy.professionals]),
-                enrichIdentitiesWithUserData([...resellerConversions, ...categorizedLegacy.resellers]),
-                enrichIdentitiesWithUserData(acceptedResponse),
-                enrichIdentitiesWithUserData([...clientToProfessionalConversions, ...categorizedLegacy.clientToProfessional])
-            ]);
+            return {
+                pendingProfessionals: enrichIdentitiesWithUserData([...professionalVerifications, ...categorizedLegacy.professionals]),
+                pendingResellers: enrichIdentitiesWithUserData([...resellerConversions, ...categorizedLegacy.resellers]),
+                pendingClientToProfessional: enrichIdentitiesWithUserData([...clientToProfessionalConversions, ...categorizedLegacy.clientToProfessional]),
+                acceptedIdentities: enrichIdentitiesWithUserData(acceptedResponse)
+            };
+        },
+        enabled: isLogged,
+    });
 
-            // Set state with enriched data
-            setPendingProfessionals(enrichedProfessionalVerifications);
-            setPendingResellers(enrichedResellerConversions);
-            setPendingClientToProfessional(enrichedClientToProfessional);
-            setAcceptedIdentities(enrichedAcceptedIdentities);
-
-            console.log('Professional verifications:', enrichedProfessionalVerifications.length);
-            console.log('Reseller conversions:', enrichedResellerConversions.length);
-            console.log('Client to Professional:', enrichedClientToProfessional.length);
-            console.log('Accepted identities:', enrichedAcceptedIdentities.length);
-
-            // Don't show success snackbar on every load - only log to console
-
-        } catch (err: any) {
-            console.error("Failed to fetch data:", err);
-            setError(err.message || "Failed to load data.");
-            // Only show error snackbar, not success
-            enqueueSnackbar('Failed to load data.', { variant: 'error' });
-        } finally {
-            setLoading(false);
-        }
-    }, [isLogged]); // Remove enqueueSnackbar from dependencies
-
-    useEffect(() => {
-        fetchAllData();
-    }, [isLogged]); // Only depend on isLogged, not fetchAllData
+    const pendingProfessionals = identitiesData?.pendingProfessionals || [];
+    const pendingResellers = identitiesData?.pendingResellers || [];
+    const pendingClientToProfessional = identitiesData?.pendingClientToProfessional || [];
+    const acceptedIdentities = identitiesData?.acceptedIdentities || [];
 
     // Handle verification using the API
     const handleVerifyIdentity = useCallback(async (identity: IdentityDocument, action: 'accept' | 'reject') => {
         try {
             await IdentityAPI.verifyIdentity(identity._id, action);
             
-            // Remove from all pending lists immediately
-            setPendingProfessionals(prev => prev.filter(item => item._id !== identity._id));
-            setPendingResellers(prev => prev.filter(item => item._id !== identity._id));
-            setPendingClientToProfessional(prev => prev.filter(item => item._id !== identity._id));
-
-            // If accepted, add to accepted list
             if (action === 'accept') {
-                const updatedIdentity = { ...identity, status: 'DONE' as const };
-                setAcceptedIdentities(prev => [...prev, updatedIdentity]);
-                
-                // Show success message with conversion info
                 const conversionInfo = IdentityAPI.getConversionDisplayInfo(
                     identity.conversionType || IdentityAPI.getConversionTypeFromIdentity(identity)
                 );
                 enqueueSnackbar(`${conversionInfo.label} accepté avec succès`, { variant: 'success' });
             } else {
-                const updatedIdentity = { ...identity, status: 'REJECTED' as const };
-                setRejectedIdentities(prev => [...prev, updatedIdentity]);
-                
                 const conversionInfo = IdentityAPI.getConversionDisplayInfo(
                     identity.conversionType || IdentityAPI.getConversionTypeFromIdentity(identity)
                 );
                 enqueueSnackbar(`${conversionInfo.label} rejeté`, { variant: 'warning' });
             }
+
+            queryClient.invalidateQueries({ queryKey: ['identities'] });
             
         } catch (error: any) {
             console.error('Error verifying identity:', error);
@@ -232,8 +157,8 @@ export default function Identity() {
     const handleDeletePendingProfessionals = useCallback(async (idsToDelete: string[]) => {
         try {
             await IdentityAPI.deleteIdentities(idsToDelete);
-            setPendingProfessionals(prev => prev.filter(item => !idsToDelete.includes(item._id)));
             enqueueSnackbar(`${idsToDelete.length} vérifications professionnelles supprimées.`, { variant: "success" });
+            queryClient.invalidateQueries({ queryKey: ['identities'] });
         } catch (error: any) {
             console.error("Error deleting pending professionals:", error);
             enqueueSnackbar(`Erreur lors de la suppression: ${error.message || "Erreur inconnue"}`, { variant: "error" });
@@ -244,8 +169,8 @@ export default function Identity() {
     const handleDeletePendingResellers = useCallback(async (idsToDelete: string[]) => {
         try {
             await IdentityAPI.deleteIdentities(idsToDelete);
-            setPendingResellers(prev => prev.filter(item => !idsToDelete.includes(item._id)));
             enqueueSnackbar(`${idsToDelete.length} conversions vers revendeur supprimées.`, { variant: "success" });
+            queryClient.invalidateQueries({ queryKey: ['identities'] });
         } catch (error: any) {
             console.error("Error deleting pending resellers:", error);
             enqueueSnackbar(`Erreur lors de la suppression: ${error.message || "Erreur inconnue"}`, { variant: "error" });
@@ -256,8 +181,8 @@ export default function Identity() {
     const handleDeletePendingClientToProfessional = useCallback(async (idsToDelete: string[]) => {
         try {
             await IdentityAPI.deleteIdentities(idsToDelete);
-            setPendingClientToProfessional(prev => prev.filter(item => !idsToDelete.includes(item._id)));
             enqueueSnackbar(`${idsToDelete.length} conversions vers professionnel supprimées.`, { variant: "success" });
+            queryClient.invalidateQueries({ queryKey: ['identities'] });
         } catch (error: any) {
             console.error("Error deleting pending client to professional:", error);
             enqueueSnackbar(`Erreur lors de la suppression: ${error.message || "Erreur inconnue"}`, { variant: "error" });
@@ -268,8 +193,8 @@ export default function Identity() {
     const handleDeleteAcceptedIdentities = useCallback(async (idsToDelete: string[]) => {
         try {
             await IdentityAPI.deleteIdentities(idsToDelete);
-            setAcceptedIdentities(prev => prev.filter(item => !idsToDelete.includes(item._id)));
             enqueueSnackbar(`${idsToDelete.length} identités acceptées supprimées.`, { variant: "success" });
+            queryClient.invalidateQueries({ queryKey: ['identities'] });
         } catch (error: any) {
             console.error("Error deleting accepted identities:", error);
             enqueueSnackbar(`Erreur lors de la suppression: ${error.message || "Erreur inconnue"}`, { variant: "error" });
@@ -277,18 +202,14 @@ export default function Identity() {
         }
     }, [enqueueSnackbar]);
 
+    const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
+        setValue(newValue);
+    };
+
     // Tab content rendering
     const renderTabContent = (): ReactNode => {
-        if (loading) {
-            return (
-                <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: { xs: 150, sm: 200 } }}>
-                    <CircularProgress size={isMobile ? 36 : 48} />
-                    <Typography variant={isMobile ? "body2" : "body1"} sx={{ ml: { xs: 1, sm: 2 } }}>Loading data...</Typography>
-                </Box>
-            );
-        }
         if (error) {
-            return <Typography color="error" sx={{ textAlign: 'center', mt: { xs: 2, sm: 4 }, fontSize: isMobile ? '0.8rem' : 'inherit' }}>{error}</Typography>;
+            return <Typography color="error" sx={{ textAlign: 'center', mt: { xs: 2, sm: 4 }, fontSize: isMobile ? '0.8rem' : 'inherit' }}>{error instanceof Error ? error.message : String(error)}</Typography>;
         }
 
         switch (value) {
@@ -302,6 +223,7 @@ export default function Identity() {
                         onVerifyIdentity={handleVerifyIdentity}
                         title="Vérifications Professionnelles"
                         subtitle="Professionnels existants demandant une vérification d'identité"
+                        loading={loading}
                     />
                 );
             case 1:
@@ -314,6 +236,7 @@ export default function Identity() {
                         onVerifyIdentity={handleVerifyIdentity}
                         title="Clients → Revendeurs"
                         subtitle="Clients souhaitant devenir revendeurs"
+                        loading={loading}
                     />
                 );
             case 2:
@@ -326,6 +249,7 @@ export default function Identity() {
                         onVerifyIdentity={handleVerifyIdentity}
                         title="Clients → Professionnels"
                         subtitle="Clients souhaitant devenir professionnels"
+                        loading={loading}
                     />
                 );
             case 3:
@@ -335,6 +259,7 @@ export default function Identity() {
                         acceptedSellers={acceptedIdentities} 
                         onOpenVerificationModal={handleOpenVerificationModal} 
                         onDeleteSellers={handleDeleteAcceptedIdentities}
+                        loading={loading}
                     />
                 );
             default:

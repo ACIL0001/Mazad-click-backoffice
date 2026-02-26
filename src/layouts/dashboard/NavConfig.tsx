@@ -117,6 +117,18 @@ export const useNavConfig = () => {
       title: t('navigation.identities'),
       path: '/dashboard/identities',
       icon: getIcon('ph:user-focus-bold'),
+      children: [
+        {
+          title: t('navigation.list') || 'Liste',
+          path: '/dashboard/identities',
+          icon: getIcon('mdi:format-list-bulleted'),
+        },
+        {
+          title: t('navigation.history') || 'Historique',
+          path: '/dashboard/identities/history',
+          icon: getIcon('mdi:history'),
+        }
+      ],
     },
     {
       title: t('navigation.configuration'),
@@ -271,6 +283,18 @@ const navConfig = [
     title: 'Identités',
     path: '/dashboard/identities',
     icon: getIcon('ph:user-focus-bold'),
+    children: [
+      {
+        title: 'Liste',
+        path: '/dashboard/identities',
+        icon: getIcon('mdi:format-list-bulleted'),
+      },
+      {
+        title: 'Historique',
+        path: '/dashboard/identities/history',
+        icon: getIcon('mdi:history'),
+      }
+    ],
   },
   {
     title: 'Configuration',

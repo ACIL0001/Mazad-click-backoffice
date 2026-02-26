@@ -36,6 +36,8 @@ import app from '@/config';
 import { UserAPI } from '../../api/user';
 import { useSnackbar } from 'notistack';
 import useMediaQuery from '@mui/material/useMediaQuery';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import DetailSkeleton from '../../components/skeletons/DetailSkeleton';
 
 export default function IdentityVerificationDetailsPage() {
     const { id } = useParams<{ id: string }>();
@@ -45,13 +47,10 @@ export default function IdentityVerificationDetailsPage() {
     const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
     const isTablet = useMediaQuery(theme.breakpoints.down('md'));
 
-    const [identityDetails, setIdentityDetails] = useState<IdentityDocument | null>(null);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
+    const queryClient = useQueryClient();
+
     const [isVerifying, setIsVerifying] = useState(false);
     const [isVerifyingCertification, setIsVerifyingCertification] = useState(false);
-    
-    // Confirmation dialog states
     const [confirmationDialog, setConfirmationDialog] = useState<{
         open: boolean;
         action: 'accept' | 'reject' | null;
@@ -66,14 +65,12 @@ export default function IdentityVerificationDetailsPage() {
         type: null
     });
 
-    const fetchIdentityDetails = useCallback(async () => {
-        if (!id) {
-            setError("L'ID d'identité est manquant.");
-            setLoading(false);
-            return;
-        }
-        try {
-            setLoading(true);
+    const { data: identityDetails, isLoading: loading, error: queryError } = useQuery({
+        queryKey: ['identity', id],
+        queryFn: async () => {
+            if (!id) {
+                throw new Error("L'ID d'identité est manquant.");
+            }
             const response = await IdentityAPI.getIdentityById(id);
             let userProfile: any = (response.user && typeof response.user === 'object' && response.user._id)
                 ? response.user
@@ -100,21 +97,13 @@ export default function IdentityVerificationDetailsPage() {
             }
 
             const updatedIdentityDetails = { ...response, user: userProfile };
-            setIdentityDetails(updatedIdentityDetails);
+            console.log('Fetched identity details:', updatedIdentityDetails);
+            return updatedIdentityDetails as IdentityDocument;
+        },
+        enabled: !!id,
+    });
 
-            console.log('Fetched and set identity details:', updatedIdentityDetails);
-
-        } catch (err: any) {
-            console.error("Échec de la récupération des détails d'identité :", err);
-            setError(err.message || "Échec du chargement des détails d'identité.");
-        } finally {
-            setLoading(false);
-        }
-    }, [id]);
-
-    useEffect(() => {
-        fetchIdentityDetails();
-    }, [fetchIdentityDetails]);
+    const error = queryError ? (queryError as Error).message : null;
 
     const handleGoBack = () => {
         navigate(-1);
@@ -175,7 +164,7 @@ export default function IdentityVerificationDetailsPage() {
                 enqueueSnackbar(`Demande de vérification ${actionText} avec succès.`, { variant: 'success' });
                 
                 // Refresh identity details
-                await fetchIdentityDetails();
+                queryClient.invalidateQueries({ queryKey: ['identity', id] });
                 
             } catch (err: any) {
                 console.error("Failed to verify identity:", err);
@@ -193,7 +182,7 @@ export default function IdentityVerificationDetailsPage() {
                 enqueueSnackbar(`Demande de certification ${actionText} avec succès.`, { variant: 'success' });
                 
                 // Refresh identity details
-                await fetchIdentityDetails();
+                queryClient.invalidateQueries({ queryKey: ['identity', id] });
                 
             } catch (err: any) {
                 console.error("Failed to verify certification:", err);
@@ -203,31 +192,18 @@ export default function IdentityVerificationDetailsPage() {
                 setConfirmationDialog({ open: false, action: null, title: '', message: '', type: null });
             }
         }
-    }, [confirmationDialog, identityDetails, enqueueSnackbar, fetchIdentityDetails]);
+    }, [confirmationDialog, identityDetails, enqueueSnackbar, queryClient, id]);
 
     const handleCloseConfirmation = () => {
         if (isVerifying || isVerifyingCertification) return; // Prevent closing during verification
         setConfirmationDialog({ open: false, action: null, title: '', message: '', type: null });
     };
 
-    // Conditional rendering for loading, error, and no details states
     if (loading) {
         return (
-            <Box
-                sx={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                    height: '80vh',
-                    background: `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.1)} 0%, ${alpha(theme.palette.secondary.main, 0.1)} 100%)`
-                }}
-            >
-                <CircularProgress size={isMobile ? 40 : 60} thickness={4} />
-                <Typography variant={isMobile ? "body1" : "h6"} sx={{ mt: { xs: 1.5, sm: 2 }, color: 'text.secondary' }}>
-                    Chargement des détails d'identité...
-                </Typography>
-            </Box>
+            <Container maxWidth={isMobile ? "xs" : "md"} sx={{ mt: { xs: 2, sm: 4 } }}>
+                <DetailSkeleton />
+            </Container>
         );
     }
 

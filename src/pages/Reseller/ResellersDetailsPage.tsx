@@ -33,6 +33,8 @@ import app from '@/config';
 import { UserAPI } from '../../api/user';
 import { useSnackbar } from 'notistack';
 import useMediaQuery from '@mui/material/useMediaQuery';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import DetailSkeleton from '@/components/skeletons/DetailSkeleton';
 
 // Import recommend icon
 import RecommendIcon from '@mui/icons-material/Recommend';
@@ -111,10 +113,8 @@ export default function ResellersDetailsPage() {
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
     const isTablet = useMediaQuery(theme.breakpoints.down('md'));
+    const queryClient = useQueryClient();
 
-    const [resellerDetails, setResellerDetails] = useState<PopulatedUser | null>(null);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
     const [isVerifying, setIsVerifying] = useState(false);
     const [isUpdatingActiveStatus, setIsUpdatingActiveStatus] = useState(false);
     const [isUpdatingBannedStatus, setIsUpdatingBannedStatus] = useState(false);
@@ -131,65 +131,30 @@ export default function ResellersDetailsPage() {
         color: 'primary' as 'primary' | 'error' | 'success'
     });
 
-    const fetchResellerDetails = useCallback(async () => {
-        if (!id) {
-            setError("L'ID du revendeur est manquant.");
-            setLoading(false);
-            return;
-        }
-        
-        try {
-            setLoading(true);
-            console.log('🚀 Fetching reseller details for ID:', id);
+    const { data: resellerDetails, isLoading: loading, error } = useQuery({
+        queryKey: ['reseller', id],
+        queryFn: async () => {
+            if (!id) throw new Error("L'ID du revendeur est manquant.");
             
-            // Use UserAPI.findById to get direct user details
+            console.log('🚀 Fetching reseller details for ID:', id);
             const response = await UserAPI.findById(id);
-            console.log('📦 Raw API Response:', response);
             setRawApiResponse(response); // Store for debugging
             
-            // Handle different response structures
             let userData = null;
             if (response?.user) {
-                console.log('✅ Found user data in response.user');
                 userData = response.user;
             } else if (response?.data) {
-                console.log('✅ Found user data in response.data');
                 userData = response.data;
             } else if (response?._id) {
-                console.log('✅ Found user data in response root');
                 userData = response;
             } else {
-                console.log('❌ No user data found in response');
                 throw new Error('Invalid response structure');
             }
             
-            setResellerDetails(userData);
-            
-            console.log('✅ Successfully set reseller details:', userData);
-            console.log('🔍 User Properties:');
-            console.log('  - ID:', userData?._id);
-            console.log('  - Name:', userData?.firstName, userData?.lastName);
-            console.log('  - Email:', userData?.email);
-            console.log('  - Phone:', userData?.phone);
-            console.log('  - Type:', userData?.type);
-            console.log('  - isVerified:', userData?.isVerified);
-            console.log('  - isActive:', userData?.isActive);
-            console.log('  - isBanned:', userData?.isBanned);
-            console.log('  - isRecommended:', userData?.isRecommended);
-            console.log('  - createdAt:', userData?.createdAt);
-            console.log('  - rate:', userData?.rate);
-
-        } catch (err: any) {
-            console.error("❌ Failed to fetch reseller details:", err);
-            setError(err.message || "Échec du chargement des détails du revendeur.");
-        } finally {
-            setLoading(false);
-        }
-    }, [id]);
-
-    useEffect(() => {
-        fetchResellerDetails();
-    }, [fetchResellerDetails]);
+            return userData as PopulatedUser;
+        },
+        enabled: !!id,
+    });
 
     const handleGoBack = () => {
         navigate(-1);
@@ -233,7 +198,8 @@ export default function ResellersDetailsPage() {
             try {
                 await UserAPI.verifyUser(resellerDetails._id, isVerified);
                 enqueueSnackbar(`Utilisateur ${isVerified ? 'vérifié' : 'non vérifié'} avec succès.`, { variant: 'success' });
-                await fetchResellerDetails();
+                queryClient.invalidateQueries({ queryKey: ['reseller', id] });
+                queryClient.invalidateQueries({ queryKey: ['users'] });
             } catch (err: any) {
                 console.error('Error verifying user:', err);
                 const errorMessage = err.response?.data?.message || err.message || `Échec de la ${isVerified ? 'vérification' : 'désvérification'}.`;
@@ -260,7 +226,8 @@ export default function ResellersDetailsPage() {
             try {
                 await UserAPI.setUserActive(resellerDetails._id, isActive);
                 enqueueSnackbar(`Utilisateur ${isActive ? 'activé' : 'désactivé'} avec succès.`, { variant: 'success' });
-                await fetchResellerDetails();
+                queryClient.invalidateQueries({ queryKey: ['reseller', id] });
+                queryClient.invalidateQueries({ queryKey: ['users'] });
             } catch (err: any) {
                 console.error('Error setting user active status:', err);
                 const errorMessage = err.response?.data?.message || err.message || `Échec de l'${isActive ? 'activation' : 'désactivation'}.`;
@@ -287,7 +254,8 @@ export default function ResellersDetailsPage() {
             try {
                 await UserAPI.setUserBanned(resellerDetails._id, isBanned);
                 enqueueSnackbar(`Utilisateur ${isBanned ? 'banni' : 'débanni'} avec succès.`, { variant: 'success' });
-                await fetchResellerDetails();
+                queryClient.invalidateQueries({ queryKey: ['reseller', id] });
+                queryClient.invalidateQueries({ queryKey: ['users'] });
             } catch (err: any) {
                 console.error('Error setting user banned status:', err);
                 const errorMessage = err.response?.data?.message || err.message || `Échec du ${isBanned ? 'bannissement' : 'débannissement'}.`;
@@ -314,7 +282,8 @@ export default function ResellersDetailsPage() {
             try {
                 await UserAPI.recommendUser(resellerDetails._id, isRecommended);
                 enqueueSnackbar(`Revendeur ${isRecommended ? 'recommandé' : 'recommandation retirée'} avec succès.`, { variant: 'success' });
-                await fetchResellerDetails();
+                queryClient.invalidateQueries({ queryKey: ['reseller', id] });
+                queryClient.invalidateQueries({ queryKey: ['users'] });
             } catch (err: any) {
                 console.error('Recommendation status update error:', err);
                 const errorMessage = err.response?.data?.message || err.message || `Échec de la ${isRecommended ? 'recommandation' : 'suppression de recommandation'}.`;
@@ -332,8 +301,8 @@ export default function ResellersDetailsPage() {
 
     if (loading) {
         return (
-            <Container sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '80vh' }}>
-                <CircularProgress size={isMobile ? 36 : 48} />
+            <Container maxWidth="lg" sx={{ py: { xs: 2, sm: 4 } }}>
+                <DetailSkeleton />
             </Container>
         );
     }
@@ -342,7 +311,7 @@ export default function ResellersDetailsPage() {
         return (
             <Container sx={{ mt: { xs: 2, sm: 4 } }}>
                 <Alert severity="error" sx={{ borderRadius: 2, fontSize: isMobile ? '0.8rem' : 'inherit' }}>
-                    {error}
+                    {error instanceof Error ? error.message : String(error)}
                 </Alert>
                 <Button 
                     variant="contained" 

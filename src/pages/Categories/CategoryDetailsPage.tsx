@@ -36,6 +36,8 @@ import Label from "../../components/Label";
 import { CategoryAPI } from "@/api/category";
 import type { ICategory } from "@/types/Category";
 import app from '@/config';
+import { useQuery } from '@tanstack/react-query';
+import DetailSkeleton from '@/components/skeletons/DetailSkeleton';
 
 // Keyframe for subtle floating animation
 const floatAnimation = `
@@ -110,38 +112,20 @@ export default function CategoryDetailsPage() {
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const isTablet = useMediaQuery(theme.breakpoints.down('md'));
 
-  const [categoryDetails, setCategoryDetails] = useState<ICategory | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!id || id === 'new') {
-      setError("Invalid category ID or navigating to new category creation.");
-      setLoading(false);
-      return;
-    }
-
-    const fetchCategoryDetails = async () => {
-      try {
-        setLoading(true);
-        const response = await CategoryAPI.getCategoryById(id);
-        const categoryData = response.data || response;
-        setCategoryDetails(categoryData);
-      } catch (err: any) {
-        console.error("Failed to fetch category details:", err);
-        setError(err.response?.data?.message || "Failed to load category details. Please try again.");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchCategoryDetails();
-  }, [id]);
+  const { data: categoryDetails, isLoading: loading, error } = useQuery({
+    queryKey: ['category', id],
+    queryFn: async () => {
+      if (!id || id === 'new') throw new Error("Invalid category ID");
+      const response = await CategoryAPI.getCategoryById(id!);
+      return response.data || response;
+    },
+    enabled: !!id && id !== 'new',
+  });
 
   if (loading) {
     return (
-      <Container sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '80vh' }}>
-        <CircularProgress color="primary" size={isMobile ? 40 : 60} />
+      <Container maxWidth="lg" sx={{ py: { xs: 2, sm: 3 } }}>
+        <DetailSkeleton />
       </Container>
     );
   }
@@ -149,7 +133,9 @@ export default function CategoryDetailsPage() {
   if (error || !categoryDetails) {
     return (
       <Container sx={{ mt: { xs: 2, sm: 4 } }}>
-        <Alert severity="error" sx={{ fontSize: isMobile ? '0.8rem' : 'inherit' }}>{error || "Catégorie non trouvée."}</Alert>
+        <Alert severity="error" sx={{ fontSize: isMobile ? '0.8rem' : 'inherit' }}>
+          {error instanceof Error ? error.message : "Catégorie non trouvée."}
+        </Alert>
         <Box sx={{ mt: { xs: 1.5, sm: 2 }, textAlign: 'center' }}>
           <Button variant="outlined" onClick={() => navigate("/dashboard/categories")} size={isMobile ? 'small' : 'medium'}>
             Retour aux Catégories

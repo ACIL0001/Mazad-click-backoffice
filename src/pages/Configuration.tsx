@@ -23,6 +23,7 @@ import {
   InputAdornment,
   alpha,
   CircularProgress,
+  Skeleton,
   Chip,
   Table,
   TableBody,
@@ -49,15 +50,25 @@ import Page from '../components/Page';
 import Iconify from '../components/Iconify'; 
 import { useSnackbar } from 'notistack';
 import { SubscriptionAPI, SubscriptionPlan, CreatePlanDto } from '../api/subscription';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 export default function Configuration() {
   const { enqueueSnackbar } = useSnackbar();
+  const queryClient = useQueryClient();
 
   const [isSaving, setIsSaving] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
 
   // Subscription plans state
-  const [plans, setPlans] = useState<SubscriptionPlan[]>([]);
+  const { data: plansData, isLoading, error } = useQuery({
+    queryKey: ['subscription-plans'],
+    queryFn: async () => {
+      console.log('Fetching subscription plans from API...');
+      return await SubscriptionAPI.getPlans();
+    }
+  });
+
+  const plans = plansData || [];
+  
   const [isPlanDialogOpen, setIsPlanDialogOpen] = useState(false);
   const [editingPlan, setEditingPlan] = useState<SubscriptionPlan | null>(null);
   const [selectedRole, setSelectedRole] = useState<string>('ALL');
@@ -69,39 +80,6 @@ export default function Configuration() {
     isActive: true,
     role: 'PROFESSIONAL'
   });
-
-  useEffect(() => {
-    const fetchAllSettings = async () => {
-      setIsLoading(true);
-      try {
-        console.log("Fetching subscription plans...");
-        await new Promise(resolve => setTimeout(resolve, 1000)); 
-
-        // Fetch subscription plans
-        await fetchSubscriptionPlans();
-
-      } catch (error) {
-        console.error("Failed to fetch settings:", error);
-        enqueueSnackbar("Failed to load settings", { variant: 'error' });
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchAllSettings();
-  }, [enqueueSnackbar]);
-
-  const fetchSubscriptionPlans = async () => {
-    try {
-      console.log('Fetching subscription plans from API...');
-      const plans = await SubscriptionAPI.getPlans();
-      console.log('Received plans:', plans);
-      setPlans(plans);
-    } catch (error) {
-      console.error('Failed to fetch subscription plans:', error);
-      enqueueSnackbar('Failed to load subscription plans', { variant: 'error' });
-    }
-  };
 
   const handleCreatePlan = () => {
     setEditingPlan(null);
@@ -141,16 +119,15 @@ export default function Configuration() {
       
       if (editingPlan) {
         // Update existing plan
-        const updatedPlan = await SubscriptionAPI.updatePlan(editingPlan._id!, planData);
-        setPlans(prev => prev.map(p => p._id === editingPlan._id ? updatedPlan : p));
+        await SubscriptionAPI.updatePlan(editingPlan._id!, planData);
         enqueueSnackbar('Plan updated successfully', { variant: 'success' });
       } else {
         // Create new plan
-        const createdPlan = await SubscriptionAPI.createPlan(planData);
-        setPlans(prev => [...prev, createdPlan]);
+        await SubscriptionAPI.createPlan(planData);
         enqueueSnackbar('Plan created successfully', { variant: 'success' });
       }
       
+      queryClient.invalidateQueries({ queryKey: ['subscription-plans'] });
       setIsPlanDialogOpen(false);
     } catch (error) {
       console.error('Failed to save plan:', error);
@@ -201,7 +178,7 @@ export default function Configuration() {
 
     try {
       await SubscriptionAPI.deletePlan(planId);
-      setPlans(prev => prev.filter(p => p._id !== planId));
+      queryClient.invalidateQueries({ queryKey: ['subscription-plans'] });
       enqueueSnackbar('Plan deleted successfully', { variant: 'success' });
     } catch (error) {
       console.error('Failed to delete plan:', error);
@@ -387,9 +364,12 @@ export default function Configuration() {
         </Stack>
 
         {isLoading && (
-          <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', my: 5, py: 5 }}>
-            <CircularProgress />
-            <Typography variant="h6" sx={{ ml: 2 }}>Loading Subscription Plans...</Typography>
+          <Box sx={{ my: 5 }}>
+            <Stack spacing={2}>
+              {[...Array(3)].map((_, index) => (
+                <Skeleton key={index} variant="rounded" width="100%" height={60} />
+              ))}
+            </Stack>
           </Box>
         )}
 

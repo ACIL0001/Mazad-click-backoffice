@@ -35,6 +35,7 @@ import { sentenceCase } from "change-case"
 import { CategoryAPI } from "@/api/category"
 import MuiTable from "../../components/Tables/MuiTable"
 import app from "@/config"
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 
 // ----------------------------------------------------------------------
 // Interfaces
@@ -500,31 +501,16 @@ export default function DashboardCategoriesPage() {
   const [rowsPerPage, setRowsPerPage] = useState(5)
   const [viewMode, setViewMode] = useState<"product" | "service" | "all">("all")
 
-  const [categoryTree, setCategoryTree] = useState<ICategory[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const queryClient = useQueryClient()
 
-  const fetchCategories = useCallback(async () => {
-    try {
-      // Use the new tree API to get hierarchical data
-      const treeData = await CategoryAPI.getCategoryTree()
-      setCategoryTree(treeData)
-    } catch (error: any) {
-      console.error("Error fetching categories:", error)
-      setError("Failed to load categories. Please try again.")
-      enqueueSnackbar("Failed to load categories.", { variant: "error" })
-    }
-  }, []) // Remove enqueueSnackbar from dependencies
+  const { data: categoryTree = [], isLoading: loading, error: queryError } = useQuery({
+    queryKey: ['category-tree'],
+    queryFn: async () => {
+      return await CategoryAPI.getCategoryTree()
+    },
+  })
 
-  useEffect(() => {
-    const loadAllData = async () => {
-      setLoading(true)
-      setError(null)
-      await fetchCategories()
-      setLoading(false)
-    }
-    loadAllData()
-  }, []) // Only run once on mount
+  const error = queryError ? "Failed to load categories. Please try again." : null
 
   const handleAddCategory = () => {
     navigate("/dashboard/categories/new")
@@ -538,7 +524,7 @@ export default function DashboardCategoriesPage() {
         // Use deleteWithDescendants for each selected category to ensure all descendants are removed
         await Promise.all(selected.map((categoryId) => CategoryAPI.deleteWithDescendants(categoryId)))
         enqueueSnackbar(`${selected.length} catégories supprimées avec succès !`, { variant: "success" })
-        fetchCategories()
+        queryClient.invalidateQueries({ queryKey: ['category-tree'] })
         setSelected([])
       } catch (error: any) {
         console.error("Error deleting selected categories:", error)
@@ -547,7 +533,7 @@ export default function DashboardCategoriesPage() {
         })
       }
     }
-  }, [selected, enqueueSnackbar, fetchCategories])
+  }, [selected, enqueueSnackbar, queryClient])
 
   const filteredData = useMemo(() => {
     let currentData = [...categoryTree]
@@ -589,9 +575,9 @@ export default function DashboardCategoriesPage() {
   }, [categoryTree, viewMode])
 
   const onCategoryDeleted = useCallback(() => {
-    fetchCategories()
+    queryClient.invalidateQueries({ queryKey: ['category-tree'] })
     setSelected([])
-  }, [fetchCategories])
+  }, [queryClient])
 
   return (
     <Page title="Categories & Services">

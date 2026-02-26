@@ -19,13 +19,18 @@ const CategoryProvider = ({ children }: any) => {
 
     const [categories, setCategories] = useState<ICategory[]>([]) 
     const [lastFetchTime, setLastFetchTime] = useState<number>(0);
-    const { isReady, isLogged } = useAuth();
+    const { isReady, isLogged, tokens } = useAuth();
 
     const updateCategory = async () => {
         // Prevent fetching more than once every 5 seconds
         const now = Date.now();
         if (now - lastFetchTime < 5000) {
             console.log('CategoryContext: Skipping fetch - too soon since last fetch');
+            return;
+        }
+        
+        // Prevent re-fetching if data is cached
+        if (categories.length > 0 && now - lastFetchTime < 180000) {
             return;
         }
         
@@ -38,9 +43,9 @@ const CategoryProvider = ({ children }: any) => {
     };
 
   useEffect(() => {
-    if (!isReady || !isLogged) return;
+    if (!isReady || !isLogged || !tokens?.accessToken) return;
     updateCategory();
-  }, [isLogged, isReady]);
+  }, [isLogged, isReady, tokens?.accessToken]);
 
   return (
     <CategoryContext.Provider

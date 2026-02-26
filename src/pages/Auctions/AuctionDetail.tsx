@@ -10,7 +10,7 @@ import {
   Button,
   Container,
   Typography,
-  CircularProgress,
+  Skeleton,
   Chip,
   Paper,
   Table,
@@ -45,6 +45,8 @@ import { ChatAPI } from '@/api/Chat';
 import PersonIcon from '@mui/icons-material/Person';
 import LocalOfferIcon from '@mui/icons-material/LocalOffer';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
+import { useQuery } from '@tanstack/react-query';
+import DetailSkeleton from '@/components/skeletons/DetailSkeleton';
 
 interface AuctionOwner {
   _id: string;
@@ -69,51 +71,20 @@ export default function AuctionDetail() {
   const { t, i18n } = useTranslation();
   const { id } = useParams();
   const { enqueueSnackbar } = useSnackbar();
-  const [auction, setAuction] = useState<AuctionWithOwner | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [participants, setParticipants] = useState<any[]>([]);
-  const [participantsLoading, setParticipantsLoading] = useState(true);
-  const [acceptLoading, setAcceptLoading] = useState(false);
+
   const [chatLoading, setChatLoading] = useState(false);
   const navigate = useNavigate();
   const { notificationSocket } = useCreateSocket();
   const { auth } = useAuth();
-
-  console.log('Auth data:', auth);
-
-  useEffect(() => {
-    if (id) {
-      getAuctionDetails(id);
-      getAuctionParticipants(id);
-    }
-  }, [id, notificationSocket]);
-
-  const getAuctionDetails = async (auctionId: string) => {
-    try {
-      const response = await AuctionsAPI.getAuctionById(auctionId);
-      if (response) {
-        console.log("response auction details:", response);
-        setAuction(response);
-      }
-    } catch (error) {
-      console.error('Error fetching auction details:', error);
-      enqueueSnackbar(t('errors.loadingDetails'), { variant: 'error' });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const getAuctionParticipants = async (auctionId: string) => {
-    setParticipantsLoading(true);
-    try {
-      const offers = await OffersAPI.getOffersByBidId(auctionId);
-      console.log('Offers data:', offers);
-      
-      if (Array.isArray(offers)) {
-        console.log("Processing offers:", offers);
-        
-        const processedParticipants = offers
-          .map((offer: any) => ({
+  const { data: auctionInfo, isLoading: loading } = useQuery({
+    queryKey: ['auction', id],
+    queryFn: async () => {
+      const auctionResponse = await AuctionsAPI.getAuctionById(id!);
+      let participantsData: any[] = [];
+      try {
+        const offers = await OffersAPI.getOffersByBidId(id!);
+        if (Array.isArray(offers)) {
+          participantsData = offers.map((offer: any) => ({
             id: offer._id,
             name: offer.user?.firstName && offer.user?.lastName 
               ? `${offer.user.firstName} ${offer.user.lastName}` 
@@ -124,31 +95,19 @@ export default function AuctionDetail() {
             bidAmount: offer.price,
             bidDate: offer.createdAt,
             user: offer.user
-          }))
-          .sort((a, b) => new Date(b.bidDate).getTime() - new Date(a.bidDate).getTime());
-
-        // Debug the processed participants
-        console.log('Processed participants:', processedParticipants);
-        processedParticipants.forEach((participant, index) => {
-          console.log(`Participant ${index}:`, {
-            name: participant.name,
-            bidAmount: participant.bidAmount,
-            bidAmountType: typeof participant.bidAmount
-          });
-        });
-        
-        setParticipants(processedParticipants);
-      } else {
-        setParticipants([]);
+          })).sort((a, b) => new Date(b.bidDate).getTime() - new Date(a.bidDate).getTime());
+        }
+      } catch (err) {
+        console.error('Error fetching participants', err);
       }
-    } catch (error) {
-      console.error('Error fetching participants:', error);
-      enqueueSnackbar(t('errors.loadingParticipants'), { variant: 'error' });
-      setParticipants([]);
-    } finally {
-      setParticipantsLoading(false);
-    }
-  };
+      return { auction: auctionResponse, participants: participantsData };
+    },
+    enabled: !!id,
+  });
+
+  const auction = auctionInfo?.auction;
+  const participants = auctionInfo?.participants || [];
+  const participantsLoading = loading;
 
   const formatDate = (date: Date | string) => {
     if (!date) return 'N/A';
@@ -313,9 +272,9 @@ export default function AuctionDetail() {
 
   if (loading) {
     return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="60vh">
-        <CircularProgress />
-      </Box>
+      <Container maxWidth="lg" sx={{ py: { xs: 2, sm: 3 } }}>
+        <DetailSkeleton />
+      </Container>
     );
   }
 
@@ -368,7 +327,7 @@ export default function AuctionDetail() {
                 }}
                 size="large"
               >
-                {chatLoading ? <CircularProgress size={22} color="inherit" /> : t('contactWinner')}
+                {chatLoading ? t('loading') : t('contactWinner')}
               </Button>
             )}
             <Paper
@@ -562,8 +521,12 @@ export default function AuctionDetail() {
                 <PersonIcon /> {t('participants')} ({participants.length})
               </Typography>
               {participantsLoading ? (
-                <Box display="flex" justifyContent="center" alignItems="center" minHeight="60px">
-                  <CircularProgress size={24} />
+                <Box display="flex" justifyContent="center" alignItems="center" minHeight="60px" width="100%">
+                  <Stack spacing={2} width="100%">
+                     <Skeleton variant="rectangular" width="100%" height={60} />
+                     <Skeleton variant="rectangular" width="100%" height={60} />
+                     <Skeleton variant="rectangular" width="100%" height={60} />
+                  </Stack>
                 </Box>
               ) : participants && participants.length > 0 ? (
                 <TableContainer component={Paper} variant="outlined" sx={{ borderRadius: 2 }}>

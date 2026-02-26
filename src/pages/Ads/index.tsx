@@ -33,11 +33,13 @@ import { AdsAPI, Ad } from '@/api/ads';
 import AdForm from './AdForm';
 import app from '@/config';
 import { useTranslation } from 'react-i18next';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 export default function Ads() {
   const { t } = useTranslation();
   const theme = useTheme();
   const { enqueueSnackbar } = useSnackbar();
+  const queryClient = useQueryClient();
 
   const COLUMNS = [
     { id: 'title', label: 'Title', alignRight: false, searchable: true, sortable: true },
@@ -50,8 +52,6 @@ export default function Ads() {
 
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
-  const [ads, setAds] = useState<Ad[]>([]);
-  const [loading, setLoading] = useState(false);
   const [page, setPage] = useState(0);
   const [order, setOrder] = useState<'asc' | 'desc'>('asc');
   const [selected, setSelected] = useState<string[]>([]);
@@ -62,6 +62,40 @@ export default function Ads() {
   const [editingAd, setEditingAd] = useState<Ad | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [adToDelete, setAdToDelete] = useState<string | null>(null);
+
+  const { data: adsData, isLoading: loading } = useQuery({
+    queryKey: ['ads'],
+    queryFn: async () => {
+      const response = await AdsAPI.getAds();
+      let data: Ad[] = [];
+      
+      // Handle different response formats
+      if (Array.isArray(response)) {
+        data = response;
+      } else if (response && typeof response === 'object') {
+        if (Array.isArray(response.data)) {
+          data = response.data;
+        } else if (Array.isArray(response.ads)) {
+          data = response.ads;
+        } else if (response.success && Array.isArray(response.data)) {
+          data = response.data;
+        } else if (response.result && Array.isArray(response.result)) {
+          data = response.result;
+        } else if (response.items && Array.isArray(response.items)) {
+          data = response.items;
+        }
+      }
+      
+      // Validate that we have valid ad objects
+      data = data.filter((ad) => ad && ad._id);
+      
+      // Sort by order
+      data.sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+      return data;
+    },
+  });
+
+  const ads = adsData || [];
 
   const getImageUrl = (ad: Ad): string => {
     if (!ad || !ad.image) return '';
@@ -101,60 +135,6 @@ export default function Ads() {
     
     return `${app.baseURL}/${imageUrl}`;
   };
-
-  const get = () => {
-    setLoading(true);
-    AdsAPI.getAds()
-      .then((response) => {
-        console.log('Ads API Response:', response); // Debug log
-        let adsData: Ad[] = [];
-        
-        // Handle different response formats
-        if (Array.isArray(response)) {
-          adsData = response;
-        } else if (response && typeof response === 'object') {
-          // Try multiple possible response structures
-          if (Array.isArray(response.data)) {
-            adsData = response.data;
-          } else if (Array.isArray(response.ads)) {
-            adsData = response.ads;
-          } else if (response.success && Array.isArray(response.data)) {
-            adsData = response.data;
-          } else if (response.result && Array.isArray(response.result)) {
-            adsData = response.result;
-          } else if (response.items && Array.isArray(response.items)) {
-            adsData = response.items;
-          }
-        }
-        
-        console.log('Parsed ads data:', adsData); // Debug log
-        console.log('Number of ads found:', adsData.length);
-        
-        // Validate that we have valid ad objects
-        adsData = adsData.filter((ad) => ad && ad._id);
-        
-        // Sort by order
-        adsData.sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
-        setAds(adsData);
-        
-        if (adsData.length === 0) {
-          console.warn('No ads found in response');
-        }
-      })
-      .catch((e) => {
-        console.error('Error fetching ads:', e);
-        const errorMessage = e?.response?.status === 404 
-          ? 'Ads endpoint not found. The backend /ads endpoint needs to be implemented.'
-          : e?.message || 'Error loading ads';
-        enqueueSnackbar(errorMessage, { variant: 'error' });
-        setAds([]);
-      })
-      .finally(() => setLoading(false));
-  };
-
-  useEffect(() => {
-    get();
-  }, []);
 
   const handleRequestSort = (property: string) => {
     const isAsc = orderBy === property && order === 'asc';
@@ -202,7 +182,7 @@ export default function Ads() {
     try {
       await AdsAPI.deleteAd(adToDelete);
       enqueueSnackbar('Ad deleted successfully', { variant: 'success' });
-      get();
+      queryClient.invalidateQueries({ queryKey: ['ads'] });
       setDeleteDialogOpen(false);
       setAdToDelete(null);
     } catch (error: any) {
@@ -218,7 +198,7 @@ export default function Ads() {
     try {
       await Promise.all(selected.map(id => AdsAPI.deleteAd(id)));
       enqueueSnackbar('Selected ads deleted successfully', { variant: 'success' });
-      get();
+      queryClient.invalidateQueries({ queryKey: ['ads'] });
       setSelected([]);
     } catch (error: any) {
       console.error('Error deleting selected ads:', error);
@@ -233,7 +213,7 @@ export default function Ads() {
     try {
       await AdsAPI.toggleAdDisplay(id, !currentValue);
       enqueueSnackbar('Display status updated', { variant: 'success' });
-      get();
+      queryClient.invalidateQueries({ queryKey: ['ads'] });
     } catch (error: any) {
       console.error('Error toggling display:', error);
       const errorMessage = error?.response?.status === 404 
@@ -247,7 +227,7 @@ export default function Ads() {
     try {
       await AdsAPI.toggleAdActive(id, !currentValue);
       enqueueSnackbar('Active status updated', { variant: 'success' });
-      get();
+      queryClient.invalidateQueries({ queryKey: ['ads'] });
     } catch (error: any) {
       console.error('Error toggling active:', error);
       const errorMessage = error?.response?.status === 404 
@@ -268,7 +248,7 @@ export default function Ads() {
   };
 
   const handleFormSuccess = () => {
-    get();
+    queryClient.invalidateQueries({ queryKey: ['ads'] });
   };
 
   const handleFilterByName = (event: React.ChangeEvent<HTMLInputElement>) => {

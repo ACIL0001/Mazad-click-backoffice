@@ -24,12 +24,12 @@ import Iconify from "@/components/Iconify"
 import { useSnackbar } from "notistack"
 import MuiTable from "../../components/Tables/MuiTable"
 import { IdentityDocument } from "@/api/identity" // Import from API
-import { UserAPI } from "../../api/user"
 
 interface AcceptedSellersProps {
   acceptedSellers: IdentityDocument[]
   onOpenVerificationModal: (identity: IdentityDocument) => void
   onDeleteSellers: (ids: string[]) => void; 
+  loading?: boolean;
 }
 
 const TABLE_HEAD = [
@@ -372,7 +372,7 @@ function SellersTableBody({
   )
 }
 
-export default function AcceptedSellers({ acceptedSellers, onOpenVerificationModal, onDeleteSellers }: AcceptedSellersProps) {
+export default function AcceptedSellers({ acceptedSellers, onOpenVerificationModal, onDeleteSellers, loading = false }: AcceptedSellersProps) {
   const navigate = useNavigate()
   const { enqueueSnackbar } = useSnackbar()
   const theme = useTheme()
@@ -473,7 +473,7 @@ export default function AcceptedSellers({ acceptedSellers, onOpenVerificationMod
         searchFields={["user.firstName", "user.lastName", "user.email", "user.secteur", "user.entreprise", "user.postOccupé"]}
         numSelected={selected.length}
         onDeleteSelected={handleDeleteSelected}
-        loading={false}
+        loading={loading}
       />
     </Box>
   )

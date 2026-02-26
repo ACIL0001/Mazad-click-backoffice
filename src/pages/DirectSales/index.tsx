@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Fragment } from 'react';
 import { useNavigate, Link as RouterLink } from 'react-router-dom';
 import {
   Stack,
@@ -245,14 +245,14 @@ export default function DirectSales() {
 
     return (
       <TableBody>
-        {data.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map((row) => {
+        {data.map((row) => {
           const isItemSelected = isSelected(row._id);
           const isExpanded = expandedRows[row._id];
           const purchases = salePurchases[row._id] || [];
           const isLoadingPurchases = loadingPurchases[row._id];
 
           return (
-            <>
+            <Fragment key={row._id}>
               <TableRow
                 hover
                 key={row._id}
@@ -417,7 +417,7 @@ export default function DirectSales() {
                   </Collapse>
                 </TableCell>
               </TableRow>
-            </>
+            </Fragment>
           );
         })}
         {emptyRows > 0 && (

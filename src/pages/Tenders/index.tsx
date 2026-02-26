@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Fragment } from 'react';
 import { Link as RouterLink } from 'react-router-dom';
 // material
 import {
@@ -26,6 +26,7 @@ import {
   ListItemAvatar,
   ListItemText,
   Divider,
+  Skeleton,
 } from '@mui/material';
 // components
 import Page from '../../components/Page';
@@ -43,8 +44,32 @@ import Breadcrumb from '@/components/Breadcrumbs';
 import { TendersAPI } from '@/api/tenders';
 import { format } from 'date-fns';
 import { useTranslation } from 'react-i18next';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 // ----------------------------------------------------------------------
+// Lazy-loaded component to fetch participant count per tender row
+const ParticipantCountCell = ({ tenderId }: { tenderId: string }) => {
+  const { data: bids, isLoading } = useQuery({
+    queryKey: ['tender-bids-count', tenderId],
+    queryFn: async () => {
+      const resp = await TendersAPI.getTenderBids(tenderId);
+      return Array.isArray(resp) ? resp : [];
+    },
+    staleTime: 60000, // Cache for 1 minute
+  });
+
+  if (isLoading) return <Skeleton variant="circular" width={24} height={24} />;
+  
+  return (
+    <Chip
+      label={bids?.length || 0}
+      color="primary"
+      size="small"
+      sx={{ fontWeight: 600 }}
+    />
+  );
+};
+
 
 export default function Tenders() {
   const { t } = useTranslation();
@@ -63,8 +88,11 @@ export default function Tenders() {
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const isTablet = useMediaQuery(theme.breakpoints.down('md'));
 
-  const [tenders, setTenders] = useState<any[]>([]);
-  const [loading, setLoading] = useState(false);
+  const queryClient = useQueryClient();
+  const [tenderBids, setTenderBids] = useState<{ [key: string]: any[] }>({});
+  const [loadingBids, setLoadingBids] = useState<{ [key: string]: boolean }>({});
+
+
   const [page, setPage] = useState(0);
   const [order, setOrder] = useState<'asc' | 'desc'>('asc');
   const [selected, setSelected] = useState<string[]>([]);
@@ -73,64 +101,34 @@ export default function Tenders() {
   const [rowsPerPage, setRowsPerPage] = useState(5);
   const [totalTenders, setTotalTenders] = useState(0);
   const [expandedRows, setExpandedRows] = useState<{ [key: string]: boolean }>({});
-  const [tenderBids, setTenderBids] = useState<{ [key: string]: any[] }>({});
-  const [loadingBids, setLoadingBids] = useState<{ [key: string]: boolean }>({});
-  const [participantCounts, setParticipantCounts] = useState<{ [key: string]: number }>({});
-  const [loadingParticipantCounts, setLoadingParticipantCounts] = useState(true);
 
-  const get = () => {
-    setLoading(true);
-    TendersAPI.getAllTenders()
-      .then((response) => {
-        let tendersData = [];
-        if (response && Array.isArray(response)) {
-          tendersData = response;
-          setTotalTenders(response.length);
-          console.log("Tenders state (direct response):", response);
-        } else if (response && response.data && Array.isArray(response.data)) {
-          tendersData = response.data;
-          setTotalTenders(response.data.length);
-          console.log("Tenders state (response.data):", response.data);
-        } else {
-          console.error("Unexpected response format:", response);
-          enqueueSnackbar(t('common.unexpectedFormat') || 'Format de réponse inattendu.', { variant: 'error' });
-          setTenders([]);
-          setTotalTenders(0);
-          return;
-        }
-        
-        setTenders(tendersData);
-        // Fetch participant counts for all tenders
-        fetchAllParticipantCounts(tendersData);
-      })
-      .catch((e) => {
-        console.error("Error fetching tenders:", e);
-        enqueueSnackbar('Erreur lors du chargement des appels d\'offres.', { variant: 'error' });
-        setTenders([]);
-        setTotalTenders(0);
-      })
-      .finally(() => setLoading(false));
-  };
-
-  const fetchAllParticipantCounts = async (tendersData: any[]) => {
-    setLoadingParticipantCounts(true);
-    const counts: { [key: string]: number } = {};
-    
-    // Fetch participant counts for all tenders in parallel
-    const promises = tendersData.map(async (tender) => {
-      try {
-        const bids = await TendersAPI.getTenderBids(tender._id);
-        counts[tender._id] = Array.isArray(bids) ? bids.length : 0;
-      } catch (error) {
-        console.error(`Error fetching bids for tender ${tender._id}:`, error);
-        counts[tender._id] = 0;
+  const { data: tendersData, isLoading: loading, error } = useQuery({
+    queryKey: ['tenders'],
+    queryFn: async () => {
+      const response = await TendersAPI.getAllTenders();
+      let data = [];
+      if (response && Array.isArray(response)) {
+        data = response;
+      } else if (response && response.data && Array.isArray(response.data)) {
+        data = response.data;
+      } else {
+        throw new Error('Unexpected response format');
       }
-    });
-    
-    await Promise.all(promises);
-    setParticipantCounts(counts);
-    setLoadingParticipantCounts(false);
-  };
+      return data;
+    }
+  });
+
+  const tenders = tendersData || [];
+  
+  useEffect(() => {
+    if (tenders.length > 0) {
+      setTotalTenders(tenders.length);
+    }
+  }, [tenders]);
+
+  // Removed fetchAllParticipantCounts to avoid 429 Too Many Requests
+  // Using lazy-loaded ParticipantCountCell component instead
+
 
   const fetchBidsForTender = async (tenderId: string) => {
     if (tenderBids[tenderId]) return; // Already loaded
@@ -177,9 +175,7 @@ export default function Tenders() {
     }
   };
 
-  useEffect(() => {
-    get();
-  }, []);
+  // get() is no longer called with useEffect
 
   const handleChangePage = (event: unknown, newPage: number) => {
     setPage(newPage);
@@ -199,7 +195,7 @@ export default function Tenders() {
     try {
       await Promise.all(selectedIds.map(id => TendersAPI.deleteTender(id)));
       enqueueSnackbar('Appels d\'offres sélectionnés supprimés avec succès!', { variant: 'success' });
-      get();
+      queryClient.invalidateQueries({ queryKey: ['tenders'] });
       setSelected([]);
     } catch (error) {
       console.error("Error deleting selected tenders:", error);
@@ -241,7 +237,7 @@ export default function Tenders() {
 
     return (
       <TableBody>
-        {data.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map((row) => {
+        {data.map((row) => {
           if (!row || !row._id) {
             console.warn("Skipping row due to missing _id:", row);
             return null;
@@ -258,7 +254,7 @@ export default function Tenders() {
           const formattedCreatedAt = createdAt ? format(new Date(createdAt), 'dd MMM yyyy, HH:mm') : 'N/A';
 
           return (
-            <>
+            <Fragment key={String(_id)}>
               <TableRow
                 hover
                 key={String(_id)}
@@ -315,16 +311,7 @@ export default function Tenders() {
                   </Typography>
                 </TableCell>
                 <TableCell align="left">
-                  {loadingParticipantCounts ? (
-                    <CircularProgress size={16} />
-                  ) : (
-                    <Chip
-                      label={participantCounts[_id] || 0}
-                      color="primary"
-                      size="small"
-                      sx={{ fontWeight: 600 }}
-                    />
-                  )}
+                    <ParticipantCountCell tenderId={_id} />
                 </TableCell>
                 <TableCell align="left">{formattedCreatedAt}</TableCell>
                 <TableCell align="left">
@@ -357,7 +344,10 @@ export default function Tenders() {
                       </Typography>
                       {isLoadingBids ? (
                         <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
-                          <CircularProgress size={24} />
+                          <Stack spacing={1} sx={{ width: '100%' }}>
+                            <Skeleton variant="rounded" width="100%" height={60} />
+                            <Skeleton variant="rounded" width="100%" height={60} />
+                          </Stack>
                         </Box>
                       ) : bids.length > 0 ? (
                         <List sx={{ width: '100%', bgcolor: 'background.paper' }}>
@@ -423,7 +413,7 @@ export default function Tenders() {
                   </Collapse>
                 </TableCell>
               </TableRow>
-            </>
+            </Fragment>
           );
         })}
         {emptyRows > 0 && (
@@ -446,45 +436,29 @@ export default function Tenders() {
         <Breadcrumb />
 
         <Box sx={{ mt: { xs: 2, sm: 3 } }}>
-          {loading && (
-            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '200px' }}>
-              <CircularProgress size={isMobile ? 36 : 48} />
-            </Box>
-          )}
-
-          {!loading && tenders.length === 0 && filterName === '' && (
-            <Box sx={{ textAlign: 'center', py: { xs: 3, sm: 5 } }}>
-              <Typography variant={isMobile ? "h6" : "h6"} color="text.secondary">
-                Aucun appel d'offres trouvé.
-              </Typography>
-            </Box>
-          )}
-
-          {!loading && (tenders.length > 0 || filterName !== '') && (
-            <TableContainer component={Paper} sx={{ borderRadius: 2, overflowX: 'auto' }}>
-              <MuiTable
-                data={tenders}
-                columns={COLUMNS}
-                page={page}
-                setPage={setPage}
-                order={order}
-                setOrder={setOrder}
-                orderBy={orderBy}
-                setOrderBy={setOrderBy}
-                filterName={filterName}
-                setFilterName={setFilterName}
-                rowsPerPage={rowsPerPage}
-                setRowsPerPage={setRowsPerPage}
-                TableBodyComponent={TableBodyComponent}
-                searchFields={['title', 'description']}
-                loading={loading}
-                selected={selected}
-                setSelected={setSelected}
-                onDeleteSelected={() => handleDeleteSelected(selected)}
-                numSelected={selected.length}
-              />
-            </TableContainer>
-          )}
+          <TableContainer component={Paper} sx={{ borderRadius: 2, overflowX: 'auto' }}>
+            <MuiTable
+              data={tenders}
+              columns={COLUMNS}
+              page={page}
+              setPage={setPage}
+              order={order}
+              setOrder={setOrder}
+              orderBy={orderBy}
+              setOrderBy={setOrderBy}
+              filterName={filterName}
+              setFilterName={setFilterName}
+              rowsPerPage={rowsPerPage}
+              setRowsPerPage={setRowsPerPage}
+              TableBodyComponent={TableBodyComponent}
+              searchFields={['title', 'description']}
+              loading={loading}
+              selected={selected}
+              setSelected={setSelected}
+              onDeleteSelected={() => handleDeleteSelected(selected)}
+              numSelected={selected.length}
+            />
+          </TableContainer>
         </Box>
       </Container>
     </Page>

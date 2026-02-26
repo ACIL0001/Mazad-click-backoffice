@@ -300,11 +300,7 @@ export default function NavSection({ ...other }) {
   };
   }, [isMobile, isLoading]);
 
-  useEffect(() => {
-    updateCategory();
-    updateIdentity();
-    updateAllUsers();
-  }, [updateCategory, updateIdentity, updateAllUsers]);
+  // Removed aggressive updating from NavSection, Context Providers handle their own data fetching
 
   // Create enhanced navigation config with dynamic badges and permission filtering
   const enhancedNavConfig = useMemo(() => {
@@ -419,6 +415,18 @@ export default function NavSection({ ...other }) {
         path: '/dashboard/identities',
         icon: getIcon('ph:user-focus-bold'),
         requiresAdmin: true,
+        children: [
+          {
+            title: 'Liste',
+            path: '/dashboard/identities',
+            icon: getIcon('mdi:format-list-bulleted'),
+          },
+          {
+            title: 'Historique',
+            path: '/dashboard/identities/history',
+            icon: getIcon('mdi:history'),
+          }
+        ],
       },
     ];
 

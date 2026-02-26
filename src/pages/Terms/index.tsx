@@ -19,7 +19,9 @@ import {
   TextField,
   Alert,
   Chip,
-  CircularProgress
+  CircularProgress,
+  Skeleton,
+  Stack
 } from '@mui/material';
 import {
   Edit as EditIcon,
@@ -31,10 +33,18 @@ import {
 } from '@mui/icons-material';
 import { Terms, CreateTermsDto, UpdateTermsDto } from '../../types/terms';
 import { TermsAPI } from '../../api/terms';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 const TermsManagement: React.FC = () => {
-  const [terms, setTerms] = useState<Terms[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
+  const queryClient = useQueryClient();
+  const { data: termsData, isLoading: loading, error: queryError } = useQuery({
+    queryKey: ['terms'],
+    queryFn: async () => {
+      return await TermsAPI.getAll();
+    }
+  });
+  
+  const terms = termsData || [];
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [openDialog, setOpenDialog] = useState<boolean>(false);
@@ -52,24 +62,11 @@ const TermsManagement: React.FC = () => {
   const [updateLoading, setUpdateLoading] = useState<boolean>(false);
   const [deleteLoading, setDeleteLoading] = useState<boolean>(false);
 
-  // Fetch all terms on component mount
   useEffect(() => {
-    fetchTerms();
-  }, []);
-
-  const fetchTerms = async () => {
-    try {
-      setLoading(true);
-      const data = await TermsAPI.getAll();
-      setTerms(data);
-      setError(null);
-    } catch (err) {
+    if (queryError) {
       setError('Failed to fetch terms. Please try again.');
-      console.error('Error fetching terms:', err);
-    } finally {
-      setLoading(false);
     }
-  };
+  }, [queryError]);
 
   const handleCreate = async () => {
     try {
@@ -84,7 +81,7 @@ const TermsManagement: React.FC = () => {
       if (formData.content) formPayload.append('content', formData.content);
 
       const newTerm = await TermsAPI.create(formPayload);
-      setTerms([...terms, newTerm]);
+      queryClient.invalidateQueries({ queryKey: ['terms'] });
       setSuccess('Terms created successfully!');
       setOpenDialog(false);
       resetForm();
@@ -109,7 +106,7 @@ const TermsManagement: React.FC = () => {
       if (formData.content) formPayload.append('content', formData.content);
 
       const updatedTerm = await TermsAPI.update(currentTerm._id, formPayload);
-      setTerms(terms.map(term => term._id === updatedTerm._id ? updatedTerm : term));
+      queryClient.invalidateQueries({ queryKey: ['terms'] });
       setSuccess('Terms updated successfully!');
       setOpenDialog(false);
       resetForm();
@@ -132,7 +129,7 @@ const TermsManagement: React.FC = () => {
     try {
       setDeleteLoading(true);
       await TermsAPI.delete(deleteTermId);
-      setTerms(terms.filter(term => term._id !== deleteTermId));
+      queryClient.invalidateQueries({ queryKey: ['terms'] });
       setSuccess('Terms deleted successfully!');
       setOpenDeleteDialog(false);
       setDeleteTermId(null);
@@ -247,8 +244,12 @@ const TermsManagement: React.FC = () => {
 
         {/* Terms List */}
         {loading ? (
-          <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px">
-            <CircularProgress />
+          <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px" p={2}>
+            <Stack spacing={2} width="100%">
+              {[...Array(3)].map((_, i) => (
+                <Skeleton key={i} variant="rounded" width="100%" height={60} />
+              ))}
+            </Stack>
           </Box>
         ) : (
           <TableContainer>

@@ -27,6 +27,7 @@ import {
   useTheme,
   alpha,
   CircularProgress,
+  Skeleton,
   useMediaQuery,
   Container,
   Dialog,
@@ -2286,8 +2287,16 @@ export function ChatLayout() {
           {/* Chat Lists */}
           <Box sx={{ flex: 1, overflow: 'hidden' }}>
             {isLoading ? (
-              <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
-                <CircularProgress />
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, p: 2 }}>
+                {[1, 2, 3, 4, 5].map((i) => (
+                  <Box key={i} sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                    <Skeleton variant="circular" width={56} height={56} />
+                    <Box sx={{ flex: 1 }}>
+                      <Skeleton variant="text" width="60%" />
+                      <Skeleton variant="text" width="40%" />
+                    </Box>
+                  </Box>
+                ))}
               </Box>
             ) : (
               clientTypes.map((type, index) => {

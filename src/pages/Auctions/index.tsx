@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Fragment } from 'react';
 import { Link as RouterLink } from 'react-router-dom';
 // material
 import {
@@ -13,7 +13,7 @@ import {
   Grid,
   Card,
   CardContent,
-  CircularProgress,
+  Skeleton,
   Paper,
   TableContainer,
   Box,
@@ -48,6 +48,28 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import TableSkeleton from '../../components/skeletons/TableSkeleton';
 
 // ----------------------------------------------------------------------
+// Lazy-loaded component to fetch participant count per auction row
+const ParticipantCountCell = ({ auctionId }: { auctionId: string }) => {
+  const { data: offers, isLoading } = useQuery({
+    queryKey: ['auction-offers-count', auctionId],
+    queryFn: async () => {
+      const resp = await OffersAPI.getOffersByBidId(auctionId);
+      return Array.isArray(resp) ? resp : [];
+    },
+    staleTime: 60000, // Cache for 1 minute
+  });
+
+  if (isLoading) return <Skeleton variant="circular" width={24} height={24} />;
+  
+  return (
+    <Chip
+      label={offers?.length || 0}
+      color="primary"
+      size="small"
+      sx={{ fontWeight: 600 }}
+    />
+  );
+};
 
 export default function Auctions() {
   const { t } = useTranslation();
@@ -71,7 +93,6 @@ export default function Auctions() {
   const isTablet = useMediaQuery(theme.breakpoints.down('md'));
 
 
-  const [loadingParticipantCounts, setLoadingParticipantCounts] = useState(true);
   const [page, setPage] = useState(0);
   const [order, setOrder] = useState<'asc' | 'desc'>('asc');
   const [selected, setSelected] = useState<string[]>([]);
@@ -82,7 +103,6 @@ export default function Auctions() {
   const [expandedRows, setExpandedRows] = useState<{ [key: string]: boolean }>({});
   const [auctionOffers, setAuctionOffers] = useState<{ [key: string]: any[] }>({});
   const [loadingOffers, setLoadingOffers] = useState<{ [key: string]: boolean }>({});
-  const [participantCounts, setParticipantCounts] = useState<{ [key: string]: number }>({});
 
   // Refactored to React Query
   const { data: auctionsData, isLoading: loading } = useQuery({
@@ -105,7 +125,6 @@ export default function Auctions() {
   useEffect(() => {
     if (auctionsData) {
       setTotalAuctions(auctionsData.length);
-      fetchAllParticipantCounts(auctionsData);
     }
   }, [auctionsData]);
 
@@ -117,27 +136,9 @@ export default function Auctions() {
   */
 
   // get() is removed/commented out above, removing logic
-  // fetchAllParticipantCounts remains the same
+  // fetchAllParticipantCounts was removed to avoid 429 Too Many Requests.
+  // We now use the lazy-loaded ParticipantCountCell component for better performance.
 
-  const fetchAllParticipantCounts = async (auctionsData: any[]) => {
-    setLoadingParticipantCounts(true);
-    const counts: { [key: string]: number } = {};
-    
-    // Fetch participant counts for all auctions in parallel
-    const promises = auctionsData.map(async (auction) => {
-      try {
-        const offers = await OffersAPI.getOffersByBidId(auction._id);
-        counts[auction._id] = Array.isArray(offers) ? offers.length : 0;
-      } catch (error) {
-        console.error(`Error fetching offers for auction ${auction._id}:`, error);
-        counts[auction._id] = 0;
-      }
-    });
-    
-    await Promise.all(promises);
-    setParticipantCounts(counts);
-    setLoadingParticipantCounts(false);
-  };
 
   const fetchOffersForAuction = async (auctionId: string) => {
     if (auctionOffers[auctionId]) return; // Already loaded
@@ -220,7 +221,7 @@ export default function Auctions() {
 
     return (
       <TableBody>
-        {data.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map((row) => {
+        {data.map((row) => {
           if (!row || !row._id) {
             console.warn("Skipping row due to missing _id:", row);
             return null;
@@ -237,7 +238,7 @@ export default function Auctions() {
           const formattedEndingAt = endingAt ? format(new Date(endingAt), 'dd MMM yyyy, HH:mm') : 'N/A';
 
           return (
-            <>
+            <Fragment key={String(_id)}>
               <TableRow
                 hover
                 key={String(_id)}
@@ -302,16 +303,7 @@ export default function Auctions() {
                 <TableCell align="left">{formatPrice(startingPrice)}</TableCell>
                 <TableCell align="left">{formatPrice(currentPrice)}</TableCell>
                 <TableCell align="left">
-                  {loadingParticipantCounts ? (
-                    <CircularProgress size={16} />
-                  ) : (
-                    <Chip
-                      label={participantCounts[_id] || 0}
-                      color="primary"
-                      size="small"
-                      sx={{ fontWeight: 600 }}
-                    />
-                  )}
+                  <ParticipantCountCell auctionId={_id} />
                 </TableCell>
                 <TableCell align="left">{formattedEndingAt}</TableCell>
                 <TableCell align="left">
@@ -352,7 +344,11 @@ export default function Auctions() {
                       </Typography>
                       {isLoadingOffers ? (
                         <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
-                          <CircularProgress size={24} />
+                          <Stack spacing={2} width="100%">
+                            <Skeleton variant="rectangular" width="100%" height={60} />
+                            <Skeleton variant="rectangular" width="100%" height={60} />
+                            <Skeleton variant="rectangular" width="100%" height={60} />
+                          </Stack>
                         </Box>
                       ) : offers.length > 0 ? (
                         <List sx={{ width: '100%', bgcolor: 'background.paper' }}>
@@ -403,7 +399,7 @@ export default function Auctions() {
                   </Collapse>
                 </TableCell>
               </TableRow>
-            </>
+            </Fragment>
           );
         })}
         {emptyRows > 0 && (

@@ -44,6 +44,9 @@ import PersonIcon from '@mui/icons-material/Person';
 import LocalOfferIcon from '@mui/icons-material/LocalOffer';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import DescriptionIcon from '@mui/icons-material/Description';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import DetailSkeleton from '@/components/skeletons/DetailSkeleton';
+import { Skeleton } from '@mui/material';
 
 interface TenderOwner {
   _id: string;
@@ -92,88 +95,44 @@ export default function TenderDetail() {
   const { t, i18n } = useTranslation();
   const { id } = useParams();
   const { enqueueSnackbar } = useSnackbar();
-  const [tender, setTender] = useState<Tender | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [bids, setBids] = useState<TenderBid[]>([]);
-  const [bidsLoading, setBidsLoading] = useState(true);
   const [acceptLoading, setAcceptLoading] = useState<string | null>(null);
   const [rejectLoading, setRejectLoading] = useState<string | null>(null);
   const [chatLoading, setChatLoading] = useState(false);
   const navigate = useNavigate();
   const { notificationSocket } = useCreateSocket();
   const { auth } = useAuth();
+  const queryClient = useQueryClient();
 
-  console.log('Auth data:', auth);
+  const { data: tender, isLoading: loading } = useQuery({
+    queryKey: ['tender', id],
+    queryFn: async () => {
+      const response = await TendersAPI.getTenderById(id!);
+      return response;
+    },
+    enabled: !!id,
+  });
 
-  useEffect(() => {
-    if (id) {
-      getTenderDetails(id);
-      getTenderBids(id);
-    }
-  }, [id, notificationSocket]);
-
-  const getTenderDetails = async (tenderId: string) => {
-    try {
-      const response = await TendersAPI.getTenderById(tenderId);
-      if (response) {
-        console.log("response tender details:", response);
-        setTender(response);
-      }
-    } catch (error) {
-      console.error('Error fetching tender details:', error);
-      enqueueSnackbar(t('errors.loadingDetails') || 'Erreur lors du chargement des détails', { variant: 'error' });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const getTenderBids = async (tenderId: string) => {
-    setBidsLoading(true);
-    try {
-      const bidsData = await TendersAPI.getTenderBids(tenderId);
-      console.log('Bids data:', bidsData);
-      
+  const { data: bidsData, isLoading: bidsLoading } = useQuery({
+    queryKey: ['tender', id, 'bids'],
+    queryFn: async () => {
+      const bidsData = await TendersAPI.getTenderBids(id!);
       if (Array.isArray(bidsData)) {
-        console.log("Processing bids:", bidsData);
-        // Debug each bid to see the structure
-        bidsData.forEach((bid, index) => {
-          console.log(`Bid ${index}:`, {
-            id: bid._id,
-            amount: bid.amount,
-            price: bid.price,
-            bidAmount: bid.bidAmount,
-            amountType: typeof bid.amount,
-            priceType: typeof bid.price,
-            bidAmountType: typeof bid.bidAmount,
-            proposal: bid.proposal,
-            status: bid.status,
-            bidder: bid.bidder,
-            allKeys: Object.keys(bid)
-          });
-        });
-        setBids(bidsData.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
-      } else {
-        setBids([]);
+        return bidsData.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
       }
-    } catch (error) {
-      console.error('Error fetching bids:', error);
-      enqueueSnackbar(t('errors.loadingParticipants') || 'Erreur lors du chargement des soumissions', { variant: 'error' });
-      setBids([]);
-    } finally {
-      setBidsLoading(false);
-    }
-  };
+      return [];
+    },
+    enabled: !!id,
+  });
+
+  const bids = bidsData || [];
 
   const handleAcceptBid = async (bidId: string) => {
     setAcceptLoading(bidId);
     try {
       await TendersAPI.acceptTenderBid(bidId);
       enqueueSnackbar('Soumission acceptée avec succès!', { variant: 'success' });
-      // Refresh data
-      if (id) {
-        getTenderDetails(id);
-        getTenderBids(id);
-      }
+      queryClient.invalidateQueries({ queryKey: ['tender', id] });
+      queryClient.invalidateQueries({ queryKey: ['tender', id, 'bids'] });
     } catch (error) {
       console.error('Error accepting bid:', error);
       enqueueSnackbar('Erreur lors de l\'acceptation de la soumission', { variant: 'error' });
@@ -187,11 +146,8 @@ export default function TenderDetail() {
     try {
       await TendersAPI.rejectTenderBid(bidId);
       enqueueSnackbar('Soumission rejetée avec succès!', { variant: 'success' });
-      // Refresh data
-      if (id) {
-        getTenderDetails(id);
-        getTenderBids(id);
-      }
+      queryClient.invalidateQueries({ queryKey: ['tender', id] });
+      queryClient.invalidateQueries({ queryKey: ['tender', id, 'bids'] });
     } catch (error) {
       console.error('Error rejecting bid:', error);
       enqueueSnackbar('Erreur lors du rejet de la soumission', { variant: 'error' });
@@ -376,9 +332,11 @@ export default function TenderDetail() {
 
   if (loading) {
     return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="60vh">
-        <CircularProgress />
-      </Box>
+      <Page title={t('details') || 'Détails'}>
+        <Container>
+          <DetailSkeleton />
+        </Container>
+      </Page>
     );
   }
 
@@ -637,9 +595,11 @@ export default function TenderDetail() {
                 <DescriptionIcon /> Soumissions ({bids.length})
               </Typography>
               {bidsLoading ? (
-                <Box display="flex" justifyContent="center" alignItems="center" minHeight="60px">
-                  <CircularProgress size={24} />
-                </Box>
+                <Stack spacing={2} sx={{ mt: 2 }}>
+                  {[...Array(3)].map((_, index) => (
+                    <Skeleton key={index} variant="rounded" width="100%" height={60} />
+                  ))}
+                </Stack>
               ) : bids && bids.length > 0 ? (
                 <TableContainer component={Paper} variant="outlined" sx={{ borderRadius: 2 }}>
                   <Table>

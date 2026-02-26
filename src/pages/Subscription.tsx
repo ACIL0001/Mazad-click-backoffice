@@ -23,6 +23,8 @@ import {
   Grid,
   Paper,
   CircularProgress,
+  Skeleton,
+  Stack,
   Container,
   ThemeProvider,
   createTheme,
@@ -77,8 +79,8 @@ import {
   WorkspacePremium as WorkspacePremiumIcon,
 } from "@mui/icons-material"
 
-// Import your real API
 import { SubscriptionAPI, SubscriptionPlan, CreatePlanDto } from '../api/subscription'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 
 const theme = createTheme({
   palette: {
@@ -419,10 +421,41 @@ function CountdownTimer({ endDate }: { endDate: string }) {
 }
 
 export default function SubscriptionPage() {
-  const [plans, setPlans] = useState<SubscriptionPlan[]>([])
-  const [userSubscriptions, setUserSubscriptions] = useState<UserSubscription[]>([])
-  const [mySubscription, setMySubscription] = useState<UserSubscription | null>(null)
-  const [loading, setLoading] = useState(true)
+  const queryClient = useQueryClient();
+
+  const { data, isLoading: loading } = useQuery({
+    queryKey: ['subscription-data'],
+    queryFn: async () => {
+      let plans: SubscriptionPlan[] = [];
+      let mySubscription: UserSubscription | null = null;
+      let userSubscriptions: UserSubscription[] = [];
+
+      try {
+        plans = await SubscriptionAPI.getPlans()
+      } catch (error) {
+        console.error("Error loading plans:", error)
+      }
+
+      try {
+        mySubscription = await SubscriptionAPI.getMySubscription()
+      } catch (error) {
+        console.warn("No subscription found for user:", error)
+      }
+
+      try {
+        userSubscriptions = await SubscriptionAPI.getAllSubscriptions()
+      } catch (error) {
+        console.warn("Error loading all subscriptions:", error)
+      }
+
+      return { plans, mySubscription, userSubscriptions };
+    }
+  });
+
+  const plans = data?.plans || [];
+  const mySubscription = data?.mySubscription || null;
+  const userSubscriptions = data?.userSubscriptions || [];
+
   const [createDialogOpen, setCreateDialogOpen] = useState(false)
   const [editDialogOpen, setEditDialogOpen] = useState(false)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
@@ -442,42 +475,6 @@ export default function SubscriptionPage() {
   const [newBenefit, setNewBenefit] = useState("")
   const [editBenefit, setEditBenefit] = useState("")
 
-  useEffect(() => {
-    loadData()
-  }, [])
-
-  const loadData = async () => {
-    try {
-      setLoading(true)
-      
-      const plansResponse = await SubscriptionAPI.getPlans()
-      setPlans(plansResponse)
-
-      try {
-        const mySubResponse = await SubscriptionAPI.getMySubscription()
-        setMySubscription(mySubResponse)
-      } catch (error) {
-        console.warn("No subscription found for user:", error)
-        setMySubscription(null)
-      }
-
-      try {
-        const allSubsResponse = await SubscriptionAPI.getAllSubscriptions()
-        setUserSubscriptions(allSubsResponse)
-      } catch (error) {
-        console.warn("Error loading all subscriptions:", error)
-        setUserSubscriptions([])
-      }
-    } catch (error) {
-      console.error("Error loading data:", error)
-      setPlans([])
-      setUserSubscriptions([])
-      setMySubscription(null)
-    } finally {
-      setLoading(false)
-    }
-  }
-
   const handleCreatePlan = async () => {
     try {
       if (!newPlan.name.trim() || !newPlan.description.trim() || newPlan.duration <= 0) {
@@ -485,7 +482,7 @@ export default function SubscriptionPage() {
       }
 
       const createdPlan = await SubscriptionAPI.createPlan(newPlan)
-      setPlans(prev => [...prev, createdPlan])
+      queryClient.invalidateQueries({ queryKey: ['subscription-data'] });
       setCreateDialogOpen(false)
       
       setNewPlan({
@@ -555,7 +552,7 @@ export default function SubscriptionPage() {
         benefits: currentPlan.benefits,
       })
       
-      setPlans(prev => prev.map(p => p._id === currentPlan._id ? updatedPlan : p))
+      queryClient.invalidateQueries({ queryKey: ['subscription-data'] });
       setEditDialogOpen(false)
       setCurrentPlan(null)
     } catch (error) {
@@ -568,7 +565,7 @@ export default function SubscriptionPage() {
     
     try {
       await SubscriptionAPI.deletePlan(currentPlan._id)
-      setPlans(prev => prev.filter(p => p._id !== currentPlan._id))
+      queryClient.invalidateQueries({ queryKey: ['subscription-data'] });
       setDeleteDialogOpen(false)
       setCurrentPlan(null)
     } catch (error) {
@@ -582,7 +579,7 @@ export default function SubscriptionPage() {
     try {
       const result = await UserAPI.addSubscriptionPlan(planId)
       if (result.success) {
-        loadData()
+        queryClient.invalidateQueries({ queryKey: ['subscription-data'] });
       }
     } catch (error) {
       console.error("Error subscribing to plan:", error)
@@ -648,22 +645,11 @@ export default function SubscriptionPage() {
                 border: 'none'
               }}
             >
-              <CircularProgress 
-                size={60} 
-                sx={{ 
-                  color: 'primary.main', 
-                  mb: 3,
-                  '& .MuiCircularProgress-circle': {
-                    strokeLinecap: 'round',
-                  }
-                }} 
-              />
-              <Typography variant="h5" fontWeight="600" color="text.primary" gutterBottom>
-                Loading Subscription Data
-              </Typography>
-              <Typography variant="body1" color="text.secondary">
-                Please wait while we fetch your information
-              </Typography>
+              <Stack spacing={2} alignItems="center" mb={3} width="100%">
+                <Skeleton variant="circular" width={60} height={60} />
+                <Skeleton variant="text" width={200} height={30} />
+                <Skeleton variant="text" width={250} height={20} />
+              </Stack>
             </Box>
           </Fade>
         </Box>

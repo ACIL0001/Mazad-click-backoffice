@@ -1,5 +1,6 @@
 import { sentenceCase } from 'change-case';
 import { useState, useEffect, useLayoutEffect, useRef } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Link as RouterLink, useNavigate, useLocation } from 'react-router-dom';
 // material
 import {
@@ -29,6 +30,7 @@ import {
     Divider,
     ToggleButton,
     ToggleButtonGroup,
+    Tooltip,
 } from '@mui/material';
 // components
 import Page from '../../components/Page';
@@ -365,8 +367,121 @@ export default function Professionals() {
     const scrollToUserIdRef = useRef<string | null>(null);
     const hasScrolledRef = useRef(false);
 
-    const [professionals, setProfessionals] = useState<any[]>([]);
-    const [loading, setLoading] = useState(true);
+    const { data: professionals = [], isLoading: loading, refetch: fetchProfessionals } = useQuery({
+        queryKey: ['professionals-list'],
+        queryFn: async () => {
+            console.log('🔄 Fetching ALL professionals (verified and unverified)...');
+            try {
+                const [usersResponse, subscriptionsResponse] = await Promise.all([
+                    UserAPI.getProfessionals(),
+                    SubscriptionAPI.getAllSubscriptions().catch((error) => {
+                        console.warn('⚠️ Failed to fetch subscriptions list, continuing without them.', error);
+                        return [];
+                    })
+                ]);
+
+                let professionalsList = usersResponse;
+                if (usersResponse && !Array.isArray(usersResponse)) {
+                    if (usersResponse.users && Array.isArray(usersResponse.users)) {
+                        professionalsList = usersResponse.users;
+                    } else if (usersResponse.data && Array.isArray(usersResponse.data)) {
+                        professionalsList = usersResponse.data;
+                    } else {
+                        professionalsList = [];
+                    }
+                }
+                
+                const subscriptionsArray = Array.isArray(subscriptionsResponse)
+                    ? subscriptionsResponse
+                    : (subscriptionsResponse?.data && Array.isArray(subscriptionsResponse.data)
+                        ? subscriptionsResponse.data
+                        : []);
+
+                const subscriptionByUser: Record<string, { planName: string; expiresAt?: string; isActive?: boolean }> = {};
+
+                subscriptionsArray.forEach((subscription: any) => {
+                    const rawUser =
+                        subscription?.userId ??
+                        subscription?.user?._id ??
+                        subscription?.user?.id ??
+                        subscription?.user ??
+                        subscription?.userID;
+                    const userId = typeof rawUser === 'object' && rawUser?._id ? rawUser._id?.toString?.() : rawUser?.toString?.();
+
+                    const planNameCandidate =
+                        subscription?.planName ??
+                        subscription?.plan?.name ??
+                        subscription?.plan ??
+                        subscription?.subscriptionPlan;
+
+                    const planName = normalizeSubscriptionPlanValue(planNameCandidate);
+
+                    if (!userId || !planName) return;
+
+                    const expiresAt = subscription?.endDate || subscription?.expiresAt;
+                    const existing = subscriptionByUser[userId];
+
+                    if (!existing) {
+                        subscriptionByUser[userId] = {
+                            planName,
+                            expiresAt,
+                            isActive: subscription?.isActive ?? (expiresAt ? new Date(expiresAt) > new Date() : undefined),
+                        };
+                        return;
+                    }
+
+                    if (expiresAt) {
+                        const existingDate = existing.expiresAt ? new Date(existing.expiresAt).getTime() : 0;
+                        const newDate = new Date(expiresAt).getTime();
+                        if (newDate > existingDate) {
+                            subscriptionByUser[userId] = {
+                                planName,
+                                expiresAt,
+                                isActive: subscription?.isActive ?? (new Date(expiresAt) > new Date()),
+                            };
+                        }
+                    }
+                });
+
+                const professionalsWithPlans = await Promise.all(
+                    professionalsList.map(async (professional: any) => {
+                        const normalizedId =
+                            professional?._id ??
+                            professional?.id ??
+                            professional?.userId ??
+                            professional?.user?._id ??
+                            professional?.userId?._id;
+                        const userId = normalizedId?.toString?.();
+
+                        const directPlan = normalizeSubscriptionPlanValue(professional?.subscriptionPlan);
+                        if (directPlan) {
+                            return { ...professional, subscriptionPlan: formatSubscriptionPlanLabel(directPlan) };
+                        }
+
+                        if (userId) {
+                            const subscriptionInfo = subscriptionByUser[userId];
+                            if (subscriptionInfo?.planName) {
+                                return {
+                                    ...professional,
+                                    subscriptionPlan: formatSubscriptionPlanLabel(subscriptionInfo.planName),
+                                    subscriptionPlanExpiresAt: subscriptionInfo.expiresAt,
+                                    subscriptionPlanIsActive: subscriptionInfo.isActive,
+                                };
+                            }
+                        }
+
+                        return professional;
+                    })
+                );
+                
+                return professionalsWithPlans;
+            } catch (e: any) {
+                console.error("❌ Failed to load professionals:", e);
+                throw e; // Caught by React Query
+            }
+        },
+        staleTime: 5 * 60 * 1000,
+    });
     
     // Initialize state from URL params if available
     // Use a ref to track if we've initialized to prevent resetting on remount
@@ -420,10 +535,7 @@ export default function Professionals() {
     // Loading states for status toggles
     const [togglingStatus, setTogglingStatus] = useState<{ [key: string]: boolean }>({});
 
-    useEffect(() => {
-        fetchProfessionals();
-        return () => { };
-    }, []);
+    // useQuery handles initial fetch
 
     // Sync state with URL params when they change (e.g., when returning from details page)
     // Use useLayoutEffect to ensure state is updated before render
@@ -549,165 +661,6 @@ export default function Professionals() {
         }
     }, [loading, professionals, page, navigate, location.search]);
 
-    const fetchProfessionals = async () => {
-        setLoading(true);
-        console.log('🔄 Fetching ALL professionals (verified and unverified)...');
-        try {
-            const [usersResponse, subscriptionsResponse] = await Promise.all([
-                UserAPI.getProfessionals(),
-                SubscriptionAPI.getAllSubscriptions().catch((error) => {
-                    console.warn('⚠️ Failed to fetch subscriptions list, continuing without them.', error);
-                    return [];
-                })
-            ]);
-
-            console.log("✅ Fetched professionals response:", usersResponse);
-            console.log("📊 Response type:", Array.isArray(usersResponse) ? 'array' : typeof usersResponse);
-            console.log("📊 Response length:", Array.isArray(usersResponse) ? usersResponse.length : 'N/A');
-                
-                // Handle different response structures
-            let professionalsList = usersResponse;
-            if (usersResponse && !Array.isArray(usersResponse)) {
-                    // If response is an object, try to extract the array
-                if (usersResponse.users && Array.isArray(usersResponse.users)) {
-                    professionalsList = usersResponse.users;
-                } else if (usersResponse.data && Array.isArray(usersResponse.data)) {
-                    professionalsList = usersResponse.data;
-                    } else {
-                    console.warn("⚠️ Unexpected response structure:", usersResponse);
-                        professionalsList = [];
-                    }
-                }
-                
-            // Build subscription map keyed by userId -> latest active plan
-            const subscriptionsArray = Array.isArray(subscriptionsResponse)
-                ? subscriptionsResponse
-                : (subscriptionsResponse?.data && Array.isArray(subscriptionsResponse.data)
-                    ? subscriptionsResponse.data
-                    : []);
-
-            const subscriptionByUser: Record<string, { planName: string; expiresAt?: string; isActive?: boolean }> = {};
-
-            subscriptionsArray.forEach((subscription: any) => {
-                const rawUser =
-                    subscription?.userId ??
-                    subscription?.user?._id ??
-                    subscription?.user?.id ??
-                    subscription?.user ??
-                    subscription?.userID;
-                const userId = typeof rawUser === 'object' && rawUser?._id ? rawUser._id?.toString?.() : rawUser?.toString?.();
-
-                const planNameCandidate =
-                    subscription?.planName ??
-                    subscription?.plan?.name ??
-                    subscription?.plan ??
-                    subscription?.subscriptionPlan;
-
-                const planName = normalizeSubscriptionPlanValue(planNameCandidate);
-
-                if (!userId || !planName) {
-                    return;
-                }
-
-                const expiresAt = subscription?.endDate || subscription?.expiresAt;
-                const existing = subscriptionByUser[userId];
-
-                if (!existing) {
-                    subscriptionByUser[userId] = {
-                        planName,
-                        expiresAt,
-                        isActive: subscription?.isActive ?? (expiresAt ? new Date(expiresAt) > new Date() : undefined),
-                    };
-                    return;
-                }
-
-                if (expiresAt) {
-                    const existingDate = existing.expiresAt ? new Date(existing.expiresAt).getTime() : 0;
-                    const newDate = new Date(expiresAt).getTime();
-                    if (newDate > existingDate) {
-                        subscriptionByUser[userId] = {
-                            planName,
-                            expiresAt,
-                            isActive: subscription?.isActive ?? (new Date(expiresAt) > new Date()),
-                        };
-                    }
-                }
-            });
-
-            const professionalsWithPlans = await Promise.all(
-                professionalsList.map(async (professional: any) => {
-                    const normalizedId =
-                        professional?._id ??
-                        professional?.id ??
-                        professional?.userId ??
-                        professional?.user?._id ??
-                        professional?.userId?._id;
-                    const userId = normalizedId?.toString?.();
-
-                    const directPlan = normalizeSubscriptionPlanValue(professional?.subscriptionPlan);
-                    if (directPlan) {
-                        return {
-                            ...professional,
-                            subscriptionPlan: formatSubscriptionPlanLabel(directPlan),
-                        };
-                    }
-
-                    if (userId) {
-                        const subscriptionInfo = subscriptionByUser[userId];
-                        if (subscriptionInfo?.planName) {
-                            return {
-                                ...professional,
-                                subscriptionPlan: formatSubscriptionPlanLabel(subscriptionInfo.planName),
-                                subscriptionPlanExpiresAt: subscriptionInfo.expiresAt,
-                                subscriptionPlanIsActive: subscriptionInfo.isActive,
-                            };
-                        }
-                    }
-
-                    if (!userId) {
-                        return professional;
-                    }
-
-                    try {
-                        const userDetails = await UserAPI.findById(userId);
-                        const userPayload = userDetails?.user ?? userDetails?.data ?? userDetails;
-                        const fallbackPlan =
-                            normalizeSubscriptionPlanValue(userPayload?.subscriptionPlan) ??
-                            normalizeSubscriptionPlanValue(userDetails?.subscriptionPlan) ??
-                            normalizeSubscriptionPlanValue(userDetails?.data?.subscriptionPlan);
-
-                        if (fallbackPlan) {
-                            return {
-                                ...professional,
-                                subscriptionPlan: formatSubscriptionPlanLabel(fallbackPlan),
-                            };
-                        }
-                    } catch (error) {
-                        console.warn(`⚠️ Unable to fetch full user details for subscription plan of user ${userId}`, error);
-                    }
-
-                    return professional;
-                })
-            );
-            
-            console.log(`📋 Total professionals to display: ${professionalsWithPlans.length}`);
-            const certifiedCount = professionalsWithPlans.filter((p: any) => p?.isCertified === true).length;
-            const uncertifiedCount = professionalsWithPlans.length - certifiedCount;
-            console.log(`✅ Certified: ${certifiedCount}, ❌ Uncertified: ${uncertifiedCount}`);
-            
-            setProfessionals(professionalsWithPlans);
-            enqueueSnackbar(
-                `${professionalsWithPlans.length} professionnel${professionalsWithPlans.length > 1 ? 's' : ''} chargé${professionalsWithPlans.length > 1 ? 's' : ''} avec succès (${certifiedCount} certifié${certifiedCount > 1 ? 's' : ''}, ${uncertifiedCount} non certifié${uncertifiedCount > 1 ? 's' : ''}).`, 
-                { variant: 'success' }
-            );
-        } catch (e: any) {
-                console.error("❌ Failed to load professionals:", e);
-                console.error("❌ Error details:", e.response?.data || e.message);
-                enqueueSnackbar('Chargement des professionnels échoué.', { variant: 'error' });
-        } finally {
-                setLoading(false);
-        }
-    };
 
     const handleOpenConfirmDialog = (id: string | string[], name: string, type: string, message: string) => {
         console.log("handleOpenConfirmDialog invoked!", { id, name, type, message });
@@ -1262,22 +1215,28 @@ export default function Professionals() {
                                 </Typography>
                             </TableCell>
 
-                            <TableCell align="left" sx={{ display: isMobile ? 'none' : 'table-cell' }}>
-                                <Typography variant="body2" sx={{ fontSize: isMobile ? '0.75rem' : '0.875rem' }}>
-                                    {entreprise || 'N/A'}
-                                </Typography>
+                            <TableCell align="left" sx={{ display: isMobile ? 'none' : 'table-cell', maxWidth: 150 }}>
+                                <Tooltip title={entreprise || ''} placement="top" arrow>
+                                    <Typography variant="body2" sx={{ fontSize: isMobile ? '0.75rem' : '0.875rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                        {entreprise || 'N/A'}
+                                    </Typography>
+                                </Tooltip>
                             </TableCell>
 
-                            <TableCell align="left" sx={{ display: isMobile ? 'none' : 'table-cell' }}>
-                                <Typography variant="body2" sx={{ fontSize: isMobile ? '0.75rem' : '0.875rem' }}>
-                                    {row.secteur || 'N/A'}
-                                </Typography>
+                            <TableCell align="left" sx={{ display: isMobile ? 'none' : 'table-cell', maxWidth: 200 }}>
+                                <Tooltip title={row.secteur || ''} placement="top" arrow>
+                                    <Typography variant="body2" sx={{ fontSize: isMobile ? '0.75rem' : '0.875rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                        {row.secteur || 'N/A'}
+                                    </Typography>
+                                </Tooltip>
                             </TableCell>
 
-                            <TableCell align="left" sx={{ display: isMobile ? 'none' : 'table-cell' }}>
-                                <Typography variant="body2" sx={{ fontSize: isMobile ? '0.75rem' : '0.875rem' }}>
-                                    {postOccupé || 'N/A'}
-                                </Typography>
+                            <TableCell align="left" sx={{ display: isMobile ? 'none' : 'table-cell', maxWidth: 150 }}>
+                                <Tooltip title={postOccupé || ''} placement="top" arrow>
+                                    <Typography variant="body2" sx={{ fontSize: isMobile ? '0.75rem' : '0.875rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                        {postOccupé || 'N/A'}
+                                    </Typography>
+                                </Tooltip>
                             </TableCell>
 
                             <TableCell align="left">

@@ -12,6 +12,7 @@ import {
   Autocomplete,
   Chip,
   CircularProgress,
+  Skeleton,
   Typography,
   Fade,
   useTheme,
@@ -248,9 +249,9 @@ export default function DeffuserModal({ open, onClose, currentUser, onSuccess }:
 
         <Box sx={{ p: 3, minHeight: 300 }}>
           {loading ? (
-            <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: 200, gap: 2 }}>
-              <CircularProgress />
-              <Typography color="textSecondary">Chargement des données...</Typography>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, p: 2 }}>
+              <Skeleton variant="rectangular" width="100%" height={56} sx={{ borderRadius: 1 }} />
+              <Skeleton variant="rectangular" width="100%" height={200} sx={{ borderRadius: 1 }} />
             </Box>
           ) : (
             <>

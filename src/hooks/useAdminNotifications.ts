@@ -13,36 +13,16 @@ export const useAdminNotifications = () => {
   const socketContext = useContext(SocketContext);
   const { auth, isReady } = useAuth();
 
-  // Calculate unread message count from backend - optimized version
+  // Calculate unread message count from backend - optimized version using single API call
   const getUnreadMessageCount = useCallback(async () => {
-    if (!auth?.user) return 0;
+    if (!auth?.user?._id) return 0;
 
     try {
-      // Get all chats for admin
-      const allChats = await ChatAPI.getChats({ 
-        id: auth.user._id, 
-        from: 'admin' 
-      });
-
-      // Calculate total unread count across all chats - parallel processing
-      const unreadCounts = await Promise.all(
-        allChats.map(async (chat) => {
-          try {
-            const chatMessages = await MessageAPI.read(chat._id);
-            return chatMessages.filter((msg: any) => 
-              msg.sender !== auth.user._id && !msg.isRead
-            ).length;
-          } catch (error) {
-            console.error('Error calculating unread count for chat:', chat._id, error);
-            return 0;
-          }
-        })
-      );
-
-      const totalUnreadCount = unreadCounts.reduce((sum, count) => sum + count, 0);
-      return totalUnreadCount;
+      // Use the dedicated endpoint to get the count in a single request
+      const response = await MessageAPI.getUnreadCount(auth.user._id);
+      return response?.count || 0;
     } catch (error) {
-      console.error('Error calculating total unread count:', error);
+      console.error('Error getting total unread count:', error);
       return 0;
     }
   }, [auth?.user?._id]);

@@ -1,5 +1,6 @@
 import { sentenceCase } from 'change-case';
 import { useState, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import {
     Stack,
@@ -99,7 +100,21 @@ export default function Clients() {
     const isTablet = useMediaQuery(theme.breakpoints.down('md'));
     const { enqueueSnackbar } = useSnackbar();
     const navigate = useNavigate();
-    const [clients, setClients] = useState([]);
+    const { data: clients = [], isLoading, refetch: fetchClients } = useQuery({
+        queryKey: ['clients-list'],
+        queryFn: async () => {
+            try {
+                const data = await UserAPI.getClients();
+                console.log("Fetched clients:", data);
+                return data;
+            } catch (e) {
+                console.error("Failed to load clients:", e);
+                enqueueSnackbar('Chargement des clients échoué.', { variant: 'error' });
+                throw e;
+            }
+        },
+        staleTime: 5 * 60 * 1000,
+    });
     const [page, setPage] = useState(0);
     const [order, setOrder] = useState<'asc' | 'desc'>('asc');
     const [selected, setSelected] = useState<string[]>([]); // Changed to use client names like professional table
@@ -121,22 +136,7 @@ export default function Clients() {
     // Loading states for status toggles
     const [togglingStatus, setTogglingStatus] = useState<{ [key: string]: boolean }>({});
 
-    useEffect(() => {
-        fetchClients();
-        return () => {};
-    }, []);
-
-    const fetchClients = () => {
-        UserAPI.getClients()
-            .then((data) => {
-                setClients(data);
-                console.log("Fetched clients:", data);
-            })
-            .catch((e) => {
-                console.error("Failed to load clients:", e);
-                enqueueSnackbar('Chargement des clients échoué.', { variant: 'error' });
-            });
-    };
+    
 
     const handleOpenConfirmDialog = (userId: string | string[], type: string, message: string, clientName: string) => {
         if (Array.isArray(userId)) {
@@ -390,7 +390,6 @@ export default function Clients() {
 
     // Fixed TableBodyComponent to match professional table structure
     const TableBodyComponent = ({ data = [] }: { data: any[] }) => {
-        const emptyRows = page > 0 ? Math.max(0, (1 + page) * rowsPerPage - data.length) : 0;
         const displayedData = data;
 
         return (
@@ -550,11 +549,6 @@ export default function Clients() {
                         </TableRow>
                     );
                 })}
-                {emptyRows > 0 && (
-                    <TableRow style={{ height: 53 * emptyRows }}>
-                        <TableCell colSpan={COLUMNS.length + 1} /> {/* +1 for checkbox column */}
-                    </TableRow>
-                )}
             </TableBody>
         );
     };
@@ -661,7 +655,7 @@ export default function Clients() {
                         TableBodyComponent={TableBodyComponent}
                         searchFields={['firstName', 'lastName', 'email', 'phone', 'wilaya']}
                         numSelected={selected.length}
-                        loading={false}
+                        loading={isLoading}
                         onDeleteSelected={handleDeleteSelectedClients}
                     />
                 )}

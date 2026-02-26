@@ -33,6 +33,8 @@ import app from '@/config';
 import { UserAPI } from '../../api/user';
 import { useSnackbar } from 'notistack';
 import useMediaQuery from '@mui/material/useMediaQuery';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import DetailSkeleton from '@/components/skeletons/DetailSkeleton';
 
 // Import recommend icon
 import RecommendIcon from '@mui/icons-material/Recommend';
@@ -107,10 +109,8 @@ export default function ProfessionalsDetailsPage() {
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
     const isTablet = useMediaQuery(theme.breakpoints.down('md'));
+    const queryClient = useQueryClient();
 
-    const [professionalDetails, setProfessionalDetails] = useState<PopulatedUser | null>(null);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
     const [isVerifying, setIsVerifying] = useState(false);
     const [isUpdatingActiveStatus, setIsUpdatingActiveStatus] = useState(false);
     const [isUpdatingBannedStatus, setIsUpdatingBannedStatus] = useState(false);
@@ -126,22 +126,15 @@ export default function ProfessionalsDetailsPage() {
         color: 'primary' as 'primary' | 'error' | 'success'
     });
 
-    const fetchProfessionalDetails = useCallback(async () => {
-        if (!id) {
-            setError("L'ID du professionnel est manquant.");
-            setLoading(false);
-            return;
-        }
-        try {
-            setLoading(true);
-            setError(null);
+    const { data: professionalDetails, isLoading: loading, error } = useQuery({
+        queryKey: ['professional', id],
+        queryFn: async () => {
+            if (!id) throw new Error("L'ID du professionnel est manquant.");
             console.log('Fetching professional with ID:', id);
             
-            // Use UserAPI.findById to get direct user details
             const response = await UserAPI.findById(id);
             console.log('Full API Response:', response);
             
-            // Handle different response structures
             let userData = null;
             if (response?.user) {
                 userData = response.user;
@@ -154,21 +147,10 @@ export default function ProfessionalsDetailsPage() {
             }
             
             console.log('Extracted user data:', userData);
-            setProfessionalDetails(userData);
-
-        } catch (err: any) {
-            console.error("Failed to fetch professional details:", err);
-            const errorMessage = err.response?.data?.message || err.message || "Failed to load professional details.";
-            setError(errorMessage);
-            enqueueSnackbar(errorMessage, { variant: 'error' });
-        } finally {
-            setLoading(false);
-        }
-    }, [id, enqueueSnackbar]);
-
-    useEffect(() => {
-        fetchProfessionalDetails();
-    }, [fetchProfessionalDetails]);
+            return userData as PopulatedUser;
+        },
+        enabled: !!id,
+    });
 
     const handleGoBack = () => {
         // Restore pagination state from URL params
@@ -241,7 +223,8 @@ export default function ProfessionalsDetailsPage() {
             try {
                 await UserAPI.verifyUser(professionalDetails._id, isVerified);
                 enqueueSnackbar(`Utilisateur ${isVerified ? 'vérifié' : 'non vérifié'} avec succès.`, { variant: 'success' });
-                await fetchProfessionalDetails(); // Refresh data
+                queryClient.invalidateQueries({ queryKey: ['professional', id] });
+                queryClient.invalidateQueries({ queryKey: ['users'] });
             } catch (err: any) {
                 console.error('Verification error:', err);
                 const errorMessage = err.response?.data?.message || err.message || `Échec de la ${isVerified ? 'vérification' : 'désvérification'}.`;
@@ -268,7 +251,8 @@ export default function ProfessionalsDetailsPage() {
             try {
                 await UserAPI.setUserActive(professionalDetails._id, isActive);
                 enqueueSnackbar(`Utilisateur ${isActive ? 'activé' : 'désactivé'} avec succès.`, { variant: 'success' });
-                await fetchProfessionalDetails(); // Refresh data
+                queryClient.invalidateQueries({ queryKey: ['professional', id] });
+                queryClient.invalidateQueries({ queryKey: ['users'] });
             } catch (err: any) {
                 console.error('Active status update error:', err);
                 const errorMessage = err.response?.data?.message || err.message || `Échec de l'${isActive ? 'activation' : 'désactivation'}.`;
@@ -295,7 +279,8 @@ export default function ProfessionalsDetailsPage() {
             try {
                 await UserAPI.setUserBanned(professionalDetails._id, isBanned);
                 enqueueSnackbar(`Utilisateur ${isBanned ? 'banni' : 'débanni'} avec succès.`, { variant: 'success' });
-                await fetchProfessionalDetails(); // Refresh data
+                queryClient.invalidateQueries({ queryKey: ['professional', id] });
+                queryClient.invalidateQueries({ queryKey: ['users'] });
             } catch (err: any) {
                 console.error('Ban status update error:', err);
                 const errorMessage = err.response?.data?.message || err.message || `Échec du ${isBanned ? 'bannissement' : 'débannissement'}.`;
@@ -322,7 +307,8 @@ export default function ProfessionalsDetailsPage() {
             try {
                 await UserAPI.recommendUser(professionalDetails._id, isRecommended);
                 enqueueSnackbar(`Professionnel ${isRecommended ? 'recommandé' : 'recommandation retirée'} avec succès.`, { variant: 'success' });
-                await fetchProfessionalDetails(); // Refresh data
+                queryClient.invalidateQueries({ queryKey: ['professional', id] });
+                queryClient.invalidateQueries({ queryKey: ['users'] });
             } catch (err: any) {
                 console.error('Recommendation status update error:', err);
                 const errorMessage = err.response?.data?.message || err.message || `Échec de la ${isRecommended ? 'recommandation' : 'suppression de recommandation'}.`;
@@ -340,8 +326,8 @@ export default function ProfessionalsDetailsPage() {
 
     if (loading) {
         return (
-            <Container sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '80vh' }}>
-                <CircularProgress size={isMobile ? 36 : 48} />
+            <Container maxWidth="lg" sx={{ py: { xs: 2, sm: 4 } }}>
+                <DetailSkeleton />
             </Container>
         );
     }
@@ -350,7 +336,7 @@ export default function ProfessionalsDetailsPage() {
         return (
             <Container sx={{ mt: { xs: 2, sm: 4 } }}>
                 <Alert severity="error" sx={{ borderRadius: 2, fontSize: isMobile ? '0.8rem' : 'inherit', mb: 2 }}>
-                    {error}
+                    {error instanceof Error ? error.message : String(error)}
                 </Alert>
                 <Button variant="contained" onClick={handleGoBack} sx={{ borderRadius: 2, fontSize: isMobile ? '0.8rem' : 'inherit' }}>
                     Retour
