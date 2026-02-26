@@ -1,7 +1,6 @@
 // Fixed App.tsx - Admin Only
 
 import './i18n';
-import './styles/rtl.css';
 // routes
 import Router from './routes';
 import ThemeProvider from './theme';
@@ -118,23 +117,14 @@ export default function App() {
         fontSize: '18px',
         fontFamily: 'Arial, sans-serif'
       }}>
-        {(() => {
-          // Try to get translation, but don't import i18n here to avoid circular dependency
-          const lang = localStorage.getItem('i18nextLng') || 'fr';
-          const translations: { [key: string]: string } = {
-            fr: 'Chargement de l\'application...',
-            en: 'Loading application...',
-            ar: 'جاري تحميل التطبيق...'
-          };
-          return translations[lang] || translations.fr;
-        })()}
+        Chargement de l'application...
       </div>
     );
   }
 
   return (
-    <LanguageProvider>
-      <ThemeContextProvider>
+    <ThemeContextProvider>
+      <LanguageProvider>
         <SnackbarProvider maxSnack={3} autoHideDuration={4000}>
           <RequestProvider>
             <SocketProvider>
@@ -156,7 +146,7 @@ export default function App() {
             </SocketProvider>
           </RequestProvider> 
         </SnackbarProvider>
-      </ThemeContextProvider>
-    </LanguageProvider>
+      </LanguageProvider>
+    </ThemeContextProvider>
   );
 }

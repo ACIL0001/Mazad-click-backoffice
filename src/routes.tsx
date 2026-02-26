@@ -4,6 +4,7 @@ import DashboardLayout from './layouts/dashboard';
 import LogoOnlyLayout from './layouts/LogoOnlyLayout';
 //
 import Users from './pages/Users';
+import Ads from './pages/Ads/index';
 
 import Auctions from './pages/Auctions/index';
 import AuctionDetail from './pages/Auctions/AuctionDetail';
@@ -26,13 +27,11 @@ import Configuration from './pages/Configuration';
 import Profile from './pages/Profile';
 import Identity from './pages/Identities';
 import IdentityVerificationDetailsPage from './pages/Identities/IdentityVerificationDetailsPage'; 
+import VerificationHistory from './pages/VerificationHistory';
 import Categories from './pages/Categories';
 import AddCategory from './pages/Categories/AddCategory';
 import UpdateCategory from './pages/Categories/UpdateCategory';
 import CategoryDetailsPage from './pages/Categories/CategoryDetailsPage';
-
-// Ads imports
-import Ads from './pages/Ads';
 
 // Subscription imports
 import Subscription from './pages/Subscription';
@@ -106,6 +105,7 @@ export default function Router() {
                 { path: 'direct-sales/:id', element: <RequirePhoneVerification><DirectSaleDetail /></RequirePhoneVerification> },
                 
                 { path: 'identities', element: <RequirePhoneVerification><Identity /></RequirePhoneVerification> },
+                { path: 'identities/history', element: <RequirePhoneVerification><VerificationHistory /></RequirePhoneVerification> },
                 { path: 'identities/:id', element: <RequirePhoneVerification><IdentityVerificationDetailsPage /></RequirePhoneVerification> },
                 { path: 'categories/new', element: <RequirePhoneVerification><AddCategory /></RequirePhoneVerification> }, 
                 { path: 'categories/edit/:id', element: <RequirePhoneVerification><UpdateCategory /></RequirePhoneVerification> }, 
