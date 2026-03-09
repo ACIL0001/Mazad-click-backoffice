@@ -428,6 +428,12 @@ export default function NavSection({ ...other }) {
           }
         ],
       },
+      {
+        title: 'Apparence',
+        path: '/dashboard/appearance',
+        icon: getIcon('mdi:palette'),
+        requiresAdmin: true,
+      },
     ];
 
     // Filter navigation items based on user permissions
