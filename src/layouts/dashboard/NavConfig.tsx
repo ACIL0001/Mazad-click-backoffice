@@ -136,6 +136,11 @@ export const useNavConfig = () => {
       icon: getIcon('eva:settings-fill'),
     },
     {
+      title: t('navigation.appearance') || 'Apparence',
+      path: '/dashboard/appearance',
+      icon: getIcon('mdi:palette'),
+    },
+    {
       title: t('navigation.communication'),
       path: '/dashboard/communication',
       icon: getIcon('mdi:message'),
@@ -300,6 +305,11 @@ const navConfig = [
     title: 'Configuration',
     path: '/dashboard/configuration',
     icon: getIcon('eva:settings-fill'),
+  },
+  {
+    title: 'Apparence',
+    path: '/dashboard/appearance',
+    icon: getIcon('mdi:palette'),
   },
   {
     title: 'Communication',

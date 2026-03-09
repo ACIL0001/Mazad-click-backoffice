@@ -24,6 +24,7 @@ import DashboardApp from './pages/DashboardApp';
 import Account from './pages/Account';
 
 import Configuration from './pages/Configuration';
+import Appearance from './pages/Appearance';
 import Profile from './pages/Profile';
 import Identity from './pages/Identities';
 import IdentityVerificationDetailsPage from './pages/Identities/IdentityVerificationDetailsPage'; 
@@ -121,6 +122,7 @@ export default function Router() {
 
                 { path: 'chat', element: <RequirePhoneVerification><ChatLayout/></RequirePhoneVerification> },
                 { path: 'configuration', element: <RequirePhoneVerification><Configuration /></RequirePhoneVerification> },
+                { path: 'appearance', element: <RequirePhoneVerification><Appearance /></RequirePhoneVerification> },
                 
                 { path: 'profile', element: <RequirePhoneVerification><Profile /></RequirePhoneVerification> },
                 { path: 'account', element: <RequirePhoneVerification><Account /></RequirePhoneVerification> },
