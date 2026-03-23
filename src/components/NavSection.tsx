@@ -328,12 +328,6 @@ export default function NavSection({ ...other }) {
             icon: getIcon('mdi:account-group'),
             requiresAdmin: true,
           },
-          {
-            title: 'Resellers',
-            path: '/dashboard/users/resellers',
-            icon: getIcon('mdi:store'),
-            requiresAdmin: true,
-          },
         ],
       },
       {

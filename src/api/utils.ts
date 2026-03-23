@@ -19,7 +19,7 @@ const instance = axios.create({
 const response = (res: AxiosResponse) => res.data;
 
 export const requests = {
-  get: (url: string) => instance.get(url).then(response),
+  get: (url: string, config?: any) => instance.get(url, config).then(response),
   post: (url: string, body: {}, returnFullResponse = false) => {
     const config: any = {};
     if (body instanceof FormData) {

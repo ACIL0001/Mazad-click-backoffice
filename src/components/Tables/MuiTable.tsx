@@ -406,6 +406,8 @@ interface MuiTableProps {
   loading: boolean
   actionButtonPosition?: "floating" | "sticky" | "inline" | "all"
   getRowId?: (row: any) => string // Optional function to get the row identifier for selection
+  isServerSide?: boolean
+  totalResults?: number
 }
 
 export default function MuiTable({
@@ -430,6 +432,8 @@ export default function MuiTable({
   loading,
   actionButtonPosition = "sticky",
   getRowId,
+  isServerSide = false,
+  totalResults,
 }: MuiTableProps) {
   const theme = useTheme()
   const tableRef = useRef<HTMLDivElement>(null)
@@ -494,8 +498,9 @@ export default function MuiTable({
 
   // Use all searchFields if provided, otherwise use single searchField
   const fieldsToSearch = searchFields.length > 0 ? searchFields : [searchField]
-  const filteredData = applySortFilter(safeData, getComparator(order, orderBy), filterName, fieldsToSearch)
-  const paginatedData = filteredData.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
+  const filteredData = isServerSide ? safeData : applySortFilter(safeData, getComparator(order, orderBy), filterName, fieldsToSearch)
+  const paginatedData = isServerSide ? safeData : filteredData.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
+  const totalCount = isServerSide ? (totalResults ?? safeData.length) : filteredData.length
 
   const handleRequestSort = (event: React.MouseEvent<unknown>, property: string) => {
     const isAsc = orderBy === property && order === "asc"
@@ -971,7 +976,7 @@ export default function MuiTable({
           <TablePagination
             rowsPerPageOptions={[5, 10, 25, 50]}
             component="div"
-            count={filteredData.length}
+            count={totalCount}
             rowsPerPage={rowsPerPage}
             page={page}
             onPageChange={handleChangePage}

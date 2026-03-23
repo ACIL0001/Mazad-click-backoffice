@@ -13,6 +13,7 @@ export const UserAPI = {
   setPhone: (data: any): Promise<any> => requests.post('user/update/phone', data), // { tel, code }
   changePassword: (credentials: any): Promise<any> => requests.post(`users/change-password`, credentials),
   identity: (form: FormData): Promise<any> => requests.post('identities', form),
+  getList: (params: any): Promise<any> => requests.get('users/list', { params }),
   
   // Admin role methods
   getAll: (): Promise<any> => requests.get(`users/all`),
