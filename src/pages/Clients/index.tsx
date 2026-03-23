@@ -1,6 +1,6 @@
 import { sentenceCase } from 'change-case';
 import { useState, useEffect } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, keepPreviousData } from '@tanstack/react-query';
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import {
     Stack,
@@ -21,7 +21,9 @@ import {
     alpha,
     IconButton,
     Checkbox,
-    MenuItem
+    MenuItem,
+    ToggleButton,
+    ToggleButtonGroup
 } from '@mui/material';
 import Page from '../../components/Page';
 import Label from '../../components/Label';
@@ -42,6 +44,7 @@ import VerifiedUserIcon from '@mui/icons-material/VerifiedUser';
 import HowToRegIcon from '@mui/icons-material/HowToReg';
 import { UserAPI } from '@/api/user';
 import { ReviewAPI } from '@/api/review';
+import { StatsAPI } from '@/api/stats';
 import Iconify from '../../components/Iconify';
 
 
@@ -100,27 +103,63 @@ export default function Clients() {
     const isTablet = useMediaQuery(theme.breakpoints.down('md'));
     const { enqueueSnackbar } = useSnackbar();
     const navigate = useNavigate();
-    const { data: clients = [], isLoading, refetch: fetchClients } = useQuery({
-        queryKey: ['clients-list'],
+    const [page, setPage] = useState(0);
+    const [rowsPerPage, setRowsPerPage] = useState(10);
+    const [filterName, setFilterName] = useState('');
+    const [order, setOrder] = useState<'asc' | 'desc'>('desc');
+    const [orderBy, setOrderBy] = useState('createdAt');
+
+    // Initialize state from URL params if available
+    const initialSearchParams = new URLSearchParams(window.location.search);
+    const [verifiedFilter, setVerifiedFilter] = useState<'all' | 'verified' | 'unverified'>(() => {
+        const filterParam = initialSearchParams.get('verifiedFilter');
+        return (filterParam === 'verified' || filterParam === 'unverified') ? filterParam : 'all';
+    });
+    const [certifiedFilter, setCertifiedFilter] = useState<'all' | 'certified' | 'uncertified'>(() => {
+        const filterParam = initialSearchParams.get('certifiedFilter');
+        return (filterParam === 'certified' || filterParam === 'uncertified') ? filterParam : 'all';
+    });
+    const [recommendedFilter, setRecommendedFilter] = useState<'all' | 'recommended' | 'unrecommended'>(() => {
+        const filterParam = initialSearchParams.get('recommendedFilter');
+        return (filterParam === 'recommended' || filterParam === 'unrecommended') ? filterParam : 'all';
+    });
+
+    // Fetch clients with pagination
+    const { data: clientsData, isLoading, refetch: fetchClients } = useQuery({
+        queryKey: ['clients-list', page, rowsPerPage, filterName, order, orderBy, verifiedFilter, certifiedFilter, recommendedFilter],
         queryFn: async () => {
             try {
-                const data = await UserAPI.getClients();
-                console.log("Fetched clients:", data);
-                return data;
+                const response = await UserAPI.getList({
+                    page,
+                    limit: rowsPerPage,
+                    search: filterName,
+                    type: 'CLIENT',
+                    sortBy: orderBy,
+                    sortOrder: order,
+                    isVerified: verifiedFilter === 'verified' ? true : verifiedFilter === 'unverified' ? false : undefined,
+                    isCertified: certifiedFilter === 'certified' ? true : certifiedFilter === 'uncertified' ? false : undefined,
+                    isRecommended: recommendedFilter === 'recommended' ? true : recommendedFilter === 'unrecommended' ? false : undefined,
+                });
+                return response;
             } catch (e) {
                 console.error("Failed to load clients:", e);
                 enqueueSnackbar('Chargement des clients échoué.', { variant: 'error' });
                 throw e;
             }
         },
-        staleTime: 5 * 60 * 1000,
+        placeholderData: keepPreviousData,
     });
-    const [page, setPage] = useState(0);
-    const [order, setOrder] = useState<'asc' | 'desc'>('asc');
-    const [selected, setSelected] = useState<string[]>([]); // Changed to use client names like professional table
-    const [orderBy, setOrderBy] = useState('createdAt');
-    const [filterName, setFilterName] = useState('');
-    const [rowsPerPage, setRowsPerPage] = useState(10);
+
+    const clients = clientsData?.data || [];
+    const totalCount = clientsData?.total || 0;
+
+    // Fetch user stats for the cards
+    const { data: userStats, refetch: fetchStats } = useQuery({
+        queryKey: ['user-stats'],
+        queryFn: () => StatsAPI.getUserStats(),
+    });
+
+    const [selected, setSelected] = useState<string[]>([]);
     const [openConfirmDialog, setOpenConfirmDialog] = useState(false);
     const [userToConfirmId, setUserToConfirmId] = useState<string | null>(null);
     const [actionType, setActionType] = useState<string | null>(null);
@@ -575,7 +614,7 @@ export default function Clients() {
                                     Total Clients
                                 </Typography>
                                 <Typography variant={isMobile ? "h5" : "h4"} component="div">
-                                    {totalClients}
+                                    {userStats?.byType?.client?.total || 0}
                                 </Typography>
                             </Box>
                         </StyledCard>
@@ -593,7 +632,7 @@ export default function Clients() {
                                     Clients Bannis
                                 </Typography>
                                 <Typography variant={isMobile ? "h5" : "h4"} component="div">
-                                    {bannedClients}
+                                    {userStats?.byType?.client?.banned || 0}
                                 </Typography>
                             </Box>
                         </StyledCard>
@@ -611,7 +650,7 @@ export default function Clients() {
                                     Clients Vérifiés
                                 </Typography>
                                 <Typography variant={isMobile ? "h5" : "h4"} component="div">
-                                    {verifiedClients}
+                                    {userStats?.byType?.client?.verified || 0}
                                 </Typography>
                             </Box>
                         </StyledCard>
@@ -629,14 +668,87 @@ export default function Clients() {
                                     Clients Actifs
                                 </Typography>
                                 <Typography variant={isMobile ? "h5" : "h4"} component="div">
-                                    {activeClients}
+                                    {userStats?.byType?.client?.active || 0}
                                 </Typography>
                             </Box>
                         </StyledCard>
                     </Grid>
                 </Grid>
 
-                {clients && (
+                {/* Filters Container */}
+                <Box sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 3, flexWrap: 'wrap' }}>
+                    <Typography variant="body2" sx={{ fontWeight: 600, color: 'text.secondary' }}>
+                        Filtrer par statut:
+                    </Typography>
+                    <ToggleButtonGroup
+                        value={verifiedFilter !== 'all' ? verifiedFilter : 
+                               (certifiedFilter !== 'all' ? certifiedFilter : 
+                                (recommendedFilter !== 'all' ? recommendedFilter : 'all'))}
+                        exclusive
+                        onChange={(event, newValue) => {
+                            if (newValue !== null) {
+                                setPage(0);
+                                const params = new URLSearchParams(window.location.search);
+                                params.delete('page');
+                                
+                                // Reset all first
+                                setVerifiedFilter('all');
+                                setCertifiedFilter('all');
+                                setRecommendedFilter('all');
+                                params.delete('verifiedFilter');
+                                params.delete('certifiedFilter');
+                                params.delete('recommendedFilter');
+
+                                if (newValue === 'verified' || newValue === 'unverified') {
+                                    setVerifiedFilter(newValue);
+                                    params.set('verifiedFilter', newValue);
+                                } else if (newValue === 'certified' || newValue === 'uncertified') {
+                                    setCertifiedFilter(newValue);
+                                    params.set('certifiedFilter', newValue);
+                                } else if (newValue === 'recommended' || newValue === 'unrecommended') {
+                                    setRecommendedFilter(newValue);
+                                    params.set('recommendedFilter', newValue);
+                                }
+
+                                navigate({ search: params.toString() }, { replace: true });
+                            }
+                        }}
+                        size="small"
+                        sx={{
+                            '& .MuiToggleButton-root': {
+                                px: 2,
+                                py: 0.75,
+                                fontSize: '0.875rem',
+                                textTransform: 'none',
+                                borderColor: 'divider',
+                                '&.Mui-selected': {
+                                    backgroundColor: theme.palette.primary.main,
+                                    color: 'white',
+                                    '&:hover': {
+                                        backgroundColor: theme.palette.primary.dark,
+                                    },
+                                },
+                            },
+                        }}
+                    >
+                        <ToggleButton value="all">
+                            Tous ({userStats?.byType?.client?.total || 0})
+                        </ToggleButton>
+                        <ToggleButton value="verified">
+                            Compte Validé ({userStats?.byType?.client?.verified || 0})
+                        </ToggleButton>
+                        <ToggleButton value="unverified">
+                            Compte Non Validé ({(userStats?.byType?.client?.total || 0) - (userStats?.byType?.client?.verified || 0)})
+                        </ToggleButton>
+                        <ToggleButton value="certified">
+                            Certifié ({userStats?.byType?.client?.certified || 0})
+                        </ToggleButton>
+                        <ToggleButton value="recommended">
+                            Recommandé ({userStats?.byType?.client?.recommended || 0})
+                        </ToggleButton>
+                    </ToggleButtonGroup>
+                </Box>
+
                     <MuiTable
                         data={clients}
                         columns={COLUMNS}
@@ -657,8 +769,9 @@ export default function Clients() {
                         numSelected={selected.length}
                         loading={isLoading}
                         onDeleteSelected={handleDeleteSelectedClients}
+                        isServerSide={true}
+                        totalResults={totalCount}
                     />
-                )}
                 <Dialog
                     open={openConfirmDialog}
                     onClose={handleCloseConfirmDialog}

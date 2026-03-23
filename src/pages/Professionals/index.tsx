@@ -1,6 +1,6 @@
 import { sentenceCase } from 'change-case';
 import { useState, useEffect, useLayoutEffect, useRef } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, keepPreviousData } from '@tanstack/react-query';
 import { Link as RouterLink, useNavigate, useLocation } from 'react-router-dom';
 // material
 import {
@@ -69,6 +69,7 @@ import CloseIcon from '@mui/icons-material/Close';
 
 import { UserAPI } from '@/api/user';
 import { ReviewAPI } from '@/api/review';
+import { StatsAPI } from '@/api/stats';
 import { IdentityAPI, UserDocuments, UserDocument } from '@/api/identity';
 import { SubscriptionAPI } from '@/api/subscription';
 import app from '@/config';
@@ -367,30 +368,56 @@ export default function Professionals() {
     const scrollToUserIdRef = useRef<string | null>(null);
     const hasScrolledRef = useRef(false);
 
-    const { data: professionals = [], isLoading: loading, refetch: fetchProfessionals } = useQuery({
-        queryKey: ['professionals-list'],
-        queryFn: async () => {
-            console.log('🔄 Fetching ALL professionals (verified and unverified)...');
-            try {
-                const [usersResponse, subscriptionsResponse] = await Promise.all([
-                    UserAPI.getProfessionals(),
-                    SubscriptionAPI.getAllSubscriptions().catch((error) => {
-                        console.warn('⚠️ Failed to fetch subscriptions list, continuing without them.', error);
-                        return [];
-                    })
-                ]);
+    const [page, setPage] = useState(0);
+    const [rowsPerPage, setRowsPerPage] = useState(10);
+    const [filterName, setFilterName] = useState('');
+    const [order, setOrder] = useState<'asc' | 'desc'>('desc');
+    const [orderBy, setOrderBy] = useState('createdAt');
 
-                let professionalsList = usersResponse;
-                if (usersResponse && !Array.isArray(usersResponse)) {
-                    if (usersResponse.users && Array.isArray(usersResponse.users)) {
-                        professionalsList = usersResponse.users;
-                    } else if (usersResponse.data && Array.isArray(usersResponse.data)) {
-                        professionalsList = usersResponse.data;
-                    } else {
-                        professionalsList = [];
-                    }
-                }
+    // Initialize state from URL params if available
+    const initialSearchParams = new URLSearchParams(window.location.search);
+    const [certifiedFilter, setCertifiedFilter] = useState<'all' | 'certified' | 'uncertified'>(() => {
+        const filterParam = initialSearchParams.get('certifiedFilter');
+        return (filterParam === 'certified' || filterParam === 'uncertified') ? filterParam : 'all';
+    });
+    const [verifiedFilter, setVerifiedFilter] = useState<'all' | 'verified' | 'unverified'>(() => {
+        const filterParam = initialSearchParams.get('verifiedFilter');
+        return (filterParam === 'verified' || filterParam === 'unverified') ? filterParam : 'all';
+    });
+    const [recommendedFilter, setRecommendedFilter] = useState<'all' | 'recommended' | 'unrecommended'>(() => {
+        const filterParam = initialSearchParams.get('recommendedFilter');
+        return (filterParam === 'recommended' || filterParam === 'unrecommended') ? filterParam : 'all';
+    });
+
+    // Fetch professionals with pagination
+    const { data: professionalsData, isLoading: loading, refetch: fetchProfessionals } = useQuery({
+        queryKey: ['professionals-list', page, rowsPerPage, filterName, order, orderBy, certifiedFilter, verifiedFilter, recommendedFilter],
+        queryFn: async () => {
+            try {
+                const response = await UserAPI.getList({
+                    page,
+                    limit: rowsPerPage,
+                    search: filterName,
+                    type: 'PROFESSIONAL',
+                    sortBy: orderBy,
+                    sortOrder: order,
+                    isCertified: certifiedFilter === 'certified' ? true : certifiedFilter === 'uncertified' ? false : undefined,
+                    isVerified: verifiedFilter === 'verified' ? true : verifiedFilter === 'unverified' ? false : undefined,
+                    isRecommended: recommendedFilter === 'recommended' ? true : recommendedFilter === 'unrecommended' ? false : undefined,
+                });
+
+                const professionalsList = response.data || [];
+
+                // Fetch subscriptions only for the current page users
+                const userIds = professionalsList.map((p: any) => p._id).filter(Boolean);
                 
+                // For now, let's keep fetching all subscriptions or ideally fetch by userIds
+                // If the app is large, we should have an endpoint getSubscriptionsByUserIds
+                const subscriptionsResponse = await SubscriptionAPI.getAllSubscriptions().catch((error) => {
+                    console.warn('⚠️ Failed to fetch subscriptions list, continuing without them.', error);
+                    return [];
+                });
+
                 const subscriptionsArray = Array.isArray(subscriptionsResponse)
                     ? subscriptionsResponse
                     : (subscriptionsResponse?.data && Array.isArray(subscriptionsResponse.data)
@@ -443,73 +470,48 @@ export default function Professionals() {
                     }
                 });
 
-                const professionalsWithPlans = await Promise.all(
-                    professionalsList.map(async (professional: any) => {
-                        const normalizedId =
-                            professional?._id ??
-                            professional?.id ??
-                            professional?.userId ??
-                            professional?.user?._id ??
-                            professional?.userId?._id;
-                        const userId = normalizedId?.toString?.();
+                const professionalsWithPlans = professionalsList.map((professional: any) => {
+                    const userId = professional?._id?.toString?.();
+                    const directPlan = normalizeSubscriptionPlanValue(professional?.subscriptionPlan);
+                    if (directPlan) {
+                        return { ...professional, subscriptionPlan: formatSubscriptionPlanLabel(directPlan) };
+                    }
 
-                        const directPlan = normalizeSubscriptionPlanValue(professional?.subscriptionPlan);
-                        if (directPlan) {
-                            return { ...professional, subscriptionPlan: formatSubscriptionPlanLabel(directPlan) };
-                        }
+                    if (userId && subscriptionByUser[userId]) {
+                        const subscriptionInfo = subscriptionByUser[userId];
+                        return {
+                            ...professional,
+                            subscriptionPlan: formatSubscriptionPlanLabel(subscriptionInfo.planName),
+                            subscriptionPlanExpiresAt: subscriptionInfo.expiresAt,
+                            subscriptionPlanIsActive: subscriptionInfo.isActive,
+                        };
+                    }
+                    return professional;
+                });
 
-                        if (userId) {
-                            const subscriptionInfo = subscriptionByUser[userId];
-                            if (subscriptionInfo?.planName) {
-                                return {
-                                    ...professional,
-                                    subscriptionPlan: formatSubscriptionPlanLabel(subscriptionInfo.planName),
-                                    subscriptionPlanExpiresAt: subscriptionInfo.expiresAt,
-                                    subscriptionPlanIsActive: subscriptionInfo.isActive,
-                                };
-                            }
-                        }
-
-                        return professional;
-                    })
-                );
-                
-                return professionalsWithPlans;
+                return { data: professionalsWithPlans, total: response.total };
             } catch (e: any) {
                 console.error("❌ Failed to load professionals:", e);
-                throw e; // Caught by React Query
+                throw e;
             }
         },
-        staleTime: 5 * 60 * 1000,
+        placeholderData: keepPreviousData,
     });
+
+    const professionals = professionalsData?.data || [];
+    const totalCount = professionalsData?.total || 0;
+
+    // Fetch user stats for the cards
+    const { data: userStats, refetch: fetchStats } = useQuery({
+        queryKey: ['user-stats'],
+        queryFn: () => StatsAPI.getUserStats(),
+    });
+
+    const [selected, setSelected] = useState<string[]>([]);
     
     // Initialize state from URL params if available
     // Use a ref to track if we've initialized to prevent resetting on remount
-    const initialSearchParams = new URLSearchParams(location.search);
-    const [page, setPage] = useState(() => {
-        const pageParam = initialSearchParams.get('page');
-        const pageNum = pageParam ? parseInt(pageParam, 10) : 0;
-        console.log('Initializing page state from URL:', pageNum, 'URL:', location.search);
-        return isNaN(pageNum) ? 0 : pageNum;
-    });
-    const [order, setOrder] = useState<'asc' | 'desc'>('asc');
-    const [selected, setSelected] = useState<string[]>([]);
-    const [orderBy, setOrderBy] = useState('createdAt');
-    const [filterName, setFilterName] = useState(() => {
-        return initialSearchParams.get('filterName') || '';
-    });
-    const [rowsPerPage, setRowsPerPage] = useState(() => {
-        const rowsParam = initialSearchParams.get('rowsPerPage');
-        return rowsParam ? parseInt(rowsParam, 10) : 10;
-    });
-    const [certifiedFilter, setCertifiedFilter] = useState<'all' | 'certified' | 'uncertified'>(() => {
-        const filterParam = initialSearchParams.get('certifiedFilter');
-        return (filterParam === 'certified' || filterParam === 'uncertified') ? filterParam : 'all';
-    });
-    const [verifiedFilter, setVerifiedFilter] = useState<'all' | 'verified' | 'unverified'>(() => {
-        const filterParam = initialSearchParams.get('verifiedFilter');
-        return (filterParam === 'verified' || filterParam === 'unverified') ? filterParam : 'all';
-    });
+    // useQuery handles initial fetch
 
     const [openConfirmDialog, setOpenConfirmDialog] = useState(false);
     const [userToConfirmId, setUserToConfirmId] = useState('');
@@ -1423,11 +1425,9 @@ export default function Professionals() {
         );
     };
 
-    const totalProfessionals = professionals.length;
-    const bannedProfessionals = professionals.filter(p => p.isBanned).length;
-    const certifiedProfessionals = professionals.filter(p => p.isCertified).length;
-    const activeProfessionals = professionals.filter(p => p.isActive).length;
-    const recommendedProfessionals = professionals.filter(p => p.isRecommended).length;
+    // These counts are now provided by userStats query for a global view
+    // Using default 0 if userStats is still loading
+    const professionalStats = userStats?.byType?.professional || { total: 0, verified: 0, active: 0, banned: 0, recommended: 0, certified: 0 }; 
 
     return (
         <Page title="Users - Professionals">
@@ -1452,10 +1452,10 @@ export default function Professionals() {
                             </IconWrapperStyle>
                             <Box>
                                 <Typography variant={isMobile ? "body2" : "h6"} color="textSecondary" sx={{ opacity: 0.72 }}>
-                                    {t('professionals.total') || 'Total Professionnels'}
+                                    {t('professionals.all') || 'Total Professionnels'}
                                 </Typography>
                                 <Typography variant={isMobile ? "h5" : "h4"} component="div">
-                                    {totalProfessionals}
+                                    {userStats?.byType?.professional?.total || 0}
                                 </Typography>
                             </Box>
                         </StyledCard>
@@ -1474,7 +1474,7 @@ export default function Professionals() {
                                     {t('professionals.certified') || 'Certifiés'}
                                 </Typography>
                                 <Typography variant={isMobile ? "h5" : "h4"} component="div">
-                                    {certifiedProfessionals}
+                                    {professionalStats.certified || 0}
                                 </Typography>
                             </Box>
                         </StyledCard>
@@ -1493,7 +1493,7 @@ export default function Professionals() {
                                     {t('professionals.active') || 'Professionnels Actifs'}
                                 </Typography>
                                 <Typography variant={isMobile ? "h5" : "h4"} component="div">
-                                    {activeProfessionals}
+                                    {userStats?.byType?.professional?.active || 0}
                                 </Typography>
                             </Box>
                         </StyledCard>
@@ -1507,12 +1507,12 @@ export default function Professionals() {
                             }}>
                                 <RecommendIcon fontSize={isMobile ? 'small' : 'medium'} />
                             </IconWrapperStyle>
-                            <Box>
+                             <Box>
                                 <Typography variant={isMobile ? "body2" : "h6"} color="textSecondary" sx={{ opacity: 0.72 }}>
                                     {t('professionals.recommended') || 'Recommandés'}
                                 </Typography>
                                 <Typography variant={isMobile ? "h5" : "h4"} component="div">
-                                    {recommendedProfessionals}
+                                    {professionalStats.recommended || 0}
                                 </Typography>
                             </Box>
                         </StyledCard>
@@ -1531,7 +1531,7 @@ export default function Professionals() {
                                     {t('professionals.banned') || 'Professionnels Bannis'}
                                 </Typography>
                                 <Typography variant={isMobile ? "h5" : "h4"} component="div">
-                                    {bannedProfessionals}
+                                    {userStats?.byType?.professional?.banned || 0}
                                 </Typography>
                             </Box>
                         </StyledCard>
@@ -1546,7 +1546,9 @@ export default function Professionals() {
                         Filtrer par statut:
                     </Typography>
                     <ToggleButtonGroup
-                        value={verifiedFilter !== 'all' ? verifiedFilter : (certifiedFilter !== 'all' ? certifiedFilter : 'all')}
+                        value={verifiedFilter !== 'all' ? verifiedFilter : 
+                               (certifiedFilter !== 'all' ? certifiedFilter : 
+                                (recommendedFilter !== 'all' ? recommendedFilter : 'all'))}
                         exclusive
                         onChange={(event, newValue) => {
                             if (newValue !== null) {
@@ -1554,11 +1556,13 @@ export default function Professionals() {
                                 const params = new URLSearchParams(location.search);
                                 params.delete('page');
                                 
-                                // Reset both first
+                                // Reset all first
                                 setVerifiedFilter('all');
                                 setCertifiedFilter('all');
+                                setRecommendedFilter('all');
                                 params.delete('verifiedFilter');
                                 params.delete('certifiedFilter');
+                                params.delete('recommendedFilter');
 
                                 if (newValue === 'verified' || newValue === 'unverified') {
                                     setVerifiedFilter(newValue);
@@ -1566,6 +1570,9 @@ export default function Professionals() {
                                 } else if (newValue === 'certified' || newValue === 'uncertified') {
                                     setCertifiedFilter(newValue);
                                     params.set('certifiedFilter', newValue);
+                                } else if (newValue === 'recommended' || newValue === 'unrecommended') {
+                                    setRecommendedFilter(newValue);
+                                    params.set('recommendedFilter', newValue);
                                 }
                                 // if newValue is 'all', we already reset everything above
 
@@ -1591,116 +1598,52 @@ export default function Professionals() {
                         }}
                     >
                         <ToggleButton value="all">
-                            {t('professionals.all') || 'Tous'} ({professionals.length})
+                            {t('professionals.all') || 'Tous'} ({userStats?.byType?.professional?.total || 0})
                         </ToggleButton>
                         <ToggleButton value="verified">
-                            {t('professionals.verified') || 'Compte Validé'} ({professionals.filter((p: any) => p.isVerified).length})
+                            {t('professionals.verified') || 'Compte Validé'} ({userStats?.byType?.professional?.verified || 0})
                         </ToggleButton>
                         <ToggleButton value="unverified">
-                            {t('professionals.unverified') || 'Compte Non Validé'} ({professionals.filter((p: any) => !p.isVerified).length})
+                            {t('professionals.unverified') || 'Compte Non Validé'} ({(userStats?.byType?.professional?.total || 0) - (userStats?.byType?.professional?.verified || 0)})
                         </ToggleButton>
                         <ToggleButton value="certified">
-                            {t('professionals.certified') || 'Certifié'} ({professionals.filter((p: any) => p.isCertified).length})
+                            {t('professionals.certified') || 'Certifié'} ({professionalStats.certified || 0}) 
                         </ToggleButton>
                         <ToggleButton value="uncertified">
-                            {t('professionals.uncertified') || 'Non Certifié'} ({professionals.filter((p: any) => !p.isCertified).length})
+                            {t('professionals.uncertified') || 'Non Certifié'} ({(professionalStats.total || 0) - (professionalStats.certified || 0)})
+                        </ToggleButton>
+                        <ToggleButton value="recommended">
+                            {t('professionals.recommended') || 'Recommandé'} ({professionalStats.recommended || 0})
                         </ToggleButton>
                     </ToggleButtonGroup>
                 </Box>
                 </Box>
 
-                {professionals && (() => {
-                    // Filter professionals by certification status first
-                    let filteredProfessionals = professionals;
-                    
-                    // Apply Certification Filter
-                    if (certifiedFilter === 'certified') {
-                        filteredProfessionals = filteredProfessionals.filter((p: any) => p.isCertified === true);
-                    } else if (certifiedFilter === 'uncertified') {
-                        filteredProfessionals = filteredProfessionals.filter((p: any) => p.isCertified !== true);
-                    }
-
-                    // Apply Verification Filter
-                    if (verifiedFilter === 'verified') {
-                        filteredProfessionals = filteredProfessionals.filter((p: any) => p.isVerified === true);
-                    } else if (verifiedFilter === 'unverified') {
-                        filteredProfessionals = filteredProfessionals.filter((p: any) => p.isVerified !== true);
-                    }
-
-                    // Calculate numSelected based on filtered data only
-                    // This ensures the checkbox state reflects only the filtered items
-                    const filteredSelectedCount = filteredProfessionals.filter((p: any) => 
-                        selected.includes(`${p.firstName} ${p.lastName}`)
-                    ).length;
-
-                    // Get page from URL params to ensure we're always in sync
-                    const urlSearchParams = new URLSearchParams(location.search);
-                    const urlPageParam = urlSearchParams.get('page');
-                    const urlPage = urlPageParam ? parseInt(urlPageParam, 10) : page;
-                    const displayPage = !isNaN(urlPage) && urlPage >= 0 ? urlPage : page;
-                    
-                    // If URL has different page than state, update state
-                    if (displayPage !== page) {
-                        console.log('Page mismatch detected - URL page:', displayPage, 'State page:', page, 'Updating state...');
-                        setPage(displayPage);
-                    }
-                    
-                    console.log('Rendering MuiTable - URL page:', displayPage, 'State page:', page, 'Using:', displayPage);
-                    
-                    return (
-                     <MuiTable
-                            key={`table-${displayPage}-${rowsPerPage}-${certifiedFilter}-${verifiedFilter}`} // Force re-render when page/rowsPerPage/filter changes
-                            data={filteredProfessionals}
-                        columns={COLUMNS}
-                        page={displayPage}
-                        setPage={(newPage) => {
-                            console.log('MuiTable setPage called with:', newPage, 'current displayPage:', displayPage);
-                            setPage(newPage);
-                            // Update URL params when page changes - always include page for consistency
-                            const params = new URLSearchParams(location.search);
-                            params.set('page', newPage.toString());
-                            navigate({ search: params.toString() }, { replace: true });
-                        }}
-                        order={order}
-                        setOrder={setOrder}
-                        orderBy={orderBy}
-                        setOrderBy={setOrderBy}
-                        selected={selected}
-                        setSelected={setSelected}
-                        filterName={filterName}
-                        setFilterName={(newFilter) => {
-                            setFilterName(newFilter);
-                            // Update URL params when filter changes
-                            const params = new URLSearchParams(location.search);
-                            params.delete('page'); // Reset to first page when filter changes
-                            if (newFilter) {
-                                params.set('filterName', newFilter);
-                            } else {
-                                params.delete('filterName');
-                            }
-                            navigate({ search: params.toString() }, { replace: true });
-                        }}
-                        rowsPerPage={rowsPerPage}
-                        setRowsPerPage={(newRowsPerPage) => {
-                            setRowsPerPage(newRowsPerPage);
-                            // Update URL params when rows per page changes
-                            const params = new URLSearchParams(location.search);
-                            params.delete('page'); // Reset to first page when rows per page changes
-                            if (newRowsPerPage === 10) {
-                                params.delete('rowsPerPage');
-                            } else {
-                                params.set('rowsPerPage', newRowsPerPage.toString());
-                            }
-                            navigate({ search: params.toString() }, { replace: true });
-                        }}
-                        TableBodyComponent={TableBodyComponent}
-                        numSelected={filteredSelectedCount}
-                        onDeleteSelected={handleDeleteSelected}
-                        loading={loading}
-                        getRowId={(row) => `${row.firstName} ${row.lastName}`}
-                    />
-                    );
-                })()}
+                {professionals && (
+                        <MuiTable
+                            data={professionals}
+                            columns={COLUMNS}
+                            page={page}
+                            setPage={setPage}
+                            order={order}
+                            setOrder={setOrder}
+                            orderBy={orderBy}
+                            setOrderBy={setOrderBy}
+                            selected={selected}
+                            setSelected={setSelected}
+                            filterName={filterName}
+                            setFilterName={setFilterName}
+                            rowsPerPage={rowsPerPage}
+                            setRowsPerPage={setRowsPerPage}
+                            TableBodyComponent={TableBodyComponent}
+                            numSelected={selected.length}
+                            onDeleteSelected={handleDeleteSelected}
+                            loading={loading}
+                            getRowId={(row) => `${row.firstName} ${row.lastName}`}
+                            isServerSide={true}
+                            totalResults={totalCount}
+                        />
+                )}
             </Container>
 
             {/* Confirmation Dialog */}
