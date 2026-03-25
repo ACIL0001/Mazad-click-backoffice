@@ -15,6 +15,11 @@ export interface UserStatusStats {
 
 export interface UserStats {
   total: number;
+  verified: number;
+  active: number;
+  banned: number;
+  recommended: number;
+  certified: number;
   byType: {
     admin: UserStatusStats | number;
     professional: UserStatusStats;

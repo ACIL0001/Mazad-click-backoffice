@@ -13,8 +13,7 @@ export const UserAPI = {
   setPhone: (data: any): Promise<any> => requests.post('user/update/phone', data), // { tel, code }
   changePassword: (credentials: any): Promise<any> => requests.post(`users/change-password`, credentials),
   identity: (form: FormData): Promise<any> => requests.post('identities', form),
-  getList: (params: any): Promise<any> => requests.get('users/list', { params }),
-  
+
   // Admin role methods
   getAll: (): Promise<any> => requests.get(`users/all`),
   getAdmins: (): Promise<any> => requests.get(`users/admins`), 
@@ -56,4 +55,30 @@ export const UserAPI = {
   // Certification methods
   setUserCertified: (userId: string, isCertified: boolean): Promise<any> => 
     requests.put(`users/certified/${userId}`, { isCertified }),
+
+  getList: (params: {
+    page?: number;
+    limit?: number;
+    search?: string;
+    type?: string | string[];
+    isActive?: boolean;
+    isVerified?: boolean;
+    isBanned?: boolean;
+    isCertified?: boolean;
+    isRecommended?: boolean;
+    sortBy?: string;
+    sortOrder?: 'asc' | 'desc';
+  }): Promise<any> => {
+    const query = new URLSearchParams();
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== '') {
+        if (Array.isArray(value)) {
+          value.forEach(v => query.append(key, v));
+        } else {
+          query.append(key, String(value));
+        }
+      }
+    });
+    return requests.get(`users/list?${query.toString()}`);
+  },
 };

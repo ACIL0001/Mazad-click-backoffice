@@ -114,7 +114,7 @@ export const useNavConfig = () => {
       icon: getIcon('ph:user-focus-bold'),
       children: [
         {
-          title: t('navigation.list') || 'Liste',
+          title: 'Profiles',
           path: '/dashboard/identities',
           icon: getIcon('mdi:format-list-bulleted'),
         },
@@ -280,7 +280,7 @@ const navConfig = [
     icon: getIcon('ph:user-focus-bold'),
     children: [
       {
-        title: 'Liste',
+        title: 'Profiles',
         path: '/dashboard/identities',
         icon: getIcon('mdi:format-list-bulleted'),
       },

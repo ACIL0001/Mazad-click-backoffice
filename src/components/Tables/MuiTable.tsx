@@ -8,6 +8,7 @@ import {
   TableCell,
   TableContainer,
   TablePagination,
+  Pagination,
   TextField,
   Box,
   InputAdornment,
@@ -33,8 +34,11 @@ import {
   Slide,
   Portal,
   Collapse,
+  IconButton,
 } from "@mui/material"
 import SearchIcon from "@mui/icons-material/Search"
+import ChevronLeftIcon from "@mui/icons-material/ChevronLeft"
+import ChevronRightIcon from "@mui/icons-material/ChevronRight"
 import { alpha, useTheme, styled } from "@mui/material/styles"
 import { filter } from "lodash"
 import { useState, useEffect, useRef, useCallback } from "react"
@@ -543,6 +547,19 @@ export default function MuiTable({
 
   const handleChangePage = (event: unknown, newPage: number) => {
     setPage(newPage)
+    if (tableRef.current) {
+      const topOffset = 100 // Subtracting 100px so the table title/actions are visible
+      const elementPosition = tableRef.current.getBoundingClientRect().top + window.pageYOffset
+      window.scrollTo({
+        top: elementPosition - topOffset,
+        behavior: 'smooth',
+      })
+    } else {
+      window.scrollTo({
+        top: 0,
+        behavior: 'smooth',
+      })
+    }
   }
 
   const handleChangeRowsPerPage = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -974,7 +991,7 @@ export default function MuiTable({
           }}
         >
           <TablePagination
-            rowsPerPageOptions={[5, 10, 25, 50]}
+            rowsPerPageOptions={[5, 10, 25, 50, 100, 250, 500]}
             component="div"
             count={totalCount}
             rowsPerPage={rowsPerPage}
@@ -1015,26 +1032,12 @@ export default function MuiTable({
                 mt: { xs: 0, sm: 0 },
                 "& button": {
                   borderRadius: 1.5,
-                  width: { xs: 36, sm: 40 },
-                  height: { xs: 36, sm: 40 },
-                  margin: { xs: "0 2px", sm: "0 4px" },
-                  border: `1px solid ${theme.palette.divider}`,
-                  backgroundColor: theme.palette.background.paper,
-                  boxShadow: theme.shadows[1],
-                  transition: theme.transitions.create(['border-color', 'background-color'], {
-                    duration: theme.transitions.duration.short,
-                  }),
-                  "&:hover": {
-                    backgroundColor: alpha(theme.palette.primary.main, 0.08),
-                    borderColor: theme.palette.primary.main,
+                  margin: { xs: '0 2px', sm: '0 4px' },
+                  "&.Mui-selected": {
+                    boxShadow: theme.shadows[2],
                   },
-                  "&.Mui-disabled": {
-                    borderColor: alpha(theme.palette.divider, 0.5),
-                    color: theme.palette.text.disabled,
-                    backgroundColor: alpha(theme.palette.grey[100], 0.5),
-                  },
-                },
-              },
+                }
+              }
             }}
           />
         </Box>

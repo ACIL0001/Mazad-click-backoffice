@@ -33,8 +33,8 @@ const UserProvider = ({ children }: any) => {
     const updateAdmins = useCallback(async () => {
         try {
             console.log('Fetching admins - Auth state:', { isLogged, isReady, hasTokens: !!tokens?.accessToken });
-            const { data } = await UserAPI.getAdmins();
-            setAdmins(data);
+            const data = await UserAPI.getAdmins();
+            setAdmins(data || []);
         } catch (error) {
             console.error('Error fetching admins:', error);
         }
@@ -43,8 +43,8 @@ const UserProvider = ({ children }: any) => {
     const updateClients = useCallback(async () => {
         try {
             console.log('Fetching clients - Auth state:', { isLogged, isReady, hasTokens: !!tokens?.accessToken });
-            const { data } = await UserAPI.getClients();
-            setClients(data);
+            const data = await UserAPI.getClients();
+            setClients(data || []);
         } catch (error) {
             console.error('Error fetching clients:', error);
         }
@@ -53,8 +53,8 @@ const UserProvider = ({ children }: any) => {
     const updateAllUsers = useCallback(async () => {
         try {
             console.log('Fetching all users - Auth state:', { isLogged, isReady, hasTokens: !!tokens?.accessToken });
-            const { data } = await UserAPI.getAll();
-            setUsers(data);
+            const data = await UserAPI.getAll();
+            setUsers(data || []);
         } catch (error) {
             console.error('Error fetching all users:', error);
         }
@@ -75,7 +75,7 @@ const UserProvider = ({ children }: any) => {
         }
         
         // Prevent re-fetching if we already loaded it recently (3 minutes) to save bandwidth
-        if (users.length > 0 && now - lastFetchTime < 180000) {
+        if (users?.length > 0 && now - lastFetchTime < 180000) {
             console.log('UserContext: Skipping fetch - already cached');
             return;
         }

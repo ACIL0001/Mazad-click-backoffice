@@ -16,8 +16,11 @@ import {
   TextField,
   InputAdornment,
   MenuItem,
+  IconButton,
+  Tooltip,
 } from '@mui/material';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useSnackbar } from 'notistack';
 import { useTheme } from '@mui/material/styles';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
@@ -34,11 +37,31 @@ export default function VerificationHistory() {
   
   const [filterAction, setFilterAction] = useState<string>('ALL');
   const [searchQuery, setSearchQuery] = useState('');
+  
+  const queryClient = useQueryClient();
+  const { enqueueSnackbar } = useSnackbar();
 
   const { data: historyData, isLoading, error } = useQuery({
     queryKey: ['identity-history'],
     queryFn: IdentityHistoryAPI.getHistory,
   });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => IdentityHistoryAPI.deleteHistory(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['identity-history'] });
+      enqueueSnackbar('Historique supprimé avec succès', { variant: 'success' });
+    },
+    onError: (err: any) => {
+      enqueueSnackbar(err?.response?.data?.message || 'Erreur lors de la suppression', { variant: 'error' });
+    }
+  });
+
+  const handleDelete = (id: string) => {
+    if (window.confirm('Êtes-vous sûr de vouloir supprimer cet historique ?')) {
+      deleteMutation.mutate(id);
+    }
+  };
 
   const filteredHistory = useMemo(() => {
     if (!historyData) return [];
@@ -160,6 +183,7 @@ export default function VerificationHistory() {
                     <TableCell>Détails / Notes</TableCell>
                     <TableCell>Modifié par</TableCell>
                     <TableCell>Date</TableCell>
+                    {/* <TableCell align="right">Actions</TableCell> */}
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -210,6 +234,17 @@ export default function VerificationHistory() {
                                 {format(new Date(row.createdAt), 'dd MMM yyyy HH:mm', { locale: fr })}
                             </Typography>
                         </TableCell>
+                        {/* <TableCell align="right">
+                          <Tooltip title="Supprimer">
+                            <IconButton 
+                              color="error" 
+                              onClick={() => handleDelete(row._id)}
+                              disabled={deleteMutation.isPending}
+                            >
+                              <Iconify icon="eva:trash-2-outline" />
+                            </IconButton>
+                          </Tooltip>
+                        </TableCell> */}
                       </TableRow>
                     );
                   })}

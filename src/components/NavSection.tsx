@@ -411,7 +411,7 @@ export default function NavSection({ ...other }) {
         requiresAdmin: true,
         children: [
           {
-            title: 'Liste',
+            title: 'Profiles',
             path: '/dashboard/identities',
             icon: getIcon('mdi:format-list-bulleted'),
           },

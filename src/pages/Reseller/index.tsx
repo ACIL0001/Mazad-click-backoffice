@@ -1,6 +1,7 @@
 import { sentenceCase } from 'change-case';
 import { useState, useEffect, useCallback } from 'react';
-import { Link as RouterLink, useNavigate } from 'react-router-dom';
+import { useQuery, keepPreviousData } from '@tanstack/react-query';
+import { Link as RouterLink, useNavigate, useLocation } from 'react-router-dom';
 // material
 import {
     Stack,
@@ -24,6 +25,8 @@ import {
     DialogActions,
     IconButton,
     Alert,
+    ToggleButton,
+    ToggleButtonGroup
 } from '@mui/material';
 // components
 import Page from '../../components/Page';
@@ -37,6 +40,7 @@ import useMediaQuery from '@mui/material/useMediaQuery';
 
 import { UserAPI } from '@/api/user';
 import { ReviewAPI } from '@/api/review';
+import { StatsAPI } from '@/api/stats';
 import { ChangeEvent, MouseEvent } from 'react';
 
 // Icons for Dialog
@@ -109,17 +113,64 @@ export default function Reseller() {
 
     const { enqueueSnackbar } = useSnackbar();
     const navigate = useNavigate();
-
-    const [resellers, setResellers] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
+    const location = useLocation();
 
     const [page, setPage] = useState(0);
-    const [order, setOrder] = useState<'asc' | 'desc'>('asc');
+    const [order, setOrder] = useState<'asc' | 'desc'>('desc');
     const [selected, setSelected] = useState<string[]>([]);
     const [orderBy, setOrderBy] = useState('createdAt');
     const [filterName, setFilterName] = useState('');
     const [rowsPerPage, setRowsPerPage] = useState(10);
+
+    // Initialize state from URL params if available
+    const initialSearchParams = new URLSearchParams(window.location.search);
+    const [verifiedFilter, setVerifiedFilter] = useState<'all' | 'verified' | 'unverified'>(() => {
+        const filterParam = initialSearchParams.get('verifiedFilter');
+        return (filterParam === 'verified' || filterParam === 'unverified') ? filterParam : 'all';
+    });
+    const [certifiedFilter, setCertifiedFilter] = useState<'all' | 'certified' | 'uncertified'>(() => {
+        const filterParam = initialSearchParams.get('certifiedFilter');
+        return (filterParam === 'certified' || filterParam === 'uncertified') ? filterParam : 'all';
+    });
+    const [recommendedFilter, setRecommendedFilter] = useState<'all' | 'recommended' | 'unrecommended'>(() => {
+        const filterParam = initialSearchParams.get('recommendedFilter');
+        return (filterParam === 'recommended' || filterParam === 'unrecommended') ? filterParam : 'all';
+    });
+
+    // Fetch resellers with pagination
+    const { data: resellersData, isLoading: loading, refetch: fetchResellers } = useQuery({
+        queryKey: ['resellers-list', page, rowsPerPage, filterName, order, orderBy, verifiedFilter, certifiedFilter, recommendedFilter],
+        queryFn: async () => {
+            try {
+                const response = await UserAPI.getList({
+                    page,
+                    limit: rowsPerPage,
+                    search: filterName,
+                    type: 'RESELLER',
+                    sortBy: orderBy,
+                    sortOrder: order,
+                    isVerified: verifiedFilter === 'verified' ? true : verifiedFilter === 'unverified' ? false : undefined,
+                    isCertified: certifiedFilter === 'certified' ? true : certifiedFilter === 'uncertified' ? false : undefined,
+                    isRecommended: recommendedFilter === 'recommended' ? true : recommendedFilter === 'unrecommended' ? false : undefined,
+                });
+                return response;
+            } catch (e) {
+                console.error("Failed to load resellers:", e);
+                enqueueSnackbar('Chargement des revendeurs échoué.', { variant: 'error' });
+                throw e;
+            }
+        },
+        placeholderData: keepPreviousData,
+    });
+
+    const resellers = resellersData?.data || [];
+    const totalCount = resellersData?.total || 0;
+
+    // Fetch user stats for the cards
+    const { data: userStats, refetch: fetchStats } = useQuery({
+        queryKey: ['user-stats'],
+        queryFn: () => StatsAPI.getUserStats(),
+    });
 
     // Confirmation Dialog States
     const [openConfirmDialog, setOpenConfirmDialog] = useState(false);
@@ -139,28 +190,7 @@ export default function Reseller() {
     // Loading states for status toggles
     const [togglingStatus, setTogglingStatus] = useState<{ [key: string]: boolean }>({});
 
-    const fetchResellers = useCallback(async () => {
-        try {
-            setLoading(true);
-            setError(null);
-            // UPDATED: Now fetches only verified resellers
-            const data = await UserAPI.getResellers();
-            console.log('Fetched verified resellers from API:', data);
-            setResellers(data);
-            enqueueSnackbar(`${data.length} revendeurs vérifiés chargés avec succès.`, { variant: 'success' });
-        } catch (err: any) {
-            console.error("Failed to load resellers:", err);
-            setError(err.message || 'Chargement des revendeurs échoué.');
-            enqueueSnackbar('Chargement des revendeurs échoué.', { variant: 'error' });
-        } finally {
-            setLoading(false);
-        }
-    }, [enqueueSnackbar]);
-
-    useEffect(() => {
-        fetchResellers();
-        return () => { };
-    }, [fetchResellers]);
+    // Dialog states continue...
 
     // Confirmation Dialog Handlers
     const handleOpenConfirmDialog = (id: string | string[], name: string, type: string, message: string) => {
@@ -259,6 +289,7 @@ export default function Reseller() {
                 .then((res) => {
                     enqueueSnackbar(successMessage, { variant: 'success' });
                     fetchResellers();
+                    fetchStats();
                     handleCloseConfirmDialog();
                     setSelected([]);
                 })
@@ -323,6 +354,7 @@ export default function Reseller() {
             await ReviewAPI.adjustUserRateByAdmin(resellerToRateId, operationDelta);
             enqueueSnackbar('Rate du revendeur mise à jour avec succès.', { variant: 'success' });
             fetchResellers();
+            fetchStats();
             handleCloseRateDialog();
         } catch (e: any) {
             console.error("Failed to update rate:", e);
@@ -425,6 +457,7 @@ export default function Reseller() {
             await UserAPI.recommendUser(id, !currentValue);
             enqueueSnackbar(`Recommandation ${!currentValue ? 'ajoutée' : 'retirée'} avec succès.`, { variant: 'success' });
             fetchResellers();
+            fetchStats();
         } catch (error: any) {
             console.error('Failed to toggle recommended status:', error);
             enqueueSnackbar(error?.response?.data?.message || 'Échec de la modification du statut.', { variant: 'error' });
@@ -460,39 +493,21 @@ export default function Reseller() {
     };
 
     const TableBodyComponent = ({ data = [], selected, setSelected, onDeleteSingle }: { data: any[], selected: string[], setSelected: (selected: string[]) => void, onDeleteSingle?: (id: string) => void }) => {
-
-        const displayedData = applySortFilter(
-            data,
-            getComparator(order, orderBy),
-            filterName,
-            COLUMNS.filter(col => col.searchable).map(col => col.id)
-        );
-
         if (loading) {
             return (
                 <TableBody>
                     <TableRow>
                         <TableCell colSpan={COLUMNS.length} align="center" sx={{ py: 4 }}>
-                            <Typography>Chargement des revendeurs vérifiés...</Typography>
+                            <CircularProgress size={32} />
+                            <Typography sx={{ mt: 1 }}>Chargement des revendeurs...</Typography>
                         </TableCell>
                     </TableRow>
                 </TableBody>
             );
         }
 
-        if (error) {
-            return (
-                <TableBody>
-                    <TableRow>
-                        <TableCell colSpan={COLUMNS.length} align="center" sx={{ py: 4 }}>
-                            <Typography color="error" variant={isMobile ? "body2" : "body1"}>{error}</Typography>
-                        </TableCell>
-                    </TableRow>
-                </TableBody>
-            );
-        }
 
-        if (displayedData.length === 0) {
+        if (resellers.length === 0 && !loading) {
             return (
                 <TableBody>
                     <TableRow>
@@ -500,10 +515,14 @@ export default function Reseller() {
                             <Box sx={{ textAlign: 'center' }}>
                                 <InfoIcon sx={{ fontSize: 48, color: 'text.secondary', mb: 2 }} />
                                 <Typography variant="h6" sx={{ mb: 1, color: 'text.secondary' }}>
-                                    Aucun revendeur vérifié trouvé
+                                    {verifiedFilter === 'verified' ? 'Aucun revendeur vérifié trouvé' :
+                                     verifiedFilter === 'unverified' ? 'Aucun revendeur non vérifié trouvé' :
+                                     'Aucun revendeur trouvé'}
                                 </Typography>
                                 <Typography variant="body2" sx={{ color: 'text.secondary', maxWidth: 400, mx: 'auto' }}>
-                                    Les revendeurs n'apparaîtront dans cette liste qu'après avoir soumis et fait vérifier leurs documents d'identité par un administrateur.
+                                    {verifiedFilter === 'verified' && "Les revendeurs n'apparaîtront dans cette liste qu'après avoir soumis et fait vérifier leurs documents d'identité par un administrateur."}
+                                    {verifiedFilter === 'unverified' && "Cette liste affiche les revendeurs dont les documents d'identité n'ont pas encore été vérifiés."}
+                                    {verifiedFilter === 'all' && "Aucun revendeur ne correspond à vos critères de recherche ou de filtre."}
                                 </Typography>
                             </Box>
                         </TableCell>
@@ -514,7 +533,7 @@ export default function Reseller() {
 
         return (
             <TableBody>
-                {displayedData.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map((row, index) => {
+                {resellers.map((row: any, index: number) => {
                     const { _id, firstName, lastName, phone, isVerified, isActive, isBanned, isRecommended, createdAt, rate } = row;
                     const resellerFullName = `${firstName} ${lastName}`;
                     const isItemSelected = selected.indexOf(resellerFullName) !== -1;
@@ -705,14 +724,79 @@ export default function Reseller() {
     return (
         <Page title="Users - Resellers">
             <Container maxWidth="xl" sx={{ py: { xs: 2, sm: 3 } }}>
-                {/* Info Alert */}
-                <Alert
-                    severity="info"
-                    sx={{ mb: 3 }}
-                    icon={<InfoIcon />}
-                >
-                    Cette page n'affiche que les revendeurs dont les documents d'identité ont été vérifiés et acceptés (statut: DONE).
-                </Alert>
+                {/* Filters Container */}
+                <Box sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 3, flexWrap: 'wrap' }}>
+                    <Typography variant="body2" sx={{ fontWeight: 600, color: 'text.secondary' }}>
+                        Filtrer par statut:
+                    </Typography>
+                    <ToggleButtonGroup
+                        value={verifiedFilter !== 'all' ? verifiedFilter : 
+                               (certifiedFilter !== 'all' ? certifiedFilter : 
+                                (recommendedFilter !== 'all' ? recommendedFilter : 'all'))}
+                        exclusive
+                        onChange={(event, newValue) => {
+                            if (newValue !== null) {
+                                setPage(0);
+                                const params = new URLSearchParams(window.location.search);
+                                params.delete('page');
+                                
+                                // Reset all first
+                                setVerifiedFilter('all');
+                                setCertifiedFilter('all');
+                                setRecommendedFilter('all');
+                                params.delete('verifiedFilter');
+                                params.delete('certifiedFilter');
+                                params.delete('recommendedFilter');
+
+                                if (newValue === 'verified' || newValue === 'unverified') {
+                                    setVerifiedFilter(newValue);
+                                    params.set('verifiedFilter', newValue);
+                                } else if (newValue === 'certified' || newValue === 'uncertified') {
+                                    setCertifiedFilter(newValue);
+                                    params.set('certifiedFilter', newValue);
+                                } else if (newValue === 'recommended' || newValue === 'unrecommended') {
+                                    setRecommendedFilter(newValue);
+                                    params.set('recommendedFilter', newValue);
+                                }
+
+                                navigate({ search: params.toString() }, { replace: true });
+                            }
+                        }}
+                        size="small"
+                        sx={{
+                            '& .MuiToggleButton-root': {
+                                px: 2,
+                                py: 0.75,
+                                fontSize: '0.875rem',
+                                textTransform: 'none',
+                                borderColor: 'divider',
+                                '&.Mui-selected': {
+                                    backgroundColor: theme.palette.primary.main,
+                                    color: 'white',
+                                    '&:hover': {
+                                        backgroundColor: theme.palette.primary.dark,
+                                    },
+                                },
+                            },
+                        }}
+                    >
+                        <ToggleButton value="all">
+                            Tous ({userStats?.byType?.reseller?.total || 0})
+                        </ToggleButton>
+                        <ToggleButton value="verified">
+                            Compte Validé ({userStats?.byType?.reseller?.verified || 0})
+                        </ToggleButton>
+                        <ToggleButton value="unverified">
+                            Compte Non Validé ({(userStats?.byType?.reseller?.total || 0) - (userStats?.byType?.reseller?.verified || 0)})
+                        </ToggleButton>
+                        <ToggleButton value="certified">
+                            Certifié ({userStats?.byType?.reseller?.certified || 0})
+                        </ToggleButton>
+                        <ToggleButton value="recommended">
+                            Recommandé ({userStats?.byType?.reseller?.recommended || 0})
+                        </ToggleButton>
+                    </ToggleButtonGroup>
+                </Box>
 
                 {/* Cards for reseller statistics */}
                 <Grid container spacing={isMobile ? 2 : 3} sx={{ mb: { xs: 2, sm: 3 } }}>
@@ -727,10 +811,10 @@ export default function Reseller() {
                             </IconWrapperStyle>
                             <Box>
                                 <Typography variant={isMobile ? "body2" : "h6"} color="textSecondary" sx={{ opacity: 0.72 }}>
-                                    Revendeurs Vérifiés
+                                    Total Revendeurs
                                 </Typography>
                                 <Typography variant={isMobile ? "h5" : "h4"} component="div">
-                                    {totalResellers}
+                                    {userStats?.byType?.reseller?.total || 0}
                                 </Typography>
                             </Box>
                         </StyledCard>
@@ -750,7 +834,7 @@ export default function Reseller() {
                                     Comptes Validés
                                 </Typography>
                                 <Typography variant={isMobile ? "h5" : "h4"} component="div">
-                                    {verifiedResellers}
+                                    {userStats?.byType?.reseller?.verified || 0}
                                 </Typography>
                             </Box>
                         </StyledCard>
@@ -770,7 +854,7 @@ export default function Reseller() {
                                     Revendeurs Actifs
                                 </Typography>
                                 <Typography variant={isMobile ? "h5" : "h4"} component="div">
-                                    {activeResellers}
+                                    {userStats?.byType?.reseller?.active || 0}
                                 </Typography>
                             </Box>
                         </StyledCard>
@@ -790,7 +874,7 @@ export default function Reseller() {
                                     Recommandés
                                 </Typography>
                                 <Typography variant={isMobile ? "h5" : "h4"} component="div">
-                                    {recommendedResellers}
+                                    {userStats?.byType?.reseller?.recommended || 0} 
                                 </Typography>
                             </Box>
                         </StyledCard>
@@ -810,7 +894,7 @@ export default function Reseller() {
                                     Revendeurs Bannis
                                 </Typography>
                                 <Typography variant={isMobile ? "h5" : "h4"} component="div">
-                                    {bannedResellers}
+                                    {userStats?.byType?.reseller?.banned || 0}
                                 </Typography>
                             </Box>
                         </StyledCard>
@@ -819,26 +903,28 @@ export default function Reseller() {
 
                 {resellers && (
                     <MuiTable
-                        data={resellers}
-                        columns={COLUMNS}
-                        page={page}
-                        setPage={setPage}
-                        order={order}
-                        setOrder={setOrder}
-                        orderBy={orderBy}
-                        setOrderBy={setOrderBy}
-                        selected={selected}
-                        setSelected={setSelected}
-                        filterName={filterName}
-                        setFilterName={setFilterName}
-                        rowsPerPage={rowsPerPage}
-                        setRowsPerPage={setRowsPerPage}
-                        TableBodyComponent={TableBodyComponent}
-                        searchFields={['firstName', 'lastName', 'phone']}
-                        numSelected={selected.length}
-                        onDeleteSelected={handleDeleteSelected}
-                        loading={loading}
-                    />
+                    data={resellers}
+                    columns={COLUMNS}
+                    page={page}
+                    setPage={setPage}
+                    order={order}
+                    setOrder={setOrder}
+                    orderBy={orderBy}
+                    setOrderBy={setOrderBy}
+                    selected={selected}
+                    setSelected={setSelected}
+                    filterName={filterName}
+                    setFilterName={setFilterName}
+                    rowsPerPage={rowsPerPage}
+                    setRowsPerPage={setRowsPerPage}
+                    TableBodyComponent={TableBodyComponent}
+                    searchFields={['firstName', 'lastName', 'phone']}
+                    numSelected={selected.length}
+                    loading={loading}
+                    onDeleteSelected={handleDeleteSelected}
+                    isServerSide={true}
+                    totalResults={totalCount}
+                />
                 )}
             </Container>
 

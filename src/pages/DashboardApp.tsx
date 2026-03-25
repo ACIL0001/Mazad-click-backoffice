@@ -131,109 +131,169 @@ export default function ComprehensiveDashboard() {
     setTabValue(newValue)
   }
 
-  const { data: dashboardData, isLoading: loading, error: queryError } = useQuery({
-    queryKey: ['dashboard-comprehensive'],
+  // 1. Overview Query (Main 6 cards)
+  const { data: overviewData, isLoading: loadingOverview } = useQuery({
+    queryKey: ['dashboard-overview'],
     queryFn: async () => {
-      const [
-        userStats,
-        auctionStats,
-        tenderStats,
-        categoryStats,
-        dashboardStats,
-        userTimeSeries,
-        auctionTimeSeries,
-        pendingIdentities,
-        subscriptionStats,
-        sectorStats
-      ] = await Promise.all([
-        StatsAPI.getUserStats().catch(() => ({ total: 0, byType: { admin: 0, professional: 0, client: 0, reseller: 0 } })),
-        StatsAPI.getAuctionStats().catch(() => ({ total: 0, byStatus: { active: 0, completed: 0, pending: 0, cancelled: 0 }, byCategory: [], dailyAverage: 0, weeklyGrowth: 0 })),
-        StatsAPI.getTenderStats().catch(() => ({ total: 0, byStatus: { open: 0, awarded: 0, closed: 0, archived: 0 }, byType: { product: 0, service: 0 }, dailyAverage: 0, weeklyGrowth: 0 })),
-        StatsAPI.getCategoryStats().catch(() => []),
-        StatsAPI.getDashboardStats().catch(() => ({ widgets: [] })),
+      const [userStats, auctionStats, tenderStats, subscriptionStats] = await Promise.all([
+        StatsAPI.getUserStats().catch(() => ({ total: 0 })),
+        StatsAPI.getAuctionStats().catch(() => ({ total: 0, byStatus: { active: 0 } })),
+        StatsAPI.getTenderStats().catch(() => ({ total: 0, byStatus: { open: 0 } })),
+        SubscriptionAPI.getStats().catch(() => ({ total: 0 }))
+      ]);
+      return {
+        totalUsers: userStats.total,
+        totalAuctions: auctionStats.total,
+        totalTenders: tenderStats.total,
+        activeTenders: tenderStats.byStatus?.open || 0,
+        totalRevenue: subscriptionStats.total,
+        activeAuctions: auctionStats.byStatus?.active || 0,
+      };
+    },
+    staleTime: 60000,
+  });
+
+  // 2. Secondary Stats Query (Verified Users, Pending Identities, Total Offers)
+  const { data: secondaryData, isLoading: loadingSecondary } = useQuery({
+    queryKey: ['dashboard-secondary'],
+    queryFn: async () => {
+      const [userStats, pendingIdentities] = await Promise.all([
+        StatsAPI.getUserStats().catch(() => ({ total: 0 })),
+        IdentityAPI.getPendingIdentities().catch(() => []),
+      ]);
+      return {
+        verifiedUsers: Math.floor((userStats.total || 0) * 0.85),
+        pendingIdentities: pendingIdentities.length || 0,
+        totalOffers: 0,
+      };
+    },
+    staleTime: 60000,
+  });
+
+  // 3. Sector Stats Query
+  const { data: sectorStats, isLoading: loadingSectors } = useQuery({
+    queryKey: ['dashboard-sectors'],
+    queryFn: () => StatsAPI.getUsersBySector().catch(() => []),
+    staleTime: 300000, // 5 minutes
+  });
+
+  // 4. Charts Data Query
+  const { data: chartsData, isLoading: loadingCharts } = useQuery({
+    queryKey: ['dashboard-charts'],
+    queryFn: async () => {
+      const [userTimeSeries, auctionTimeSeries, categoryStats] = await Promise.all([
         StatsAPI.getUserTimeSeries().catch(() => ({ labels: [], data: [] })),
         StatsAPI.getAuctionTimeSeries().catch(() => ({ labels: [], data: [] })),
-        IdentityAPI.getPendingIdentities().catch(() => []),
-        SubscriptionAPI.getStats().catch(() => ({ total: 0, subscriptions: 0, commissions: 0, growth: 0 })),
-        StatsAPI.getUsersBySector().catch(() => [])
+        StatsAPI.getCategoryStats().catch(() => []),
       ]);
 
-      // Process category distribution for pie chart
       const categoryDistribution = categoryStats.slice(0, 5).map((cat, index) => ({
         name: cat.name,
         value: cat.count,
         color: COLORS[index % COLORS.length]
-      }))
+      }));
 
-      // Process user growth data
-      const userGrowthData = userTimeSeries.labels.map((label, index) => ({
+      const userGrowth = userTimeSeries.labels.map((label, index) => ({
         month: label,
         users: userTimeSeries.data[index] || 0
-      }))
+      }));
 
-      // Process auction trend data
-      const auctionTrendData = auctionTimeSeries.labels.map((label, index) => ({
+      const revenueData = auctionTimeSeries.labels.map((label, index) => ({
         month: label,
         auctions: auctionTimeSeries.data[index] || 0,
         users: userTimeSeries.data[index] || 0
-      }))
+      }));
 
-      // Generate recent activities
-      const recentActivities = [
-        { type: 'auction', message: `${auctionStats.byStatus.active} enchères actives en cours`, time: 'Maintenant' },
-        { type: 'tender', message: `${tenderStats.byStatus.open} soumissions ouvertes`, time: '2 min' },
-        { type: 'user', message: `${userStats.total} utilisateurs au total`, time: '5 min' },
-        { type: 'identity', message: `${pendingIdentities.length} vérifications en attente`, time: '23 min' },
-        { type: 'subscription', message: 'Revenus d\'abonnements mis à jour', time: '1 h' }
-      ]
+      return { categoryDistribution, userGrowth, revenueData };
+    },
+    staleTime: 300000,
+  });
+
+  // 5. Tabs Data Query
+  const { data: tabsStats, isLoading: loadingTabs } = useQuery({
+    queryKey: ['dashboard-tabs'],
+    queryFn: async () => {
+      const [userStats, auctionStats, tenderStats, categoryStats, subscriptionStats, pendingIdentities] = await Promise.all([
+        StatsAPI.getUserStats().catch(() => ({ total: 0, byType: { admin: { total: 0 }, professional: { total: 0 }, client: { total: 0 }, reseller: { total: 0 } } })),
+        StatsAPI.getAuctionStats().catch(() => ({ total: 0, byStatus: { active: 0, completed: 0, pending: 0, cancelled: 0 }, byCategory: [], dailyAverage: 0, weeklyGrowth: 0 })),
+        StatsAPI.getTenderStats().catch(() => ({ total: 0, byStatus: { open: 0, awarded: 0, closed: 0, archived: 0 }, byType: { product: 0, service: 0 }, dailyAverage: 0, weeklyGrowth: 0 })),
+        StatsAPI.getCategoryStats().catch(() => []),
+        SubscriptionAPI.getStats().catch(() => ({ total: 0, subscriptions: 0, commissions: 0, growth: 0 })),
+        IdentityAPI.getPendingIdentities().catch(() => []),
+      ]);
 
       return {
-        stats: {
-          totalUsers: userStats.total || 0,
-          totalAuctions: auctionStats.total || 0,
-          totalTenders: tenderStats.total || 0,
-          activeTenders: tenderStats.byStatus?.open || 0,
-          totalRevenue: subscriptionStats.total || 0,
-          activeAuctions: auctionStats.byStatus?.active || 0,
-          totalOffers: 0, 
-          verifiedUsers: Math.floor((userStats.total || 0) * 0.85),
-          pendingIdentities: pendingIdentities.length || 0
-        },
         userStats,
         auctionStats,
         tenderStats,
         categoryStats,
+        subscriptionStats,
         identityStats: {
           pending: pendingIdentities.length || 0,
           verified: Math.floor((userStats.total || 0) * 0.85)
-        },
-        subscriptionStats,
-        sectorStats,
-        revenueData: auctionTrendData,
-        userGrowth: userGrowthData,
-        categoryDistribution,
-        recentActivities
-      } as DashboardData;
+        }
+      };
     },
-    staleTime: 60000, // 1 minute stale time
-    refetchInterval: 30000, // Background polling every 30 seconds
-  })
+    staleTime: 120000,
+  });
 
-  const error = queryError ? "Erreur lors du chargement des données. Certaines données peuvent ne pas être disponibles." : null
+  // 6. Recent Activity Query
+  const { data: recentActivities, isLoading: loadingActivities } = useQuery({
+    queryKey: ['dashboard-activities'],
+    queryFn: async () => {
+      const [userStats, auctionStats, tenderStats, pendingIdentities] = await Promise.all([
+        StatsAPI.getUserStats().catch(() => ({ total: 0 })),
+        StatsAPI.getAuctionStats().catch(() => ({ total: 0, byStatus: { active: 0 } })),
+        StatsAPI.getTenderStats().catch(() => ({ total: 0, byStatus: { open: 0 } })),
+        IdentityAPI.getPendingIdentities().catch(() => []),
+      ]);
 
-  if (loading) {
+      return [
+        { type: 'auction', message: `${auctionStats.byStatus?.active || 0} enchères actives en cours`, time: 'Maintenant' },
+        { type: 'tender', message: `${tenderStats.byStatus?.open || 0} soumissions ouvertes`, time: '2 min' },
+        { type: 'user', message: `${userStats.total || 0} utilisateurs au total`, time: '5 min' },
+        { type: 'identity', message: `${pendingIdentities.length || 0} vérifications en attente`, time: '23 min' },
+        { type: 'subscription', message: 'Revenus d\'abonnements mis à jour', time: '1 h' }
+      ];
+    },
+    staleTime: 60000,
+  });
+
+  const isLoadingInitial = loadingOverview;
+
+  if (isLoadingInitial) {
     return <DashboardSkeleton />
   }
 
-  if (!dashboardData) {
-    return (
-      <Container maxWidth="xl" sx={{ mt: 4 }}>
-        <Alert severity="error">
-          Erreur critique lors du chargement des données.
-        </Alert>
-      </Container>
-    )
-  }
+  // Combined dashboard data for backward compatibility in parts of the template
+  const dashboardData = {
+    stats: {
+      ...(overviewData || {
+        totalUsers: 0,
+        totalAuctions: 0,
+        totalTenders: 0,
+        activeTenders: 0,
+        totalRevenue: 0,
+        activeAuctions: 0,
+      }),
+      ...(secondaryData || {
+        verifiedUsers: 0,
+        pendingIdentities: 0,
+        totalOffers: 0,
+      })
+    },
+    userStats: tabsStats?.userStats || { byType: { admin: { total: 0 }, professional: { total: 0 }, client: { total: 0 }, reseller: { total: 0 } } },
+    auctionStats: tabsStats?.auctionStats || { byStatus: { active: 0, completed: 0, pending: 0, cancelled: 0 }, total: 0, dailyAverage: 0, weeklyGrowth: 0 },
+    tenderStats: tabsStats?.tenderStats || { byStatus: { open: 0, awarded: 0, closed: 0, archived: 0 }, byType: { product: 0, service: 0 }, dailyAverage: 0, weeklyGrowth: 0 },
+    categoryStats: tabsStats?.categoryStats || [],
+    identityStats: tabsStats?.identityStats || { pending: 0, verified: 0 },
+    subscriptionStats: tabsStats?.subscriptionStats || { total: 0, subscriptions: 0, commissions: 0, growth: 0 },
+    sectorStats: sectorStats || [],
+    revenueData: chartsData?.revenueData || [],
+    userGrowth: chartsData?.userGrowth || [],
+    categoryDistribution: chartsData?.categoryDistribution || [],
+    recentActivities: recentActivities || []
+  };
 
   return (
     <Container maxWidth="xl" sx={{ mt: 2, mb: 4 }}>
@@ -252,178 +312,167 @@ export default function ComprehensiveDashboard() {
         </Box>
       </Box>
 
-      {error && (
-        <Alert severity="warning" sx={{ mb: 3 }}>
-          {error}
-        </Alert>
-      )}
-
-      {/* Key Metrics Cards */}
+      {/* Primary Metrics Group */}
       <Grid container spacing={3} mb={4}>
-        <Grid item xs={12} sm={6} md={2}>
-          <Card sx={{ background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)", color: "white" }}>
-            <CardContent>
-              <Box display="flex" alignItems="center" justifyContent="space-between">
-                <Box>
-                  <Typography variant="h4" fontWeight="bold">
-                    {dashboardData.stats.totalUsers.toLocaleString()}
-                  </Typography>
-                  <Typography variant="body2" sx={{ opacity: 0.8 }}>
-                    Utilisateurs Total
-                  </Typography>
-                </Box>
-                <People sx={{ fontSize: 40, opacity: 0.8 }} />
-              </Box>
-            </CardContent>
-          </Card>
-        </Grid>
-
-        <Grid item xs={12} sm={6} md={2}>
-          <Card sx={{ background: "linear-gradient(135deg, #f093fb 0%, #f5576c 100%)", color: "white" }}>
-            <CardContent>
-              <Box display="flex" alignItems="center" justifyContent="space-between">
-                <Box>
-                  <Typography variant="h4" fontWeight="bold">
-                    {dashboardData.stats.totalAuctions.toLocaleString()}
-                  </Typography>
-                  <Typography variant="body2" sx={{ opacity: 0.8 }}>
-                    Enchères Total
-                  </Typography>
-                </Box>
-                <Gavel sx={{ fontSize: 40, opacity: 0.8 }} />
-              </Box>
-            </CardContent>
-          </Card>
-        </Grid>
-
-        <Grid item xs={12} sm={6} md={2}>
-          <Card sx={{ background: "linear-gradient(135deg, #30cfd0 0%, #330867 100%)", color: "white" }}>
-            <CardContent>
-              <Box display="flex" alignItems="center" justifyContent="space-between">
-                <Box>
-                  <Typography variant="h4" fontWeight="bold">
-                    {dashboardData.stats.totalTenders.toLocaleString()}
-                  </Typography>
-                  <Typography variant="body2" sx={{ opacity: 0.8 }}>
-                    Soumissions Total
-                  </Typography>
-                </Box>
-                <Assignment sx={{ fontSize: 40, opacity: 0.8 }} />
-              </Box>
-            </CardContent>
-          </Card>
-        </Grid>
-
-        <Grid item xs={12} sm={6} md={2}>
-          <Card sx={{ background: "linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)", color: "white" }}>
-            <CardContent>
-              <Box display="flex" alignItems="center" justifyContent="space-between">
-                <Box>
-                  <Typography variant="h4" fontWeight="bold">
-                    {(dashboardData.stats.totalRevenue / 1000).toFixed(0)}DZD
-                  </Typography>
-                  <Typography variant="body2" sx={{ opacity: 0.8 }}>
-                    Revenus Total
-                  </Typography>
-                </Box>
-                <AttachMoney sx={{ fontSize: 40, opacity: 0.8 }} />
-              </Box>
-            </CardContent>
-          </Card>
-        </Grid>
-
-        <Grid item xs={12} sm={6} md={2}>
-          <Card sx={{ background: "linear-gradient(135deg, #fa709a 0%, #fee140 100%)", color: "white" }}>
-            <CardContent>
-              <Box display="flex" alignItems="center" justifyContent="space-between">
-                <Box>
-                  <Typography variant="h4" fontWeight="bold">
-                    {dashboardData.stats.activeAuctions}
-                  </Typography>
-                  <Typography variant="body2" sx={{ opacity: 0.8 }}>
-                    Enchères Actives
-                  </Typography>
-                </Box>
-                <Gavel sx={{ fontSize: 40, opacity: 0.8 }} />
-              </Box>
-            </CardContent>
-          </Card>
-        </Grid>
-
-        <Grid item xs={12} sm={6} md={2}>
-          <Card sx={{ background: "linear-gradient(135deg, #89f7fe 0%, #66a6ff 100%)", color: "white" }}>
-            <CardContent>
-              <Box display="flex" alignItems="center" justifyContent="space-between">
-                <Box>
-                  <Typography variant="h4" fontWeight="bold">
-                    {dashboardData.stats.activeTenders}
-                  </Typography>
-                  <Typography variant="body2" sx={{ opacity: 0.8 }}>
-                    Soumissions Actives
-                  </Typography>
-                </Box>
-                <Assignment sx={{ fontSize: 40, opacity: 0.8 }} />
-              </Box>
-            </CardContent>
-          </Card>
-        </Grid>
+        {!overviewData && loadingOverview ? (
+          [...Array(6)].map((_, i) => (
+            <Grid item xs={12} sm={6} md={2} key={i}>
+              <Card><CardContent><Skeleton height={80} /></CardContent></Card>
+            </Grid>
+          ))
+        ) : (
+          <>
+            <Grid item xs={12} sm={6} md={2}>
+              <Card sx={{ background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)", color: "white" }}>
+                <CardContent>
+                  <Box display="flex" alignItems="center" justifyContent="space-between">
+                    <Box>
+                      <Typography variant="h4" fontWeight="bold">
+                        {dashboardData.stats.totalUsers.toLocaleString()}
+                      </Typography>
+                      <Typography variant="body2" sx={{ opacity: 0.8 }}>Utilisateurs Total</Typography>
+                    </Box>
+                    <People sx={{ fontSize: 40, opacity: 0.8 }} />
+                  </Box>
+                </CardContent>
+              </Card>
+            </Grid>
+            <Grid item xs={12} sm={6} md={2}>
+              <Card sx={{ background: "linear-gradient(135deg, #f093fb 0%, #f5576c 100%)", color: "white" }}>
+                <CardContent>
+                  <Box display="flex" alignItems="center" justifyContent="space-between">
+                    <Box>
+                      <Typography variant="h4" fontWeight="bold">
+                        {dashboardData.stats.totalAuctions.toLocaleString()}
+                      </Typography>
+                      <Typography variant="body2" sx={{ opacity: 0.8 }}>Enchères Total</Typography>
+                    </Box>
+                    <Gavel sx={{ fontSize: 40, opacity: 0.8 }} />
+                  </Box>
+                </CardContent>
+              </Card>
+            </Grid>
+            <Grid item xs={12} sm={6} md={2}>
+              <Card sx={{ background: "linear-gradient(135deg, #30cfd0 0%, #330867 100%)", color: "white" }}>
+                <CardContent>
+                  <Box display="flex" alignItems="center" justifyContent="space-between">
+                    <Box>
+                      <Typography variant="h4" fontWeight="bold">
+                        {dashboardData.stats.totalTenders.toLocaleString()}
+                      </Typography>
+                      <Typography variant="body2" sx={{ opacity: 0.8 }}>Soumissions Total</Typography>
+                    </Box>
+                    <Assignment sx={{ fontSize: 40, opacity: 0.8 }} />
+                  </Box>
+                </CardContent>
+              </Card>
+            </Grid>
+            <Grid item xs={12} sm={6} md={2}>
+              <Card sx={{ background: "linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)", color: "white" }}>
+                <CardContent>
+                  <Box display="flex" alignItems="center" justifyContent="space-between">
+                    <Box>
+                      <Typography variant="h4" fontWeight="bold">
+                        {(dashboardData.stats.totalRevenue / 1000).toFixed(0)}K DZD
+                      </Typography>
+                      <Typography variant="body2" sx={{ opacity: 0.8 }}>Revenus Total</Typography>
+                    </Box>
+                    <AttachMoney sx={{ fontSize: 40, opacity: 0.8 }} />
+                  </Box>
+                </CardContent>
+              </Card>
+            </Grid>
+            <Grid item xs={12} sm={6} md={2}>
+              <Card sx={{ background: "linear-gradient(135deg, #fa709a 0%, #fee140 100%)", color: "white" }}>
+                <CardContent>
+                  <Box display="flex" alignItems="center" justifyContent="space-between">
+                    <Box>
+                      <Typography variant="h4" fontWeight="bold">
+                        {dashboardData.stats.activeAuctions}
+                      </Typography>
+                      <Typography variant="body2" sx={{ opacity: 0.8 }}>Enchères Actives</Typography>
+                    </Box>
+                    <Gavel sx={{ fontSize: 40, opacity: 0.8 }} />
+                  </Box>
+                </CardContent>
+              </Card>
+            </Grid>
+            <Grid item xs={12} sm={6} md={2}>
+              <Card sx={{ background: "linear-gradient(135deg, #89f7fe 0%, #66a6ff 100%)", color: "white" }}>
+                <CardContent>
+                  <Box display="flex" alignItems="center" justifyContent="space-between">
+                    <Box>
+                      <Typography variant="h4" fontWeight="bold">
+                        {dashboardData.stats.activeTenders}
+                      </Typography>
+                      <Typography variant="body2" sx={{ opacity: 0.8 }}>Soumissions Actives</Typography>
+                    </Box>
+                    <Assignment sx={{ fontSize: 40, opacity: 0.8 }} />
+                  </Box>
+                </CardContent>
+              </Card>
+            </Grid>
+          </>
+        )}
       </Grid>
 
-      {/* Second Row of Metrics */}
+      {/* Secondary Metrics Group */}
       <Grid container spacing={3} mb={4}>
-        <Grid item xs={12} sm={6} md={4}>
-          <Card sx={{ background: "linear-gradient(135deg, #a8edea 0%, #fed6e3 100%)", color: "#333" }}>
-            <CardContent>
-              <Box display="flex" alignItems="center" justifyContent="space-between">
-                <Box>
-                  <Typography variant="h4" fontWeight="bold">
-                    {dashboardData.stats.verifiedUsers.toLocaleString()}
-                  </Typography>
-                  <Typography variant="body2" sx={{ opacity: 0.7 }}>
-                    Utilisateurs Vérifiés
-                  </Typography>
-                </Box>
-                <Verified sx={{ fontSize: 40, opacity: 0.7 }} />
-              </Box>
-            </CardContent>
-          </Card>
-        </Grid>
-
-        <Grid item xs={12} sm={6} md={4}>
-          <Card sx={{ background: "linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%)", color: "#333" }}>
-            <CardContent>
-              <Box display="flex" alignItems="center" justifyContent="space-between">
-                <Box>
-                  <Typography variant="h4" fontWeight="bold">
-                    {dashboardData.stats.pendingIdentities}
-                  </Typography>
-                  <Typography variant="body2" sx={{ opacity: 0.7 }}>
-                    Vérifications en Attente
-                  </Typography>
-                </Box>
-                <Assignment sx={{ fontSize: 40, opacity: 0.7 }} />
-              </Box>
-            </CardContent>
-          </Card>
-        </Grid>
-
-        <Grid item xs={12} sm={6} md={4}>
-          <Card sx={{ background: "linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%)", color: "#333" }}>
-            <CardContent>
-              <Box display="flex" alignItems="center" justifyContent="space-between">
-                <Box>
-                  <Typography variant="h4" fontWeight="bold">
-                    {dashboardData.stats.totalOffers}
-                  </Typography>
-                  <Typography variant="body2" sx={{ opacity: 0.7 }}>
-                    Offres Total
-                  </Typography>
-                </Box>
-                <LocalOffer sx={{ fontSize: 40, opacity: 0.7 }} />
-              </Box>
-            </CardContent>
-          </Card>
-        </Grid>
+        {!secondaryData && loadingSecondary ? (
+          [...Array(3)].map((_, i) => (
+            <Grid item xs={12} sm={6} md={4} key={i}>
+              <Card><CardContent><Skeleton height={80} /></CardContent></Card>
+            </Grid>
+          ))
+        ) : (
+          <>
+            <Grid item xs={12} sm={6} md={4}>
+              <Card sx={{ background: "linear-gradient(135deg, #a8edea 0%, #fed6e3 100%)", color: "#333" }}>
+                <CardContent>
+                  <Box display="flex" alignItems="center" justifyContent="space-between">
+                    <Box>
+                      <Typography variant="h4" fontWeight="bold">
+                        {dashboardData.stats.verifiedUsers.toLocaleString()}
+                      </Typography>
+                      <Typography variant="body2" sx={{ opacity: 0.7 }}>Utilisateurs Vérifiés</Typography>
+                    </Box>
+                    <Verified sx={{ fontSize: 40, opacity: 0.7 }} />
+                  </Box>
+                </CardContent>
+              </Card>
+            </Grid>
+            <Grid item xs={12} sm={6} md={4}>
+              <Card sx={{ background: "linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%)", color: "#333" }}>
+                <CardContent>
+                  <Box display="flex" alignItems="center" justifyContent="space-between">
+                    <Box>
+                      <Typography variant="h4" fontWeight="bold">
+                        {dashboardData.stats.pendingIdentities}
+                      </Typography>
+                      <Typography variant="body2" sx={{ opacity: 0.7 }}>Vérifications en Attente</Typography>
+                    </Box>
+                    <Assignment sx={{ fontSize: 40, opacity: 0.7 }} />
+                  </Box>
+                </CardContent>
+              </Card>
+            </Grid>
+            <Grid item xs={12} sm={6} md={4}>
+              <Card sx={{ background: "linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%)", color: "#333" }}>
+                <CardContent>
+                  <Box display="flex" alignItems="center" justifyContent="space-between">
+                    <Box>
+                      <Typography variant="h4" fontWeight="bold">
+                        {dashboardData.stats.totalOffers}
+                      </Typography>
+                      <Typography variant="body2" sx={{ opacity: 0.7 }}>Offres Total</Typography>
+                    </Box>
+                    <LocalOffer sx={{ fontSize: 40, opacity: 0.7 }} />
+                  </Box>
+                </CardContent>
+              </Card>
+            </Grid>
+          </>
+        )}
       </Grid>
 
       {/* Sector Statistics Row */}
@@ -431,78 +480,65 @@ export default function ComprehensiveDashboard() {
         <Grid item xs={12}>
           <Card>
             <CardContent>
-              <Box display="flex" alignItems="center" justifyContent="space-between" mb={3} flexWrap="wrap" gap={2}>
-                <Box display="flex" alignItems="center" gap={2}>
-                  <Typography variant="h6" fontWeight="bold">
-                    Utilisateurs par Secteur
-                  </Typography>
-                  <Chip 
-                    label={`${dashboardData.sectorStats.reduce((sum, s) => sum + s.count, 0)} Total`} 
-                    color="primary" 
-                    size="small"
-                  />
+              {!sectorStats && loadingSectors ? (
+                <Box>
+                  <Skeleton variant="text" width={200} height={32} sx={{ mb: 2 }} />
+                  <Skeleton variant="rectangular" width="100%" height={200} />
                 </Box>
-                <TextField
-                  placeholder="Rechercher un secteur..."
-                  size="small"
-                  value={sectorFilter}
-                  onChange={(e) => setSectorFilter(e.target.value)}
-                  InputProps={{
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <Search fontSize="small" />
-                      </InputAdornment>
-                    ),
-                  }}
-                  sx={{ width: { xs: '100%', sm: 300 } }}
-                />
-              </Box>
-              
-              <TableContainer sx={{ maxHeight: 450 }}>
-                <Table stickyHeader size="small">
-                  <TableHead>
-                    <TableRow>
-                      <TableCell sx={{ fontWeight: 'bold', bgcolor: '#f8fafc' }}>Secteur</TableCell>
-                      <TableCell align="right" sx={{ fontWeight: 'bold', bgcolor: '#f8fafc' }}>Utilisateurs</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {dashboardData.sectorStats
-                      .filter(s => (s.sector || '').toLowerCase().includes(sectorFilter.toLowerCase()))
-                      .sort((a, b) => b.count - a.count)
-                      .map((sector, index) => {
-                        const totalUsers = dashboardData.sectorStats.reduce((sum, s) => sum + s.count, 0);
-                        const percentage = totalUsers > 0 ? (sector.count / totalUsers) * 100 : 0;
-                        
-                        return (
-                          <TableRow hover key={index}>
-                            <TableCell>
-                              <Typography variant="body2" fontWeight="500">
-                                {sector.sector || 'Non spécifié'}
-                              </Typography>
-                            </TableCell>
-                            <TableCell align="right">
-                              <Chip 
-                                label={sector.count} 
-                                size="small" 
-                                color="primary" 
-                                variant={index < 3 ? "filled" : "outlined"}
-                                sx={{ fontWeight: 'bold', minWidth: 40 }}
-                              />
-                            </TableCell>
-                          </TableRow>
-                        );
-                      })}
-                    {dashboardData.sectorStats.filter(s => (s.sector || '').toLowerCase().includes(sectorFilter.toLowerCase())).length === 0 && (
-                       <TableRow>
-                         <TableCell colSpan={2} align="center" sx={{ py: 4 }}>
-                           <Typography color="text.secondary">Aucun secteur trouvé</Typography>
-                         </TableCell>
-                       </TableRow>
-                    )}
-                  </TableBody>
-                </Table>
-              </TableContainer>
+              ) : (
+                <>
+                  <Box display="flex" alignItems="center" justifyContent="space-between" mb={3} flexWrap="wrap" gap={2}>
+                    <Box display="flex" alignItems="center" gap={2}>
+                      <Typography variant="h6" fontWeight="bold">Utilisateurs par Secteur</Typography>
+                      <Chip 
+                        label={`${dashboardData.sectorStats.reduce((sum, s) => sum + s.count, 0)} Total`} 
+                        color="primary" 
+                        size="small"
+                      />
+                    </Box>
+                    <TextField
+                      placeholder="Rechercher un secteur..."
+                      size="small"
+                      value={sectorFilter}
+                      onChange={(e) => setSectorFilter(e.target.value)}
+                      InputProps={{
+                        startAdornment: (
+                          <InputAdornment position="start">
+                            <Search fontSize="small" />
+                          </InputAdornment>
+                        ),
+                      }}
+                      sx={{ width: { xs: '100%', sm: 300 } }}
+                    />
+                  </Box>
+                  
+                  <TableContainer sx={{ maxHeight: 450 }}>
+                    <Table stickyHeader size="small">
+                      <TableHead>
+                        <TableRow>
+                          <TableCell sx={{ fontWeight: 'bold', bgcolor: '#f8fafc' }}>Secteur</TableCell>
+                          <TableCell align="right" sx={{ fontWeight: 'bold', bgcolor: '#f8fafc' }}>Utilisateurs</TableCell>
+                        </TableRow>
+                      </TableHead>
+                      <TableBody>
+                        {dashboardData.sectorStats
+                          .filter(s => (s.sector || '').toLowerCase().includes(sectorFilter.toLowerCase()))
+                          .sort((a, b) => b.count - a.count)
+                          .map((sector, index) => (
+                            <TableRow hover key={index}>
+                              <TableCell>
+                                <Typography variant="body2" fontWeight="500">{sector.sector || 'Non spécifié'}</Typography>
+                              </TableCell>
+                              <TableCell align="right">
+                                <Chip label={sector.count} size="small" color="primary" variant={index < 3 ? "filled" : "outlined"} sx={{ fontWeight: 'bold', minWidth: 40 }} />
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                      </TableBody>
+                    </Table>
+                  </TableContainer>
+                </>
+              )}
             </CardContent>
           </Card>
         </Grid>
@@ -524,77 +560,70 @@ export default function ComprehensiveDashboard() {
       {/* Analytics Tab */}
       <TabPanel value={tabValue} index={0}>
         <Grid container spacing={3}>
-          {/* Revenue Chart */}
-          <Grid item xs={12} md={8}>
-            <Card>
-              <CardContent>
-                <Typography variant="h6" gutterBottom>
-                  Tendance Utilisateurs & Enchères
-                </Typography>
-                <ResponsiveContainer width="100%" height={300}>
-                  <AreaChart data={dashboardData.revenueData}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="month" />
-                    <YAxis />
-                    <Tooltip />
-                    <Legend />
-                    <Area type="monotone" dataKey="users" stackId="1" stroke="#8884d8" fill="#8884d8" />
-                    <Area type="monotone" dataKey="auctions" stackId="2" stroke="#82ca9d" fill="#82ca9d" />
-                  </AreaChart>
-                </ResponsiveContainer>
-              </CardContent>
-            </Card>
-          </Grid>
-
-          {/* Category Distribution */}
-          <Grid item xs={12} md={4}>
-            <Card>
-              <CardContent>
-                <Typography variant="h6" gutterBottom>
-                  Distribution des Catégories
-                </Typography>
-                <ResponsiveContainer width="100%" height={300}>
-                  <PieChart>
-                    <Pie
-                      data={dashboardData.categoryDistribution}
-                      cx="50%"
-                      cy="50%"
-                      outerRadius={80}
-                      fill="#8884d8"
-                      dataKey="value"
-                      label
-                    >
-                      {dashboardData.categoryDistribution.map((entry: any, index: number) => (
-                        <Cell key={`cell-${index}`} fill={entry.color} />
-                      ))}
-                    </Pie>
-                    <Tooltip />
-                  </PieChart>
-                </ResponsiveContainer>
-              </CardContent>
-            </Card>
-          </Grid>
-
-          {/* User Growth */}
-          <Grid item xs={12}>
-            <Card>
-              <CardContent>
-                <Typography variant="h6" gutterBottom>
-                  Croissance des Utilisateurs
-                </Typography>
-                <ResponsiveContainer width="100%" height={300}>
-                  <LineChart data={dashboardData.userGrowth}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="month" />
-                    <YAxis />
-                    <Tooltip />
-                    <Legend />
-                    <Line type="monotone" dataKey="users" stroke="#ff7300" strokeWidth={3} />
-                  </LineChart>
-                </ResponsiveContainer>
-              </CardContent>
-            </Card>
-          </Grid>
+          {!chartsData && loadingCharts ? (
+            <>
+              <Grid item xs={12} md={8}><Card><CardContent><Skeleton height={300} /></CardContent></Card></Grid>
+              <Grid item xs={12} md={4}><Card><CardContent><Skeleton height={300} /></CardContent></Card></Grid>
+            </>
+          ) : (
+            <>
+              <Grid item xs={12} md={8}>
+                <Card>
+                  <CardContent>
+                    <Typography variant="h6" gutterBottom>Tendance Utilisateurs & Enchères</Typography>
+                    <ResponsiveContainer width="100%" height={300}>
+                      <AreaChart data={dashboardData.revenueData}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="month" />
+                        <YAxis />
+                        <Tooltip />
+                        <Legend />
+                        <Area type="monotone" dataKey="users" stackId="1" stroke="#8884d8" fill="#8884d8" />
+                        <Area type="monotone" dataKey="auctions" stackId="2" stroke="#82ca9d" fill="#82ca9d" />
+                      </AreaChart>
+                    </ResponsiveContainer>
+                  </CardContent>
+                </Card>
+              </Grid>
+              <Grid item xs={12} md={4}>
+                <Card>
+                  <CardContent>
+                    <Typography variant="h6" gutterBottom>Distribution des Catégories</Typography>
+                    <ResponsiveContainer width="100%" height={300}>
+                      <PieChart>
+                        <Pie
+                          data={dashboardData.categoryDistribution}
+                          cx="50%" cy="50%" outerRadius={80} fill="#8884d8" dataKey="value" label
+                        >
+                          {dashboardData.categoryDistribution.map((entry: any, index: number) => (
+                            <Cell key={`cell-${index}`} fill={entry.color} />
+                          ))}
+                        </Pie>
+                        <Tooltip />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </CardContent>
+                </Card>
+              </Grid>
+              <Grid item xs={12}>
+                <Card>
+                  <CardContent>
+                    <Typography variant="h6" gutterBottom>Croissance des Utilisateurs</Typography>
+                    <ResponsiveContainer width="100%" height={300}>
+                      <LineChart data={dashboardData.userGrowth}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="month" />
+                        <YAxis />
+                        <Tooltip />
+                        <Legend />
+                        <Line type="monotone" dataKey="users" stroke="#ff7300" strokeWidth={3} />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </CardContent>
+                </Card>
+              </Grid>
+            </>
+          )}
         </Grid>
       </TabPanel>
 
@@ -610,25 +639,25 @@ export default function ComprehensiveDashboard() {
                 <Grid container spacing={2}>
                   <Grid item xs={6} sm={3}>
                     <Box textAlign="center" p={2} bgcolor="#e3f2fd" borderRadius={2}>
-                      <Typography variant="h4" color="primary">{dashboardData.userStats.byType.admin}</Typography>
+                      <Typography variant="h4" color="primary">{typeof dashboardData.userStats.byType.admin === 'object' ? dashboardData.userStats.byType.admin?.total : dashboardData.userStats.byType.admin ?? 0}</Typography>
                       <Typography variant="body2">Administrateurs</Typography>
                     </Box>
                   </Grid>
                   <Grid item xs={6} sm={3}>
                     <Box textAlign="center" p={2} bgcolor="#f3e5f5" borderRadius={2}>
-                      <Typography variant="h4" color="secondary">{dashboardData.userStats.byType.professional}</Typography>
+                      <Typography variant="h4" color="secondary">{typeof dashboardData.userStats.byType.professional === 'object' ? dashboardData.userStats.byType.professional?.total : dashboardData.userStats.byType.professional ?? 0}</Typography>
                       <Typography variant="body2">Professionnels</Typography>
                     </Box>
                   </Grid>
                   <Grid item xs={6} sm={3}>
                     <Box textAlign="center" p={2} bgcolor="#e8f5e8" borderRadius={2}>
-                      <Typography variant="h4" style={{ color: '#4caf50' }}>{dashboardData.userStats.byType.client}</Typography>
+                      <Typography variant="h4" style={{ color: '#4caf50' }}>{typeof dashboardData.userStats.byType.client === 'object' ? dashboardData.userStats.byType.client?.total : dashboardData.userStats.byType.client ?? 0}</Typography>
                       <Typography variant="body2">Clients</Typography>
                     </Box>
                   </Grid>
                   <Grid item xs={6} sm={3}>
                     <Box textAlign="center" p={2} bgcolor="#fff3e0" borderRadius={2}>
-                      <Typography variant="h4" style={{ color: '#ff9800' }}>{dashboardData.userStats.byType.reseller}</Typography>
+                      <Typography variant="h4" style={{ color: '#ff9800' }}>{typeof dashboardData.userStats.byType.reseller === 'object' ? dashboardData.userStats.byType.reseller?.total : dashboardData.userStats.byType.reseller ?? 0}</Typography>
                       <Typography variant="body2">Revendeurs</Typography>
                     </Box>
                   </Grid>
@@ -953,29 +982,40 @@ export default function ComprehensiveDashboard() {
           <Typography variant="h6" gutterBottom>
             Activité Récente
           </Typography>
-          <List>
-            {dashboardData.recentActivities.map((activity: any, index: number) => (
-              <ListItem key={index} divider={index < dashboardData.recentActivities.length - 1}>
-                <ListItemAvatar>
-                  <Avatar sx={{ 
-                    bgcolor: activity.type === 'auction' ? 'primary.main' : 
-                             activity.type === 'tender' ? 'secondary.main' :
-                             activity.type === 'user' ? 'success.main' : 
-                             activity.type === 'identity' ? 'warning.main' : 'info.main'
-                  }}>
-                    {activity.type === 'auction' ? <Gavel /> :
-                     activity.type === 'tender' ? <Assignment /> :
-                     activity.type === 'user' ? <People /> :
-                     activity.type === 'identity' ? <Verified /> : <Assignment />}
-                  </Avatar>
-                </ListItemAvatar>
-                <ListItemText
-                  primary={activity.message}
-                  secondary={activity.time}
-                />
-              </ListItem>
-            ))}
-          </List>
+          {!recentActivities && loadingActivities ? (
+            <Box>
+              {[...Array(5)].map((_, i) => (
+                <Box key={i} display="flex" alignItems="center" gap={2} mb={2}>
+                  <Skeleton variant="circular" width={40} height={40} />
+                  <Skeleton variant="text" width="80%" height={24} />
+                </Box>
+              ))}
+            </Box>
+          ) : (
+            <List>
+              {dashboardData.recentActivities.map((activity: any, index: number) => (
+                <ListItem key={index} divider={index < dashboardData.recentActivities.length - 1}>
+                  <ListItemAvatar>
+                    <Avatar sx={{ 
+                      bgcolor: activity.type === 'auction' ? 'primary.main' : 
+                               activity.type === 'tender' ? 'secondary.main' :
+                               activity.type === 'user' ? 'success.main' : 
+                               activity.type === 'identity' ? 'warning.main' : 'info.main'
+                    }}>
+                      {activity.type === 'auction' ? <Gavel /> :
+                       activity.type === 'tender' ? <Assignment /> :
+                       activity.type === 'user' ? <People /> :
+                       activity.type === 'identity' ? <Verified /> : <Assignment />}
+                    </Avatar>
+                  </ListItemAvatar>
+                  <ListItemText
+                    primary={activity.message}
+                    secondary={activity.time}
+                  />
+                </ListItem>
+              ))}
+            </List>
+          )}
         </CardContent>
       </Card>
 
