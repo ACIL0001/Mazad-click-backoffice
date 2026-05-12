@@ -32,7 +32,4 @@ export interface IdentityHistoryDocument {
 export const IdentityHistoryAPI = {
   getHistory: (): Promise<IdentityHistoryDocument[]> =>
     requests.get('identity-history'),
-  
-  deleteHistory: (id: string): Promise<void> =>
-    requests.delete(`identity-history/${id}`),
 };

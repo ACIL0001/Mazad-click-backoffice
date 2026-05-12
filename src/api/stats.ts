@@ -1,30 +1,12 @@
 import { requests } from './utils';
 
-export interface UserStatusStats {
-  total: number;
-  verified: number;
-  unverified: number;
-  active: number;
-  inactive: number;
-  banned: number;
-  notBanned: number;
-  recommended: number;
-  notRecommended: number;
-  certified?: number;
-}
-
 export interface UserStats {
   total: number;
-  verified: number;
-  active: number;
-  banned: number;
-  recommended: number;
-  certified: number;
   byType: {
-    admin: UserStatusStats | number;
-    professional: UserStatusStats;
-    client: UserStatusStats;
-    reseller: UserStatusStats;
+    admin: number;
+    professional: number;
+    client: number;
+    reseller: number;
   };
 }
 

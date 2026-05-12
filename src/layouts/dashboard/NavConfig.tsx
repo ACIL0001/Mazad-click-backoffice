@@ -31,6 +31,11 @@ export const useNavConfig = () => {
           icon: getIcon('mdi:account-group'), 
         },
         {
+          title: t('navigation.resellers'), 
+          path: '/dashboard/users/resellers', 
+          icon: getIcon('mdi:store'), 
+        },
+        {
           title: t('navigation.sellers'), 
           path: '/dashboard/users/sellers',
           icon: getIcon('mdi:food'),
@@ -114,7 +119,7 @@ export const useNavConfig = () => {
       icon: getIcon('ph:user-focus-bold'),
       children: [
         {
-          title: 'Profiles',
+          title: t('navigation.list') || 'Liste',
           path: '/dashboard/identities',
           icon: getIcon('mdi:format-list-bulleted'),
         },
@@ -195,6 +200,11 @@ const navConfig = [
         title: 'Professionals', 
         path: '/dashboard/users/professionals', 
         icon: getIcon('mdi:account-group'), 
+      },
+      {
+        title: 'Resellers', 
+        path: '/dashboard/users/resellers', 
+        icon: getIcon('mdi:store'), 
       },
       {
         title: 'Sellers', 
@@ -280,7 +290,7 @@ const navConfig = [
     icon: getIcon('ph:user-focus-bold'),
     children: [
       {
-        title: 'Profiles',
+        title: 'Liste',
         path: '/dashboard/identities',
         icon: getIcon('mdi:format-list-bulleted'),
       },

@@ -61,6 +61,7 @@ export interface ICategory {
 // ----------------------------------------------------------------------
 
 const CATEGORY_TABLE_HEAD = [
+  { id: "image", label: "Image", alignRight: false, searchable: false },
   { id: "name", label: "Nom", alignRight: false, searchable: true },
   { id: "type", label: "Type", alignRight: false, searchable: true },
   { id: "attributes", label: "Attributs", alignRight: false, searchable: false },
@@ -112,7 +113,24 @@ function CategoryItem({
     [selected, setSelected],
   )
 
-  const categoryThumbUrl = category.thumb?.url ? `${app.baseURL.replace(/\/$/, '')}${category.thumb.url}` : ""
+  const categoryThumbUrl = useMemo(() => {
+    if (!category.thumb?.url) return "";
+    const url = category.thumb.url;
+    if (url.startsWith("http://") || url.startsWith("https://")) return url;
+    
+    const baseUrl = app.baseURL.replace(/\/$/, "");
+    
+    // Robust path cleaning and /static/ prefixing
+    let cleanPath = url.trim();
+    if (cleanPath.startsWith("/")) cleanPath = cleanPath.substring(1);
+    
+    // If it doesn't start with static/, prepend it
+    if (!cleanPath.startsWith("static/")) {
+      cleanPath = `static/${cleanPath}`;
+    }
+    
+    return `${baseUrl}/${cleanPath}`;
+  }, [category.thumb?.url]);
   const isItemSelected = selected.indexOf(category._id) !== -1
   const subcategories = category.subcategories || category.children || []
   const hasSubcategories = subcategories && subcategories.length > 0
@@ -160,41 +178,23 @@ function CategoryItem({
             }}
           />
         </TableCell>
-        <TableCell component="th" scope="row" padding="none">
-          <Stack direction="row" alignItems="center" spacing={2} sx={{ pl: depth * 3, py: { xs: 1, sm: 2 } }}>
-            {hasSubcategories && (
-              <IconButton
-                size="small"
-                onClick={(e) => {
-                  e.stopPropagation()
-                  setOpen(!open)
-                }}
-                sx={{
-                  width: { xs: 28, sm: 32 },
-                  height: { xs: 28, sm: 32 },
-                  borderRadius: 1.5,
-                  backgroundColor: alpha(theme.palette.grey[500], 0.08),
-                  transition: "all 0.2s ease-in-out",
-                  "&:hover": {
-                    backgroundColor: alpha(theme.palette.primary.main, 0.12),
-                    transform: "scale(1.1)",
-                  },
-                }}
-              >
-                {open ? <ExpandMoreIcon fontSize="small" /> : <ChevronRightIcon fontSize="small" />}
-              </IconButton>
-            )}
-            {!hasSubcategories && depth > 0 && <Box sx={{ width: { xs: 28, sm: 32 }, height: { xs: 28, sm: 32 } }} />}
+        <TableCell align="left" sx={{ py: { xs: 1, sm: 2 }, pl: { xs: 1, sm: 3 } }}>
+          <Stack direction="row" alignItems="center" spacing={2} sx={{ pl: depth * 2 }}>
             {categoryThumbUrl ? (
               <Avatar
                 src={categoryThumbUrl}
                 alt={category.name}
+                variant="rounded"
                 sx={{
-                  width: { xs: 40, sm: 48 },
-                  height: { xs: 40, sm: 48 },
-                  borderRadius: 2.5,
-                  boxShadow: `0 4px 12px 0 ${alpha(theme.palette.grey[900], 0.15)}`,
-                  border: `2px solid ${theme.palette.background.paper}`,
+                  width: { xs: 40, sm: 44 },
+                  height: { xs: 40, sm: 44 },
+                  borderRadius: 1,
+                  bgcolor: alpha(theme.palette.grey[500], 0.08),
+                  border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
+                  "& img": {
+                    objectFit: "contain",
+                    padding: "4px",
+                  }
                 }}
                 imgProps={{
                   onError: (e: any) => {
@@ -205,36 +205,58 @@ function CategoryItem({
             ) : (
               <Box
                 sx={{
-                  width: { xs: 40, sm: 48 },
-                  height: { xs: 40, sm: 48 },
-                  borderRadius: 2.5,
+                  width: { xs: 40, sm: 44 },
+                  height: { xs: 40, sm: 44 },
+                  borderRadius: 1,
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  background: `linear-gradient(135deg, ${alpha(theme.palette.primary.light, 0.2)} 0%, ${alpha(theme.palette.primary.main, 0.1)} 100%)`,
-                  border: `2px solid ${alpha(theme.palette.primary.main, 0.1)}`,
-                  boxShadow: `0 4px 12px 0 ${alpha(theme.palette.primary.main, 0.15)}`,
+                  background: alpha(theme.palette.primary.main, 0.05),
+                  border: `1px solid ${alpha(theme.palette.primary.main, 0.1)}`,
                 }}
               >
                 <Iconify
                   icon={category.type.toLowerCase() === "product" ? "solar:tag-bold" : "solar:case-minimalistic-bold"}
-                  width={isMobile ? 20 : 24}
-                  height={isMobile ? 20 : 24}
-                  sx={{ 
-                    color: theme.palette.primary.main 
-                  }}
+                  width={20}
+                  height={20}
+                  sx={{ color: theme.palette.primary.main }}
                 />
               </Box>
             )}
+          </Stack>
+        </TableCell>
+        <TableCell component="th" scope="row" padding="none">
+          <Stack direction="row" alignItems="center" spacing={1} sx={{ py: { xs: 1, sm: 2 }, pl: depth * 2 }}>
+            {hasSubcategories && (
+              <IconButton
+                size="small"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  setOpen(!open)
+                }}
+                sx={{
+                  width: 28,
+                  height: 28,
+                  borderRadius: 1,
+                  backgroundColor: alpha(theme.palette.grey[500], 0.08),
+                  transition: "all 0.2s ease-in-out",
+                  "&:hover": {
+                    backgroundColor: alpha(theme.palette.primary.main, 0.12),
+                  },
+                }}
+              >
+                {open ? <ExpandMoreIcon fontSize="small" /> : <ChevronRightIcon fontSize="small" />}
+              </IconButton>
+            )}
+            {!hasSubcategories && depth > 0 && <Box sx={{ width: 28, height: 28 }} />}
             <Box>
               <Typography
                 variant="subtitle1"
                 sx={{
                   fontWeight: 600,
                   color: theme.palette.text.primary,
-                  fontSize: { xs: "0.85rem", sm: "0.95rem" },
+                  fontSize: "0.95rem",
                   lineHeight: 1.4,
-                  mb: 0.5,
                 }}
               >
                 {category.name}
@@ -244,8 +266,8 @@ function CategoryItem({
                   variant="body2"
                   sx={{
                     color: theme.palette.text.secondary,
-                    fontSize: { xs: "0.7rem", sm: "0.8rem" },
-                    maxWidth: { xs: 150, sm: 300 },
+                    fontSize: "0.75rem",
+                    maxWidth: 300,
                     overflow: "hidden",
                     textOverflow: "ellipsis",
                     whiteSpace: "nowrap",

@@ -8,7 +8,6 @@ import {
   TableCell,
   TableContainer,
   TablePagination,
-  Pagination,
   TextField,
   Box,
   InputAdornment,
@@ -34,11 +33,8 @@ import {
   Slide,
   Portal,
   Collapse,
-  IconButton,
 } from "@mui/material"
 import SearchIcon from "@mui/icons-material/Search"
-import ChevronLeftIcon from "@mui/icons-material/ChevronLeft"
-import ChevronRightIcon from "@mui/icons-material/ChevronRight"
 import { alpha, useTheme, styled } from "@mui/material/styles"
 import { filter } from "lodash"
 import { useState, useEffect, useRef, useCallback } from "react"
@@ -410,8 +406,6 @@ interface MuiTableProps {
   loading: boolean
   actionButtonPosition?: "floating" | "sticky" | "inline" | "all"
   getRowId?: (row: any) => string // Optional function to get the row identifier for selection
-  isServerSide?: boolean
-  totalResults?: number
 }
 
 export default function MuiTable({
@@ -436,8 +430,6 @@ export default function MuiTable({
   loading,
   actionButtonPosition = "sticky",
   getRowId,
-  isServerSide = false,
-  totalResults,
 }: MuiTableProps) {
   const theme = useTheme()
   const tableRef = useRef<HTMLDivElement>(null)
@@ -502,9 +494,8 @@ export default function MuiTable({
 
   // Use all searchFields if provided, otherwise use single searchField
   const fieldsToSearch = searchFields.length > 0 ? searchFields : [searchField]
-  const filteredData = isServerSide ? safeData : applySortFilter(safeData, getComparator(order, orderBy), filterName, fieldsToSearch)
-  const paginatedData = isServerSide ? safeData : filteredData.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
-  const totalCount = isServerSide ? (totalResults ?? safeData.length) : filteredData.length
+  const filteredData = applySortFilter(safeData, getComparator(order, orderBy), filterName, fieldsToSearch)
+  const paginatedData = filteredData.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
 
   const handleRequestSort = (event: React.MouseEvent<unknown>, property: string) => {
     const isAsc = orderBy === property && order === "asc"
@@ -547,19 +538,6 @@ export default function MuiTable({
 
   const handleChangePage = (event: unknown, newPage: number) => {
     setPage(newPage)
-    if (tableRef.current) {
-      const topOffset = 100 // Subtracting 100px so the table title/actions are visible
-      const elementPosition = tableRef.current.getBoundingClientRect().top + window.pageYOffset
-      window.scrollTo({
-        top: elementPosition - topOffset,
-        behavior: 'smooth',
-      })
-    } else {
-      window.scrollTo({
-        top: 0,
-        behavior: 'smooth',
-      })
-    }
   }
 
   const handleChangeRowsPerPage = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -991,9 +969,9 @@ export default function MuiTable({
           }}
         >
           <TablePagination
-            rowsPerPageOptions={[5, 10, 25, 50, 100, 250, 500]}
+            rowsPerPageOptions={[5, 10, 25, 50]}
             component="div"
-            count={totalCount}
+            count={filteredData.length}
             rowsPerPage={rowsPerPage}
             page={page}
             onPageChange={handleChangePage}
@@ -1032,12 +1010,26 @@ export default function MuiTable({
                 mt: { xs: 0, sm: 0 },
                 "& button": {
                   borderRadius: 1.5,
-                  margin: { xs: '0 2px', sm: '0 4px' },
-                  "&.Mui-selected": {
-                    boxShadow: theme.shadows[2],
+                  width: { xs: 36, sm: 40 },
+                  height: { xs: 36, sm: 40 },
+                  margin: { xs: "0 2px", sm: "0 4px" },
+                  border: `1px solid ${theme.palette.divider}`,
+                  backgroundColor: theme.palette.background.paper,
+                  boxShadow: theme.shadows[1],
+                  transition: theme.transitions.create(['border-color', 'background-color'], {
+                    duration: theme.transitions.duration.short,
+                  }),
+                  "&:hover": {
+                    backgroundColor: alpha(theme.palette.primary.main, 0.08),
+                    borderColor: theme.palette.primary.main,
                   },
-                }
-              }
+                  "&.Mui-disabled": {
+                    borderColor: alpha(theme.palette.divider, 0.5),
+                    color: theme.palette.text.disabled,
+                    backgroundColor: alpha(theme.palette.grey[100], 0.5),
+                  },
+                },
+              },
             }}
           />
         </Box>

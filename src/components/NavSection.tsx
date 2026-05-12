@@ -328,6 +328,12 @@ export default function NavSection({ ...other }) {
             icon: getIcon('mdi:account-group'),
             requiresAdmin: true,
           },
+          {
+            title: 'Resellers',
+            path: '/dashboard/users/resellers',
+            icon: getIcon('mdi:store'),
+            requiresAdmin: true,
+          },
         ],
       },
       {
@@ -411,7 +417,7 @@ export default function NavSection({ ...other }) {
         requiresAdmin: true,
         children: [
           {
-            title: 'Profiles',
+            title: 'Liste',
             path: '/dashboard/identities',
             icon: getIcon('mdi:format-list-bulleted'),
           },
