@@ -202,7 +202,7 @@ export default function Configuration() {
             >
               <MenuItem value="ALL">All Roles</MenuItem>
               <MenuItem value="PROFESSIONAL">Professional</MenuItem>
-              <MenuItem value="RESELLER">Reseller</MenuItem>
+              <MenuItem value="CLIENT">Client</MenuItem>
             </Select>
           </FormControl>
           <Button
@@ -231,8 +231,8 @@ export default function Configuration() {
             <Typography variant="h6">{plans.filter(p => p.role === 'PROFESSIONAL').length}</Typography>
           </Box>
           <Box>
-            <Typography variant="body2" color="text.secondary">Reseller Plans</Typography>
-            <Typography variant="h6">{plans.filter(p => p.role === 'RESELLER').length}</Typography>
+            <Typography variant="body2" color="text.secondary">Client Plans</Typography>
+            <Typography variant="h6">{plans.filter(p => p.role === 'CLIENT').length}</Typography>
           </Box>
           <Box>
             <Typography variant="body2" color="text.secondary">Active Plans</Typography>
@@ -284,7 +284,7 @@ export default function Configuration() {
                 <TableCell align="center">
                   <Chip 
                     label={plan.role} 
-                    color={plan.role === 'PROFESSIONAL' ? 'primary' : 'secondary'} 
+                    color={plan.role === 'PROFESSIONAL' ? 'primary' : plan.role === 'CLIENT' ? 'info' : 'secondary'} 
                     size="small" 
                   />
                 </TableCell>
@@ -440,7 +440,7 @@ export default function Configuration() {
                   onChange={(e) => setNewPlan(prev => ({ ...prev, role: e.target.value }))}
                 >
                   <MenuItem value="PROFESSIONAL">Professional</MenuItem>
-                  <MenuItem value="RESELLER">Reseller</MenuItem>
+                  <MenuItem value="CLIENT">Client</MenuItem>
                 </Select>
               </FormControl>
 

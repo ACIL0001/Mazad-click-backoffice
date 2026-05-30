@@ -7,8 +7,18 @@ export interface SubscriptionPlan {
   price: number;
   duration: number; // in months (stored as number, not Date)
   isActive: boolean;
-  role: string; // PROFESSIONAL or RESELLER
+  role: string; // PROFESSIONAL or CLIENT
   benefits?: string[]; // Array of plan benefits
+  announcesPerMonth?: number;
+  photosVideosLimit?: number;
+  enchereSoumissionLimit?: number;
+  hasChatAndMessaging?: boolean;
+  hasRatingAndHistory?: boolean;
+  isDurationUnlimited?: boolean;
+  hasAutoTranslation?: boolean;
+  statisticsLevel?: string; // STANDARD, BASIC, ADVANCED
+  hasMiseEnAvant?: boolean;
+  hasEmailNotification?: boolean;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -21,6 +31,16 @@ export interface CreatePlanDto {
   isActive?: boolean;
   role: string;
   benefits?: string[];
+  announcesPerMonth?: number;
+  photosVideosLimit?: number;
+  enchereSoumissionLimit?: number;
+  hasChatAndMessaging?: boolean;
+  hasRatingAndHistory?: boolean;
+  isDurationUnlimited?: boolean;
+  hasAutoTranslation?: boolean;
+  statisticsLevel?: string;
+  hasMiseEnAvant?: boolean;
+  hasEmailNotification?: boolean;
 }
 
 export interface UpdatePlanDto extends Partial<CreatePlanDto> {

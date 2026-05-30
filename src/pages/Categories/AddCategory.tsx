@@ -221,6 +221,16 @@ export default function AddCategory() {
     },
     validationSchema: CategorySchema,
     onSubmit: async (values, { setSubmitting }) => {
+      if (!values.parent && !categoryImage) {
+        setError("L'image est obligatoire pour une catégorie principale.")
+        setShowAlert(true)
+        enqueueSnackbar("L'image est obligatoire pour une catégorie principale.", {
+          variant: "error",
+          anchorOrigin: { vertical: "top", horizontal: "right" },
+        })
+        setSubmitting(false)
+        return
+      }
       setIsSubmitting(true)
       setError(null)
       try {
@@ -237,15 +247,13 @@ export default function AddCategory() {
           parent: values.parent || null,
         }
 
-        // If there's an image, use FormData, otherwise send JSON
+        // Packages as FormData to satisfy the NestJS backend's Multer file interceptor structure
+        const formData = new FormData()
+        formData.append("data", JSON.stringify(categoryData))
         if (categoryImage) {
-          const formData = new FormData()
-          formData.append("data", JSON.stringify(categoryData))
           formData.append("image", categoryImage)
-          await CategoryAPI.create(formData)
-        } else {
-          await CategoryAPI.create(categoryData)
         }
+        await CategoryAPI.create(formData)
 
         enqueueSnackbar("Catégorie créée avec succès !", {
           variant: "success",
@@ -294,6 +302,10 @@ export default function AddCategory() {
       enqueueSnackbar("Veuillez remplir tous les champs obligatoires", { variant: "warning" })
       return
     }
+    if (activeStep === 1 && !values.parent && !categoryImage) {
+      enqueueSnackbar("L'image est obligatoire pour une catégorie principale.", { variant: "warning" })
+      return
+    }
     setActiveStep((prev) => Math.min(prev + 1, steps.length - 1))
   }
 
@@ -303,7 +315,12 @@ export default function AddCategory() {
 
   const canProceedToNext = () => {
     if (activeStep === 0) return values.name && values.type
-    if (activeStep === 1) return true
+    if (activeStep === 1) {
+      if (!values.parent) {
+        return categoryImage !== null
+      }
+      return true
+    }
     return true
   }
 
@@ -661,7 +678,9 @@ export default function AddCategory() {
                             Image de la catégorie
                           </Typography>
                           <Typography variant="body2" color="text.secondary">
-                            Ajoutez une image pour rendre votre catégorie plus attrayante (optionnel)
+                            {values.parent
+                              ? "Ajoutez une image pour rendre votre sous-catégorie plus attrayante (optionnel)"
+                              : "Ajoutez une image pour votre catégorie (obligatoire)"}
                           </Typography>
                         </Box>
 
