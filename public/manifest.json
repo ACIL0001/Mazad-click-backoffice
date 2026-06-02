@@ -3,8 +3,8 @@
   "name": "React Material Minimal UI Kit",
   "icons": [
     {
-      "src": "favicon.ico",
-      "sizes": "48 × 48",
+      "src": "logo_mazadclick-onglet.png",
+      "sizes": "192x192 512x512",
       "type": "image/png"
     }
   ],
