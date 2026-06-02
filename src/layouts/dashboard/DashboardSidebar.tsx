@@ -94,8 +94,8 @@ export default function DashboardSidebar({ isOpenSidebar, onCloseSidebar }: any)
         <Stack alignItems="center" spacing={3} sx={{ pt: 5, borderRadius: 2, position: 'relative' }}>
           <Box
             component="img"
-            src="/static/illustrations/Logo.png"
-            sx={{ width: 200, height:100, borderRadius: 1 ,position: 'absolute', top: -50 }}
+            src="/logo mazadclick.jpeg"
+            sx={{ width: 200, height: 100, borderRadius: 1, position: 'absolute', top: -50, objectFit: 'contain' }}
           />
 
           <Box sx={{ textAlign: 'center' }}>
