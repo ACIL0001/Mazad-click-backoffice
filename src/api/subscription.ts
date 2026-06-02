@@ -10,7 +10,8 @@ export interface SubscriptionPlan {
   role: string; // PROFESSIONAL or CLIENT
   benefits?: string[]; // Array of plan benefits
   announcesPerMonth?: number;
-  photosVideosLimit?: number;
+  photosLimit?: number;
+  videosLimit?: number;
   enchereSoumissionLimit?: number;
   hasChatAndMessaging?: boolean;
   hasRatingAndHistory?: boolean;
@@ -19,6 +20,7 @@ export interface SubscriptionPlan {
   statisticsLevel?: string; // STANDARD, BASIC, ADVANCED
   hasMiseEnAvant?: boolean;
   hasEmailNotification?: boolean;
+  color?: string;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -32,7 +34,8 @@ export interface CreatePlanDto {
   role: string;
   benefits?: string[];
   announcesPerMonth?: number;
-  photosVideosLimit?: number;
+  photosLimit?: number;
+  videosLimit?: number;
   enchereSoumissionLimit?: number;
   hasChatAndMessaging?: boolean;
   hasRatingAndHistory?: boolean;
@@ -41,6 +44,7 @@ export interface CreatePlanDto {
   statisticsLevel?: string;
   hasMiseEnAvant?: boolean;
   hasEmailNotification?: boolean;
+  color?: string;
 }
 
 export interface UpdatePlanDto extends Partial<CreatePlanDto> {

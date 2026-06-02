@@ -476,7 +476,8 @@ export default function SubscriptionPage() {
     isActive: true,
     benefits: [],
     announcesPerMonth: 10,
-    photosVideosLimit: 0,
+    photosLimit: 0,
+    videosLimit: 0,
     enchereSoumissionLimit: 0,
     hasChatAndMessaging: false,
     hasRatingAndHistory: false,
@@ -485,10 +486,110 @@ export default function SubscriptionPage() {
     statisticsLevel: "STANDARD",
     hasMiseEnAvant: false,
     hasEmailNotification: false,
+    color: "#0EA5E9",
   })
 
   const [newBenefit, setNewBenefit] = useState("")
   const [editBenefit, setEditBenefit] = useState("")
+
+  // Dynamic preset colors state in localStorage
+  const [presetColors, setPresetColors] = useState<string[]>(() => {
+    const stored = localStorage.getItem('mazadclick_preset_colors')
+    if (stored) {
+      try {
+        return JSON.parse(stored)
+      } catch (e) {}
+    }
+    const defaults = ['#D4AF37', '#C0C0C0', '#0EA5E9', '#CD7F32', '#10B981', '#8B5CF6']
+    localStorage.setItem('mazadclick_preset_colors', JSON.stringify(defaults))
+    return defaults
+  })
+
+  // Blacklist for deleted colors so they don't auto-repopulate from plan colors
+  const [deletedColors, setDeletedColors] = useState<string[]>(() => {
+    const stored = localStorage.getItem('mazadclick_deleted_colors')
+    if (stored) {
+      try {
+        return JSON.parse(stored)
+      } catch (e) {}
+    }
+    return []
+  })
+
+  // Load and merge colors from existing subscription plans
+  useEffect(() => {
+    if (plans && plans.length > 0) {
+      const planColors = plans
+        .map(p => p.color)
+        .filter((c): c is string => !!c && c.startsWith('#'))
+      
+      const stored = localStorage.getItem('mazadclick_preset_colors')
+      let customColors: string[] = []
+      if (stored) {
+        try {
+          customColors = JSON.parse(stored)
+        } catch (e) {}
+      } else {
+        customColors = ['#D4AF37', '#C0C0C0', '#0EA5E9', '#CD7F32', '#10B981', '#8B5CF6']
+      }
+      
+      const combined = Array.from(new Set([...customColors, ...planColors])).filter(
+        (c) => !deletedColors.includes(c)
+      )
+      setPresetColors(combined)
+      localStorage.setItem('mazadclick_preset_colors', JSON.stringify(combined))
+    }
+  }, [plans, deletedColors])
+
+  // Scroll to edit workspace when edit opens
+  useEffect(() => {
+    if (editDialogOpen) {
+      setTimeout(() => {
+        const el = document.getElementById('edit-plan-workspace')
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+        }
+      }, 80)
+    }
+    if (createDialogOpen) {
+      window.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior })
+    }
+  }, [editDialogOpen, createDialogOpen])
+
+  const addSavedColor = (color: string) => {
+    if (color && color.startsWith('#')) {
+      if (deletedColors.includes(color)) {
+        const updatedDeleted = deletedColors.filter(c => c !== color)
+        setDeletedColors(updatedDeleted)
+        localStorage.setItem('mazadclick_deleted_colors', JSON.stringify(updatedDeleted))
+      }
+      
+      if (!presetColors.includes(color)) {
+        const updated = [...presetColors, color]
+        setPresetColors(updated)
+        localStorage.setItem('mazadclick_preset_colors', JSON.stringify(updated))
+      }
+    }
+  }
+
+  const deleteSavedColor = (color: string, e: React.MouseEvent) => {
+    e.stopPropagation()
+    const updatedPresets = presetColors.filter(c => c !== color)
+    setPresetColors(updatedPresets)
+    localStorage.setItem('mazadclick_preset_colors', JSON.stringify(updatedPresets))
+    
+    const updatedDeleted = Array.from(new Set([...deletedColors, color]))
+    setDeletedColors(updatedDeleted)
+    localStorage.setItem('mazadclick_deleted_colors', JSON.stringify(updatedDeleted))
+
+    // Fallback if current selections were set to this color
+    if (newPlan.color === color) {
+      setNewPlan({ ...newPlan, color: updatedPresets[0] || '#0EA5E9' })
+    }
+    if (currentPlan && currentPlan.color === color) {
+      setCurrentPlan({ ...currentPlan, color: updatedPresets[0] || '#0EA5E9' })
+    }
+  }
 
   const handleCreatePlan = async () => {
     setPlanError(null)
@@ -507,6 +608,9 @@ export default function SubscriptionPage() {
       }
 
       await SubscriptionAPI.createPlan(payload)
+      if (newPlan.color) {
+        addSavedColor(newPlan.color)
+      }
       queryClient.invalidateQueries({ queryKey: ['subscription-data'] });
       setCreateDialogOpen(false)
       setPlanError(null)
@@ -521,7 +625,8 @@ export default function SubscriptionPage() {
         isActive: true,
         benefits: [],
         announcesPerMonth: 10,
-        photosVideosLimit: 0,
+        photosLimit: 0,
+        videosLimit: 0,
         enchereSoumissionLimit: 0,
         hasChatAndMessaging: false,
         hasRatingAndHistory: false,
@@ -530,6 +635,7 @@ export default function SubscriptionPage() {
         statisticsLevel: "STANDARD",
         hasMiseEnAvant: false,
         hasEmailNotification: false,
+        color: "#0EA5E9",
       })
       setNewBenefit("")
     } catch (error: any) {
@@ -542,9 +648,11 @@ export default function SubscriptionPage() {
   const handleEditPlan = (plan: SubscriptionPlan) => {
     setCurrentPlan({
       ...plan,
+      color: plan.color || "#0EA5E9",
       benefits: plan.benefits || [],
       announcesPerMonth: plan.announcesPerMonth !== undefined ? plan.announcesPerMonth : 10,
-      photosVideosLimit: plan.photosVideosLimit !== undefined ? plan.photosVideosLimit : 0,
+      photosLimit: plan.photosLimit !== undefined ? plan.photosLimit : 0,
+      videosLimit: plan.videosLimit !== undefined ? plan.videosLimit : 0,
       enchereSoumissionLimit: plan.enchereSoumissionLimit !== undefined ? plan.enchereSoumissionLimit : 0,
       hasChatAndMessaging: plan.hasChatAndMessaging || false,
       hasRatingAndHistory: plan.hasRatingAndHistory || false,
@@ -557,6 +665,7 @@ export default function SubscriptionPage() {
     setEditBenefit("")
     setEditStep(0)
     setEditDialogOpen(true)
+    // scrollIntoView is handled via useEffect after the edit page renders
   }
 
   const handleAddBenefit = () => {
@@ -607,7 +716,8 @@ export default function SubscriptionPage() {
         role: currentPlan.role,
         benefits: currentPlan.benefits,
         announcesPerMonth: currentPlan.announcesPerMonth,
-        photosVideosLimit: currentPlan.photosVideosLimit,
+        photosLimit: currentPlan.photosLimit,
+        videosLimit: currentPlan.videosLimit,
         enchereSoumissionLimit: currentPlan.enchereSoumissionLimit,
         hasChatAndMessaging: currentPlan.hasChatAndMessaging,
         hasRatingAndHistory: currentPlan.hasRatingAndHistory,
@@ -616,8 +726,12 @@ export default function SubscriptionPage() {
         statisticsLevel: currentPlan.statisticsLevel,
         hasMiseEnAvant: currentPlan.hasMiseEnAvant,
         hasEmailNotification: currentPlan.hasEmailNotification,
+        color: currentPlan.color,
       })
       
+      if (currentPlan.color) {
+        addSavedColor(currentPlan.color)
+      }
       queryClient.invalidateQueries({ queryKey: ['subscription-data'] });
       setPlanError(null)
       setEditDialogOpen(false)
@@ -752,7 +866,7 @@ export default function SubscriptionPage() {
                     transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
                   }}
                 >
-                  Back to Subscriptions
+                  Retour aux abonnements
                 </Button>
               </Box>
               
@@ -773,19 +887,19 @@ export default function SubscriptionPage() {
                       textAlign: 'center'
                     }}
                   >
-                    Create Subscription Plan
+                    Créer un plan d'abonnement
                   </Typography>
                   <Typography variant="body1" sx={{ color: 'text.secondary', fontWeight: 400, opacity: 0.8, textAlign: 'center' }}>
-                    Establish advanced configuration capabilities and target structures for a new plan
+                    Définir les configurations avancées et les structures cibles pour un nouveau plan
                   </Typography>
                 </Box>
                 
                 {/* Steps Navigator */}
                 <Box sx={{ bgcolor: 'rgba(0, 0, 0, 0.03)', p: 0.5, borderRadius: 4, display: 'flex', gap: 1 }}>
                   {[
-                    { label: "1. Basics & Role", step: 0, icon: <AssignmentIcon sx={{ fontSize: 16 }} /> },
-                    { label: "2. Limits & Analytics", step: 1, icon: <TrendingUpIcon sx={{ fontSize: 16 }} /> },
-                    { label: "3. Capabilities", step: 2, icon: <WorkspacePremiumIcon sx={{ fontSize: 16 }} /> }
+                    { label: "1. Bases & Rôle", step: 0, icon: <AssignmentIcon sx={{ fontSize: 16 }} /> },
+                    { label: "2. Limites & Analyses", step: 1, icon: <TrendingUpIcon sx={{ fontSize: 16 }} /> },
+                    { label: "3. Fonctionnalités", step: 2, icon: <WorkspacePremiumIcon sx={{ fontSize: 16 }} /> }
                   ].map((s) => (
                     <Button
                       key={s.step}
@@ -840,17 +954,17 @@ export default function SubscriptionPage() {
                 <Stack spacing={5}>
                   <Box>
                     <Typography variant="h5" fontWeight="800" color="text.primary" mb={1} sx={{ letterSpacing: '-0.015em' }}>
-                      Plan Identity & Target Role
+                      Identité du Plan & Rôle Ciblé
                     </Typography>
                     <Typography variant="body2" color="text.secondary">
-                      Specify the core subscription details, target pricing tiers, and direct user roles.
+                      Définissez les détails fondamentaux, les tarifs cibles et les rôles utilisateurs.
                     </Typography>
                   </Box>
 
                   {/* Dynamic Role Cards Selector */}
                   <Box>
                     <Typography variant="subtitle2" fontWeight="700" color="text.primary" mb={2}>
-                      Target Role
+                      Rôle Ciblé
                     </Typography>
                     <Grid container spacing={3}>
                       <Grid item xs={12} sm={6}>
@@ -888,11 +1002,11 @@ export default function SubscriptionPage() {
                           </Avatar>
                           <Box flex={1}>
                             <Typography variant="h6" fontWeight="700" color="text.primary" display="flex" alignItems="center" gap={1}>
-                              Professional
+                              Professionnel
                               {newPlan.role === 'PROFESSIONAL' && <CheckCircleIcon color="primary" sx={{ fontSize: 20 }} />}
                             </Typography>
                             <Typography variant="body2" color="text.secondary" sx={{ opacity: 0.85 }}>
-                              For business accounts, power sellers, and companies.
+                              Pour les comptes professionnels, vendeurs réguliers et entreprises.
                             </Typography>
                           </Box>
                         </Box>
@@ -932,11 +1046,11 @@ export default function SubscriptionPage() {
                           </Avatar>
                           <Box flex={1}>
                             <Typography variant="h6" fontWeight="700" color="text.primary" display="flex" alignItems="center" gap={1}>
-                              Client
+                              Particulier
                               {newPlan.role === 'CLIENT' && <CheckCircleIcon color="success" sx={{ fontSize: 20 }} />}
                             </Typography>
                             <Typography variant="body2" color="text.secondary" sx={{ opacity: 0.85 }}>
-                              For individual buyers, regular clients, and consumers.
+                              Pour les acheteurs individuels, clients réguliers et consommateurs.
                             </Typography>
                           </Box>
                         </Box>
@@ -945,12 +1059,12 @@ export default function SubscriptionPage() {
                   </Box>
 
                   <TextField
-                    label="Plan Name"
+                    label="Nom du Plan"
                     value={newPlan.name}
                     onChange={(e) => setNewPlan({ ...newPlan, name: e.target.value })}
                     fullWidth
                     variant="outlined"
-                    placeholder="e.g. Premium Pro Monthly, Starter Buyer"
+                    placeholder="ex: Premium Pro Mensuel, Particulier Premium"
                     sx={{
                       '& .MuiOutlinedInput-root': {
                         borderRadius: 3.5,
@@ -959,11 +1073,125 @@ export default function SubscriptionPage() {
                     }}
                   />
 
+                  {/* Plan Color Selector */}
+                  <Box sx={{ p: 2.5, bgcolor: '#F8FAFC', borderRadius: 4, border: '1px solid rgba(0,0,0,0.03)', display: 'flex', flexDirection: 'column', gap: 2 }}>
+                    <Box>
+                      <Typography variant="body2" fontWeight="700" color="text.primary">Couleur Thème du Plan</Typography>
+                      <Typography variant="caption" color="text.secondary">Sélectionnez une couleur pour personnaliser la carte de ce plan à travers la plateforme.</Typography>
+                    </Box>
+                    <Box display="flex" flexWrap="wrap" alignItems="center" gap={1.5}>
+                      {presetColors.map((color) => {
+                        const isSelected = newPlan.color === color;
+                        return (
+                          <Box
+                            key={color}
+                            onClick={() => setNewPlan({ ...newPlan, color })}
+                            sx={{
+                              width: 36,
+                              height: 36,
+                              borderRadius: '50%',
+                              bgcolor: color,
+                              cursor: 'pointer',
+                              border: '3px solid',
+                              borderColor: isSelected ? 'primary.main' : 'transparent',
+                              boxShadow: isSelected ? '0 0 10px rgba(14, 165, 233, 0.4)' : '0 2px 6px rgba(0,0,0,0.1)',
+                              transform: isSelected ? 'scale(1.15)' : 'none',
+                              transition: 'all 0.2s ease',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              position: 'relative',
+                              '&:hover': {
+                                transform: 'scale(1.15)',
+                                '& .delete-color-btn': {
+                                  opacity: 1,
+                                }
+                              }
+                            }}
+                            title={color}
+                          >
+                            {isSelected && <CheckCircleOutlineIcon sx={{ color: 'white', fontSize: 18 }} />}
+                            
+                            <IconButton
+                              className="delete-color-btn"
+                              onClick={(e) => deleteSavedColor(color, e)}
+                              sx={{
+                                position: 'absolute',
+                                top: -6,
+                                right: -6,
+                                width: 16,
+                                height: 16,
+                                bgcolor: 'error.main',
+                                color: 'white',
+                                opacity: 0,
+                                transition: 'opacity 0.2s',
+                                '&:hover': {
+                                  bgcolor: 'error.dark',
+                                },
+                                p: 0,
+                              }}
+                              size="small"
+                            >
+                              <CloseIcon sx={{ fontSize: 10 }} />
+                            </IconButton>
+                          </Box>
+                        );
+                      })}
+                      
+                      {/* Custom color picker circle */}
+                      <Box
+                        sx={{
+                          width: 36,
+                          height: 36,
+                          borderRadius: '50%',
+                          background: 'linear-gradient(135deg, #FF0000 0%, #00FF00 50%, #0000FF 100%)',
+                          cursor: 'pointer',
+                          border: '2px solid white',
+                          boxShadow: '0 2px 6px rgba(0,0,0,0.15)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          transition: 'all 0.2s',
+                          position: 'relative',
+                          overflow: 'hidden',
+                          '&:hover': { transform: 'scale(1.15)' }
+                        }}
+                        title="Couleur personnalisée"
+                      >
+                        <AddIcon sx={{ color: 'white', fontSize: 20 }} />
+                        <input 
+                          type="color" 
+                          id="custom-color-picker-new"
+                          value={presetColors.includes(newPlan.color || '') ? '#0EA5E9' : newPlan.color || '#0EA5E9'} 
+                          onChange={(e) => setNewPlan({ ...newPlan, color: e.target.value })}
+                          style={{ position: 'absolute', top: -10, left: -10, width: '60px', height: '60px', opacity: 0, cursor: 'pointer' }}
+                        />
+                      </Box>
+                      
+                      {/* Active Hex view */}
+                      {!presetColors.includes(newPlan.color || '') && (
+                        <Chip
+                          label={newPlan.color}
+                          variant="outlined"
+                          size="small"
+                          sx={{ 
+                            borderRadius: 2, 
+                            fontWeight: 600, 
+                            borderColor: newPlan.color,
+                            color: newPlan.color,
+                            bgcolor: alpha(newPlan.color || '#0EA5E9', 0.05)
+                          }}
+                          onDelete={() => setNewPlan({ ...newPlan, color: '#0EA5E9' })}
+                        />
+                      )}
+                    </Box>
+                  </Box>
+
                   <Grid container spacing={3}>
                     <Grid item xs={12} sm={6}>
                       <Box>
                         <TextField
-                          label="Price (DZD)"
+                          label="Prix (DZD)"
                           type="number"
                           value={newPlan.price}
                           onChange={(e) => setNewPlan({ ...newPlan, price: Math.max(0, Number(e.target.value)) })}
@@ -986,11 +1214,10 @@ export default function SubscriptionPage() {
                     <Grid item xs={12} sm={6}>
                       <Box>
                         <TextField
-                          label="Duration (months)"
+                          label="Durée (mois)"
                           type="number"
-                          value={newPlan.isDurationUnlimited ? "" : (newPlan.duration === 0 ? "" : newPlan.duration)}
+                          value={newPlan.duration === 0 ? "" : newPlan.duration}
                           onChange={(e) => setNewPlan({ ...newPlan, duration: e.target.value === "" ? 0 : Math.max(1, Number(e.target.value)) })}
-                          disabled={newPlan.isDurationUnlimited}
                           fullWidth
                           variant="outlined"
                           inputProps={{ min: 1, step: 1 }}
@@ -1011,14 +1238,14 @@ export default function SubscriptionPage() {
 
                   <Box>
                     <TextField
-                      label="Plan Description"
+                      label="Description du Plan"
                       value={newPlan.description}
                       onChange={(e) => setNewPlan({ ...newPlan, description: e.target.value })}
                       multiline
                       rows={3}
                       fullWidth
                       variant="outlined"
-                      placeholder="Briefly describe what capabilities this plan delivers..."
+                      placeholder="Décrivez brièvement les fonctionnalités incluses dans ce plan..."
                       sx={{
                         mb: 1.5,
                         '& .MuiOutlinedInput-root': {
@@ -1032,8 +1259,8 @@ export default function SubscriptionPage() {
 
                   <Box sx={{ p: 2.5, bgcolor: '#F8FAFC', borderRadius: 4, border: '1px solid rgba(0,0,0,0.03)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <Box>
-                      <Typography variant="body2" fontWeight="700" color="text.primary">Plan Status Visibility</Typography>
-                      <Typography variant="caption" color="text.secondary">Make this plan active and visible to eligible accounts immediately.</Typography>
+                      <Typography variant="body2" fontWeight="700" color="text.primary">Visibilité du Plan</Typography>
+                      <Typography variant="caption" color="text.secondary">Rendre ce plan actif et visible immédiatement pour les comptes éligibles.</Typography>
                     </Box>
                     <FormControlLabel
                       control={
@@ -1055,38 +1282,38 @@ export default function SubscriptionPage() {
                 <Stack spacing={5}>
                   <Box>
                     <Typography variant="h5" fontWeight="800" color="text.primary" mb={1} sx={{ letterSpacing: '-0.015em' }}>
-                      Plan Limits & Analytics Access
+                      Limites du Plan & Accès aux Analyses
                     </Typography>
                     <Typography variant="body2" color="text.secondary">
-                      Establish explicit limitations for announcements, media counts, and analytical dashboard tiers.
+                      Établissez des limites précises pour les annonces, les médias et les niveaux d'accès analytique.
                     </Typography>
                   </Box>
 
                   {/* Analytics Dashboard Tiers Selection Cards */}
                   <Box>
                     <Typography variant="subtitle2" fontWeight="700" color="text.primary" mb={2}>
-                      Analytics Dashboard Access Tier
+                      Niveau d'Accès au Tableau de Bord Analytique
                     </Typography>
                     <Grid container spacing={3}>
                       {[
                         { 
                           value: 'BASIC', 
-                          title: 'Basic Analytics', 
-                          desc: 'Essential tracking for views and status summaries.', 
+                          title: 'Analyses Basiques', 
+                          desc: 'Suivi essentiel des vues et résumés des statuts.', 
                           icon: <BarChartIcon sx={{ fontSize: 24 }} />,
                           color: '#64748B'
                         },
                         { 
                           value: 'STANDARD', 
-                          title: 'Standard Dashboard', 
-                          desc: 'Full monthly stats, activity graphs, and customer logs.', 
+                          title: 'Tableau de Bord Standard', 
+                          desc: "Statistiques mensuelles complètes, graphiques d'activité et journaux clients.", 
                           icon: <AnalyticsIcon sx={{ fontSize: 24 }} />,
                           color: '#0EA5E9'
                         },
                         { 
                           value: 'ADVANCED', 
-                          title: 'Advanced Real-time', 
-                          desc: 'Real-time charts, predictive conversions, and priority reporting.', 
+                          title: 'Analyses Avancées en Temps Réel', 
+                          desc: 'Graphiques en temps réel, conversions prédictives et rapports prioritaires.', 
                           icon: <AssessmentIcon sx={{ fontSize: 24 }} />,
                           color: '#F59E0B'
                         }
@@ -1140,13 +1367,13 @@ export default function SubscriptionPage() {
                     {/* Announces Limit */}
                     <Grid item xs={12} md={6}>
                       <Box sx={{ p: 3, border: '1px solid rgba(0,0,0,0.06)', borderRadius: 4, bgcolor: '#F8FAFC' }}>
-                        <Typography variant="subtitle2" fontWeight="700" mb={1}>Announces Limit</Typography>
+                        <Typography variant="subtitle2" fontWeight="700" mb={1}>Limite d'Annonces</Typography>
                         <Typography variant="caption" color="text.secondary" display="block" mb={2}>
-                          Maximum number of active listings the user can post per calendar month.
+                          Nombre maximum d'annonces actives que l'utilisateur peut publier par mois civil.
                         </Typography>
                         
                         <TextField
-                          label="Announces Limit"
+                          label="Limite d'Annonces"
                           type="number"
                           value={newPlan.announcesPerMonth}
                           onChange={(e) => setNewPlan({ ...newPlan, announcesPerMonth: Math.max(0, Number(e.target.value)) })}
@@ -1163,13 +1390,13 @@ export default function SubscriptionPage() {
                     {/* Enchères/Soumissions Limit */}
                     <Grid item xs={12} md={6}>
                       <Box sx={{ p: 3, border: '1px solid rgba(0,0,0,0.06)', borderRadius: 4, bgcolor: '#F8FAFC' }}>
-                        <Typography variant="subtitle2" fontWeight="700" mb={1}>Enchères/Soumissions Limit</Typography>
+                        <Typography variant="subtitle2" fontWeight="700" mb={1}>Limite d'Enchères/Soumissions</Typography>
                         <Typography variant="caption" color="text.secondary" display="block" mb={2}>
-                          Number of active auction submissions allowed at any given time.
+                          Nombre d'enchères ou de soumissions actives autorisées simultanément.
                         </Typography>
                         
                         <TextField
-                          label="Enchères/Soumissions Limit"
+                          label="Limite d'Enchères/Soumissions"
                           type="number"
                           value={newPlan.enchereSoumissionLimit}
                           onChange={(e) => setNewPlan({ ...newPlan, enchereSoumissionLimit: Math.max(0, Number(e.target.value)) })}
@@ -1185,48 +1412,98 @@ export default function SubscriptionPage() {
                   </Grid>
 
                   {/* Photos and Videos limit */}
-                  <Box sx={{ p: 3.5, border: '1px solid rgba(0,0,0,0.06)', borderRadius: 4, bgcolor: '#F8FAFC' }}>
-                    <Box display="flex" justifyContent="space-between" alignItems="center" mb={2.5}>
-                      <Box>
-                        <Typography variant="subtitle1" fontWeight="700">Unlimited Media Inclusions</Typography>
-                        <Typography variant="caption" color="text.secondary">
-                          Permit users to upload infinite photo and video galleries per active publication.
-                        </Typography>
+                  <Box sx={{ p: 3.5, border: '1px solid rgba(0,0,0,0.06)', borderRadius: 4, bgcolor: '#F8FAFC', display: 'flex', flexDirection: 'column', gap: 3.5 }}>
+                    {/* Photos Limit Control */}
+                    <Box>
+                      <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+                        <Box>
+                          <Typography variant="subtitle1" fontWeight="700">Photos Illimitées</Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            Permettre aux utilisateurs de télécharger des galeries de photos illimitées par publication.
+                          </Typography>
+                        </Box>
+                        <Switch
+                          checked={newPlan.photosLimit === -1}
+                          onChange={(e) => setNewPlan({ ...newPlan, photosLimit: e.target.checked ? -1 : 10 })}
+                          color="primary"
+                        />
                       </Box>
-                      <Switch
-                        checked={newPlan.photosVideosLimit === -1}
-                        onChange={(e) => setNewPlan({ ...newPlan, photosVideosLimit: e.target.checked ? -1 : 10 })}
-                        color="primary"
-                      />
+
+                      {newPlan.photosLimit !== -1 && (
+                        <Grid container spacing={3} alignItems="center">
+                          <Grid item xs={12} sm={8}>
+                            <TextField
+                              label="Photos Max par Publication"
+                              type="number"
+                              value={newPlan.photosLimit}
+                              onChange={(e) => setNewPlan({ ...newPlan, photosLimit: Math.max(0, Number(e.target.value)) })}
+                              fullWidth
+                              sx={{ '& .MuiOutlinedInput-root': { borderRadius: 3, bgcolor: 'white' } }}
+                            />
+                          </Grid>
+                          <Grid item xs={12} sm={4}>
+                            <Box display="flex" gap={1}>
+                              {[5, 10, 15, 20].map((num) => (
+                                <Chip
+                                  key={num}
+                                  label={`${num} photos`}
+                                  onClick={() => setNewPlan({ ...newPlan, photosLimit: num })}
+                                  color={newPlan.photosLimit === num ? 'primary' : 'default'}
+                                  sx={{ borderRadius: 2, fontWeight: 600, fontSize: '0.7rem', cursor: 'pointer' }}
+                                />
+                              ))}
+                            </Box>
+                          </Grid>
+                        </Grid>
+                      )}
                     </Box>
 
-                    {newPlan.photosVideosLimit !== -1 && (
-                      <Grid container spacing={3} alignItems="center">
-                        <Grid item xs={12} sm={8}>
-                          <TextField
-                            label="Max Photos & Videos per Publication"
-                            type="number"
-                            value={newPlan.photosVideosLimit}
-                            onChange={(e) => setNewPlan({ ...newPlan, photosVideosLimit: Math.max(0, Number(e.target.value)) })}
-                            fullWidth
-                            sx={{ '& .MuiOutlinedInput-root': { borderRadius: 3, bgcolor: 'white' } }}
-                          />
+                    <Divider />
+
+                    {/* Videos Limit Control */}
+                    <Box>
+                      <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+                        <Box>
+                          <Typography variant="subtitle1" fontWeight="700">Vidéos Illimitées</Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            Permettre aux utilisateurs de télécharger des galeries de vidéos illimitées par publication.
+                          </Typography>
+                        </Box>
+                        <Switch
+                          checked={newPlan.videosLimit === -1}
+                          onChange={(e) => setNewPlan({ ...newPlan, videosLimit: e.target.checked ? -1 : 2 })}
+                          color="primary"
+                        />
+                      </Box>
+
+                      {newPlan.videosLimit !== -1 && (
+                        <Grid container spacing={3} alignItems="center">
+                          <Grid item xs={12} sm={8}>
+                            <TextField
+                              label="Vidéos Max par Publication"
+                              type="number"
+                              value={newPlan.videosLimit}
+                              onChange={(e) => setNewPlan({ ...newPlan, videosLimit: Math.max(0, Number(e.target.value)) })}
+                              fullWidth
+                              sx={{ '& .MuiOutlinedInput-root': { borderRadius: 3, bgcolor: 'white' } }}
+                            />
+                          </Grid>
+                          <Grid item xs={12} sm={4}>
+                            <Box display="flex" gap={1}>
+                              {[1, 2, 3, 5].map((num) => (
+                                <Chip
+                                  key={num}
+                                  label={`${num} vidéos`}
+                                  onClick={() => setNewPlan({ ...newPlan, videosLimit: num })}
+                                  color={newPlan.videosLimit === num ? 'primary' : 'default'}
+                                  sx={{ borderRadius: 2, fontWeight: 600, fontSize: '0.7rem', cursor: 'pointer' }}
+                                />
+                              ))}
+                            </Box>
+                          </Grid>
                         </Grid>
-                        <Grid item xs={12} sm={4}>
-                          <Box display="flex" gap={1}>
-                            {[5, 10, 15, 20].map((num) => (
-                              <Chip
-                                key={num}
-                                label={`${num} files`}
-                                onClick={() => setNewPlan({ ...newPlan, photosVideosLimit: num })}
-                                color={newPlan.photosVideosLimit === num ? 'primary' : 'default'}
-                                sx={{ borderRadius: 2, fontWeight: 600, fontSize: '0.7rem', cursor: 'pointer' }}
-                              />
-                            ))}
-                          </Box>
-                        </Grid>
-                      </Grid>
-                    )}
+                      )}
+                    </Box>
                   </Box>
                 </Stack>
               )}
@@ -1236,54 +1513,54 @@ export default function SubscriptionPage() {
                 <Stack spacing={5}>
                   <Box>
                     <Typography variant="h5" fontWeight="800" color="text.primary" mb={1} sx={{ letterSpacing: '-0.015em' }}>
-                      Plan Capabilities & Featured Benefits
+                      Capacités du Plan & Avantages Vedettes
                     </Typography>
                     <Typography variant="body2" color="text.secondary">
-                      Toggle operational permissions and define the bullet point benefits shown to users.
+                      Activez les autorisations opérationnelles et définissez les avantages présentés aux utilisateurs.
                     </Typography>
                   </Box>
 
                   {/* Capabilities Interactive Tiles Grid */}
                   <Box>
                     <Typography variant="subtitle2" fontWeight="700" color="text.primary" mb={2.5}>
-                      Plan Capabilities
+                      Capacités du Plan
                     </Typography>
                     <Grid container spacing={3}>
                       {[
                         { 
                           key: "hasChatAndMessaging", 
                           label: "Chat & Messagerie", 
-                          desc: "Instant live chat with buyers & sellers.", 
+                          desc: "Messagerie en direct instantanée entre acheteurs et vendeurs.", 
                           icon: <SupportAgentIcon sx={{ fontSize: 24 }} /> 
                         },
                         { 
                           key: "hasRatingAndHistory", 
                           label: "Rating & Historique", 
-                          desc: "Allow buyers to submit scores & reviews.", 
+                          desc: "Permet aux acheteurs de soumettre des évaluations et des avis.", 
                           icon: <StarIcon sx={{ fontSize: 24 }} /> 
                         },
                         { 
                           key: "isDurationUnlimited", 
-                          label: "Unlimited Duration", 
-                          desc: "Never expire or require monthly re-subscription.", 
+                          label: "Durée Illimitée", 
+                          desc: "N'expire jamais et ne requiert aucun réabonnement mensuel.", 
                           icon: <AllInclusiveIcon sx={{ fontSize: 24 }} /> 
                         },
                         { 
                           key: "hasAutoTranslation", 
-                          label: "Auto Translation", 
-                          desc: "Automatic real-time post translation.", 
+                          label: "Traduction Automatique", 
+                          desc: "Traduction automatique en temps réel des annonces.", 
                           icon: <AutoAwesomeIcon sx={{ fontSize: 24 }} /> 
                         },
                         { 
                           key: "hasMiseEnAvant", 
                           label: "Mise en Avant", 
-                          desc: "Promote publications at the top of lists.", 
+                          desc: "Met en avant les publications en tête de liste.", 
                           icon: <VisibilityIcon sx={{ fontSize: 24 }} /> 
                         },
                         { 
                           key: "hasEmailNotification", 
-                          label: "Email Notifications", 
-                          desc: "Alerts for new bids and chat messages.", 
+                          label: "Notifications E-mail", 
+                          desc: "Alertes e-mail pour les nouvelles enchères et messages.", 
                           icon: <NotificationsActiveIcon sx={{ fontSize: 24 }} /> 
                         }
                       ].map((item) => {
@@ -1296,7 +1573,6 @@ export default function SubscriptionPage() {
                                   setNewPlan({ 
                                     ...newPlan, 
                                     isDurationUnlimited: !isToggleOn, 
-                                    duration: !isToggleOn ? 0 : 1 
                                   });
                                 } else {
                                   setNewPlan({ ...newPlan, [item.key]: !isToggleOn });
@@ -1333,7 +1609,6 @@ export default function SubscriptionPage() {
                                       setNewPlan({ 
                                         ...newPlan, 
                                         isDurationUnlimited: e.target.checked, 
-                                        duration: e.target.checked ? 0 : 1 
                                       });
                                     } else {
                                       setNewPlan({ ...newPlan, [item.key]: e.target.checked });
@@ -1360,12 +1635,12 @@ export default function SubscriptionPage() {
                   {/* Plan Benefits Builder */}
                   <Box sx={{ p: 4, borderRadius: 4, bgcolor: '#F8FAFC', border: '1px solid rgba(0,0,0,0.04)' }}>
                     <Typography variant="subtitle2" fontWeight="700" mb={1.5}>
-                      Featured Plan Benefits Builder
+                      Générateur d'Avantages Vedettes
                     </Typography>
                     
                     <Box display="flex" gap={2} mb={3}>
                       <TextField
-                        label="New Benefit Bulletpoint"
+                        label="Nouveau Point d'Avantage"
                         value={newBenefit}
                         onChange={(e) => setNewBenefit(e.target.value)}
                         onKeyPress={(e) => {
@@ -1376,7 +1651,7 @@ export default function SubscriptionPage() {
                         }}
                         fullWidth
                         variant="outlined"
-                        placeholder="e.g. priority live chat, professional profile status badge"
+                        placeholder="ex: support client VIP, badge de profil vérifié, etc."
                         sx={{
                           '& .MuiOutlinedInput-root': {
                             borderRadius: 3,
@@ -1390,14 +1665,14 @@ export default function SubscriptionPage() {
                         startIcon={<AddIcon />}
                         sx={{ px: 4, borderRadius: 3, boxShadow: '0 4px 14px rgba(14, 165, 233, 0.3)', color: 'white' }}
                       >
-                        Add
+                        Ajouter
                       </Button>
                     </Box>
 
                     {/* Pre-fill Preset Benefits Suggestions */}
                     <Box mb={3.5}>
                       <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, display: 'block', mb: 1.5 }}>
-                        Click tags below to instantly pre-fill recommended benefits:
+                        Cliquez sur les étiquettes ci-dessous pour ajouter instantanément un avantage :
                       </Typography>
                       <Box display="flex" flexWrap="wrap" gap={1.2}>
                         {[
@@ -1440,7 +1715,7 @@ export default function SubscriptionPage() {
                       <Box>
                         <Divider sx={{ mb: 2 }} />
                         <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700, display: 'block', mb: 1.5 }}>
-                          Active Plan Benefits List ({newPlan.benefits.length}):
+                          Liste des Avantages Actifs ({newPlan.benefits.length}) :
                         </Typography>
                         <Box display="flex" flexWrap="wrap" gap={1}>
                           {newPlan.benefits.map((benefit, index) => (
@@ -1466,7 +1741,7 @@ export default function SubscriptionPage() {
                     ) : (
                       <Box sx={{ border: '1px dashed rgba(0,0,0,0.1)', p: 3, borderRadius: 3, textAlign: 'center' }}>
                         <Typography variant="caption" color="text.disabled" sx={{ display: 'block', fontStyle: 'italic' }}>
-                          No benefits added yet. Type a customized benefit above or click recommendations to add them.
+                          Aucun avantage ajouté. Saisissez un avantage ci-dessus ou cliquez sur une suggestion.
                         </Typography>
                       </Box>
                     )}
@@ -1492,7 +1767,7 @@ export default function SubscriptionPage() {
                   startIcon={<CancelIcon />}
                   sx={{ borderRadius: 3.5, px: 3, py: 1.2, color: 'text.secondary', borderColor: 'rgba(0,0,0,0.1)' }}
                 >
-                  Cancel
+                  Annuler
                 </Button>
                 
                 <Box display="flex" gap={2}>
@@ -1502,7 +1777,7 @@ export default function SubscriptionPage() {
                     onClick={() => setCreateStep((prev) => Math.max(0, prev - 1))}
                     sx={{ borderRadius: 3.5, px: 3, py: 1.2 }}
                   >
-                    Back
+                    Retour
                   </Button>
                   
                   {createStep < 2 ? (
@@ -1511,7 +1786,7 @@ export default function SubscriptionPage() {
                       onClick={() => setCreateStep((prev) => Math.min(2, prev + 1))}
                       sx={{ borderRadius: 3.5, px: 4, py: 1.2, color: 'white' }}
                     >
-                      Next Step
+                      Étape suivante
                     </Button>
                   ) : (
                     <Button
@@ -1532,7 +1807,7 @@ export default function SubscriptionPage() {
                         }
                       }}
                     >
-                      Create Subscription Plan
+                      Créer le plan d'abonnement
                     </Button>
                   )}
                 </Box>
@@ -1580,10 +1855,10 @@ export default function SubscriptionPage() {
                     transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
                   }}
                 >
-                  Back to Subscriptions
+                  Retour aux abonnements
                 </Button>
               </Box>
-
+ 
               <Box mt={1} display="flex" flexDirection="column" alignItems="center" gap={3} sx={{ width: '100%' }}>
                 <Box sx={{ textAlign: 'center' }}>
                   <Typography
@@ -1601,19 +1876,19 @@ export default function SubscriptionPage() {
                       textAlign: 'center'
                     }}
                   >
-                    Edit Subscription Plan
+                    Modifier le plan d'abonnement
                   </Typography>
                   <Typography variant="body1" sx={{ color: 'text.secondary', fontWeight: 400, opacity: 0.8, textAlign: 'center' }}>
-                    Modify the details and configuration of "{currentPlan.name}"
+                    Modifier les détails et la configuration de "{currentPlan.name}"
                   </Typography>
                 </Box>
-
+ 
                 {/* Steps Navigator */}
                 <Box sx={{ bgcolor: 'rgba(0, 0, 0, 0.03)', p: 0.5, borderRadius: 4, display: 'flex', gap: 1 }}>
                   {[
-                    { label: "1. Basics & Role", step: 0, icon: <AssignmentIcon sx={{ fontSize: 16 }} /> },
-                    { label: "2. Limits & Analytics", step: 1, icon: <TrendingUpIcon sx={{ fontSize: 16 }} /> },
-                    { label: "3. Capabilities", step: 2, icon: <WorkspacePremiumIcon sx={{ fontSize: 16 }} /> }
+                    { label: "1. Bases & Rôle", step: 0, icon: <AssignmentIcon sx={{ fontSize: 16 }} /> },
+                    { label: "2. Limites & Analyses", step: 1, icon: <TrendingUpIcon sx={{ fontSize: 16 }} /> },
+                    { label: "3. Fonctionnalités", step: 2, icon: <WorkspacePremiumIcon sx={{ fontSize: 16 }} /> }
                   ].map((s) => (
                     <Button
                       key={s.step}
@@ -1654,6 +1929,7 @@ export default function SubscriptionPage() {
 
             {/* Workspace Paper */}
             <Paper
+              id="edit-plan-workspace"
               elevation={0}
               sx={{
                 p: 5,
@@ -1668,17 +1944,17 @@ export default function SubscriptionPage() {
                 <Stack spacing={5}>
                   <Box>
                     <Typography variant="h5" fontWeight="800" color="text.primary" mb={1} sx={{ letterSpacing: '-0.015em' }}>
-                      Plan Identity & Target Role
+                      Identité du Plan & Rôle Ciblé
                     </Typography>
                     <Typography variant="body2" color="text.secondary">
-                      Update the core subscription details, target pricing tiers, and direct user roles.
+                      Modifiez les détails fondamentaux, les tarifs cibles et les rôles utilisateurs.
                     </Typography>
                   </Box>
 
                   {/* Role Cards */}
                   <Box>
                     <Typography variant="subtitle2" fontWeight="700" color="text.primary" mb={2}>
-                      Target Role
+                      Rôle Ciblé
                     </Typography>
                     <Grid container spacing={3}>
                       <Grid item xs={12} sm={6}>
@@ -1716,11 +1992,11 @@ export default function SubscriptionPage() {
                           </Avatar>
                           <Box flex={1}>
                             <Typography variant="h6" fontWeight="700" color="text.primary" display="flex" alignItems="center" gap={1}>
-                              Professional
+                              Professionnel
                               {currentPlan.role === 'PROFESSIONAL' && <CheckCircleIcon color="primary" sx={{ fontSize: 20 }} />}
                             </Typography>
                             <Typography variant="body2" color="text.secondary" sx={{ opacity: 0.85 }}>
-                              For business accounts, power sellers, and companies.
+                              Pour les comptes professionnels, vendeurs réguliers et entreprises.
                             </Typography>
                           </Box>
                         </Box>
@@ -1760,11 +2036,11 @@ export default function SubscriptionPage() {
                           </Avatar>
                           <Box flex={1}>
                             <Typography variant="h6" fontWeight="700" color="text.primary" display="flex" alignItems="center" gap={1}>
-                              Client
+                              Particulier
                               {currentPlan.role === 'CLIENT' && <CheckCircleIcon color="success" sx={{ fontSize: 20 }} />}
                             </Typography>
                             <Typography variant="body2" color="text.secondary" sx={{ opacity: 0.85 }}>
-                              For individual buyers, regular clients, and consumers.
+                              Pour les acheteurs individuels, clients réguliers et consommateurs.
                             </Typography>
                           </Box>
                         </Box>
@@ -1773,12 +2049,12 @@ export default function SubscriptionPage() {
                   </Box>
 
                   <TextField
-                    label="Plan Name"
+                    label="Nom du Plan"
                     value={currentPlan.name}
                     onChange={(e) => setCurrentPlan({ ...currentPlan, name: e.target.value })}
                     fullWidth
                     variant="outlined"
-                    placeholder="e.g. Premium Pro Monthly, Starter Buyer"
+                    placeholder="ex: Premium Pro Mensuel, Particulier Premium"
                     sx={{
                       '& .MuiOutlinedInput-root': {
                         borderRadius: 3.5,
@@ -1787,10 +2063,124 @@ export default function SubscriptionPage() {
                     }}
                   />
 
+                  {/* Plan Color Selector */}
+                  <Box sx={{ p: 2.5, bgcolor: '#F8FAFC', borderRadius: 4, border: '1px solid rgba(0,0,0,0.03)', display: 'flex', flexDirection: 'column', gap: 2 }}>
+                    <Box>
+                      <Typography variant="body2" fontWeight="700" color="text.primary">Couleur Thème du Plan</Typography>
+                      <Typography variant="caption" color="text.secondary">Sélectionnez une couleur pour personnaliser la carte de ce plan à travers la plateforme.</Typography>
+                    </Box>
+                    <Box display="flex" flexWrap="wrap" alignItems="center" gap={1.5}>
+                      {presetColors.map((color) => {
+                        const isSelected = currentPlan.color === color;
+                        return (
+                          <Box
+                            key={color}
+                            onClick={() => setCurrentPlan({ ...currentPlan, color })}
+                            sx={{
+                              width: 36,
+                              height: 36,
+                              borderRadius: '50%',
+                              bgcolor: color,
+                              cursor: 'pointer',
+                              border: '3px solid',
+                              borderColor: isSelected ? 'primary.main' : 'transparent',
+                              boxShadow: isSelected ? '0 0 10px rgba(14, 165, 233, 0.4)' : '0 2px 6px rgba(0,0,0,0.1)',
+                              transform: isSelected ? 'scale(1.15)' : 'none',
+                              transition: 'all 0.2s ease',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              position: 'relative',
+                              '&:hover': {
+                                transform: 'scale(1.15)',
+                                '& .delete-color-btn-edit': {
+                                  opacity: 1,
+                                }
+                              }
+                            }}
+                            title={color}
+                          >
+                            {isSelected && <CheckCircleOutlineIcon sx={{ color: 'white', fontSize: 18 }} />}
+
+                            <IconButton
+                              className="delete-color-btn-edit"
+                              onClick={(e) => deleteSavedColor(color, e)}
+                              sx={{
+                                position: 'absolute',
+                                top: -6,
+                                right: -6,
+                                width: 16,
+                                height: 16,
+                                bgcolor: 'error.main',
+                                color: 'white',
+                                opacity: 0,
+                                transition: 'opacity 0.2s',
+                                '&:hover': {
+                                  bgcolor: 'error.dark',
+                                },
+                                p: 0,
+                              }}
+                              size="small"
+                            >
+                              <CloseIcon sx={{ fontSize: 10 }} />
+                            </IconButton>
+                          </Box>
+                        );
+                      })}
+                      
+                      {/* Custom color picker circle */}
+                      <Box
+                        sx={{
+                          width: 36,
+                          height: 36,
+                          borderRadius: '50%',
+                          background: 'linear-gradient(135deg, #FF0000 0%, #00FF00 50%, #0000FF 100%)',
+                          cursor: 'pointer',
+                          border: '2px solid white',
+                          boxShadow: '0 2px 6px rgba(0,0,0,0.15)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          transition: 'all 0.2s',
+                          position: 'relative',
+                          overflow: 'hidden',
+                          '&:hover': { transform: 'scale(1.15)' }
+                        }}
+                        title="Couleur personnalisée"
+                      >
+                        <AddIcon sx={{ color: 'white', fontSize: 20 }} />
+                        <input 
+                          type="color" 
+                          id="custom-color-picker-edit"
+                          value={presetColors.includes(currentPlan.color || '') ? '#0EA5E9' : currentPlan.color || '#0EA5E9'} 
+                          onChange={(e) => setCurrentPlan({ ...currentPlan, color: e.target.value })}
+                          style={{ position: 'absolute', top: -10, left: -10, width: '60px', height: '60px', opacity: 0, cursor: 'pointer' }}
+                        />
+                      </Box>
+                      
+                      {/* Active Hex view */}
+                      {!presetColors.includes(currentPlan.color || '') && (
+                        <Chip
+                          label={currentPlan.color}
+                          variant="outlined"
+                          size="small"
+                          sx={{ 
+                            borderRadius: 2, 
+                            fontWeight: 600, 
+                            borderColor: currentPlan.color,
+                            color: currentPlan.color,
+                            bgcolor: alpha(currentPlan.color || '#0EA5E9', 0.05)
+                          }}
+                          onDelete={() => setCurrentPlan({ ...currentPlan, color: '#0EA5E9' })}
+                        />
+                      )}
+                    </Box>
+                  </Box>
+
                   <Grid container spacing={3}>
                     <Grid item xs={12} sm={6}>
                       <TextField
-                        label="Price (DZD)"
+                        label="Prix (DZD)"
                         type="number"
                         value={currentPlan.price}
                         onChange={(e) => setCurrentPlan({ ...currentPlan, price: Math.max(0, Number(e.target.value)) })}
@@ -1810,11 +2200,10 @@ export default function SubscriptionPage() {
                     </Grid>
                     <Grid item xs={12} sm={6}>
                       <TextField
-                        label="Duration (months)"
+                        label="Durée (mois)"
                         type="number"
-                        value={currentPlan.isDurationUnlimited ? "" : (currentPlan.duration === 0 ? "" : currentPlan.duration)}
+                        value={currentPlan.duration === 0 ? "" : currentPlan.duration}
                         onChange={(e) => setCurrentPlan({ ...currentPlan, duration: e.target.value === "" ? 0 : Math.max(1, Number(e.target.value)) })}
-                        disabled={currentPlan.isDurationUnlimited || false}
                         fullWidth
                         variant="outlined"
                         inputProps={{ min: 1, step: 1 }}
@@ -1832,14 +2221,14 @@ export default function SubscriptionPage() {
                   </Grid>
 
                   <TextField
-                    label="Plan Description"
+                    label="Description du Plan"
                     value={currentPlan.description}
                     onChange={(e) => setCurrentPlan({ ...currentPlan, description: e.target.value })}
                     multiline
                     rows={3}
                     fullWidth
                     variant="outlined"
-                    placeholder="Briefly describe what capabilities this plan delivers..."
+                    placeholder="Décrivez brièvement les fonctionnalités incluses dans ce plan..."
                     sx={{
                       '& .MuiOutlinedInput-root': {
                         borderRadius: 3.5,
@@ -1850,8 +2239,8 @@ export default function SubscriptionPage() {
 
                   <Box sx={{ p: 2.5, bgcolor: '#F8FAFC', borderRadius: 4, border: '1px solid rgba(0,0,0,0.03)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <Box>
-                      <Typography variant="body2" fontWeight="700" color="text.primary">Plan Status Visibility</Typography>
-                      <Typography variant="caption" color="text.secondary">Make this plan active and visible to eligible accounts immediately.</Typography>
+                      <Typography variant="body2" fontWeight="700" color="text.primary">Visibilité du Plan</Typography>
+                      <Typography variant="caption" color="text.secondary">Rendre ce plan actif et visible immédiatement pour les comptes éligibles.</Typography>
                     </Box>
                     <FormControlLabel
                       control={
@@ -1873,38 +2262,38 @@ export default function SubscriptionPage() {
                 <Stack spacing={5}>
                   <Box>
                     <Typography variant="h5" fontWeight="800" color="text.primary" mb={1} sx={{ letterSpacing: '-0.015em' }}>
-                      Plan Limits & Analytics Access
+                      Limites du Plan & Accès aux Analyses
                     </Typography>
                     <Typography variant="body2" color="text.secondary">
-                      Establish explicit limitations for announcements, media counts, and analytical dashboard tiers.
+                      Établissez des limites précises pour les annonces, les médias et les niveaux d'accès analytique.
                     </Typography>
                   </Box>
 
                   {/* Analytics Tier Selection Cards */}
                   <Box>
                     <Typography variant="subtitle2" fontWeight="700" color="text.primary" mb={2}>
-                      Analytics Dashboard Access Tier
+                      Niveau d'Accès au Tableau de Bord Analytique
                     </Typography>
                     <Grid container spacing={3}>
                       {[
                         {
                           value: 'BASIC',
-                          title: 'Basic Analytics',
-                          desc: 'Essential tracking for views and status summaries.',
+                          title: 'Analyses Basiques',
+                          desc: 'Suivi essentiel des vues et résumés des statuts.',
                           icon: <BarChartIcon sx={{ fontSize: 24 }} />,
                           color: '#64748B'
                         },
                         {
                           value: 'STANDARD',
-                          title: 'Standard Dashboard',
-                          desc: 'Full monthly stats, activity graphs, and customer logs.',
+                          title: 'Tableau de Bord Standard',
+                          desc: "Statistiques mensuelles complètes, graphiques d'activité et journaux clients.",
                           icon: <AnalyticsIcon sx={{ fontSize: 24 }} />,
                           color: '#0EA5E9'
                         },
                         {
                           value: 'ADVANCED',
-                          title: 'Advanced Real-time',
-                          desc: 'Real-time charts, predictive conversions, and priority reporting.',
+                          title: 'Analyses Avancées en Temps Réel',
+                          desc: 'Graphiques en temps réel, conversions prédictives et rapports prioritaires.',
                           icon: <AssessmentIcon sx={{ fontSize: 24 }} />,
                           color: '#F59E0B'
                         }
@@ -1957,12 +2346,12 @@ export default function SubscriptionPage() {
                   <Grid container spacing={4}>
                     <Grid item xs={12} md={6}>
                       <Box sx={{ p: 3, border: '1px solid rgba(0,0,0,0.06)', borderRadius: 4, bgcolor: '#F8FAFC' }}>
-                        <Typography variant="subtitle2" fontWeight="700" mb={1}>Announces Limit</Typography>
+                        <Typography variant="subtitle2" fontWeight="700" mb={1}>Limite d'Annonces</Typography>
                         <Typography variant="caption" color="text.secondary" display="block" mb={2}>
-                          Maximum number of active listings the user can post per calendar month.
+                          Nombre maximum d'annonces actives que l'utilisateur peut publier par mois civil.
                         </Typography>
                         <TextField
-                          label="Announces Limit"
+                          label="Limite d'Annonces"
                           type="number"
                           value={currentPlan.announcesPerMonth || 0}
                           onChange={(e) => setCurrentPlan({ ...currentPlan, announcesPerMonth: Math.max(0, Number(e.target.value)) })}
@@ -1976,12 +2365,12 @@ export default function SubscriptionPage() {
                     </Grid>
                     <Grid item xs={12} md={6}>
                       <Box sx={{ p: 3, border: '1px solid rgba(0,0,0,0.06)', borderRadius: 4, bgcolor: '#F8FAFC' }}>
-                        <Typography variant="subtitle2" fontWeight="700" mb={1}>Enchères/Soumissions Limit</Typography>
+                        <Typography variant="subtitle2" fontWeight="700" mb={1}>Limite d'Enchères/Soumissions</Typography>
                         <Typography variant="caption" color="text.secondary" display="block" mb={2}>
-                          Number of active auction submissions allowed at any given time.
+                          Nombre d'enchères ou de soumissions actives autorisées simultanément.
                         </Typography>
                         <TextField
-                          label="Enchères/Soumissions Limit"
+                          label="Limite d'Enchères/Soumissions"
                           type="number"
                           value={currentPlan.enchereSoumissionLimit || 0}
                           onChange={(e) => setCurrentPlan({ ...currentPlan, enchereSoumissionLimit: Math.max(0, Number(e.target.value)) })}
@@ -1995,48 +2384,99 @@ export default function SubscriptionPage() {
                     </Grid>
                   </Grid>
 
-                  {/* Photos & Videos */}
-                  <Box sx={{ p: 3.5, border: '1px solid rgba(0,0,0,0.06)', borderRadius: 4, bgcolor: '#F8FAFC' }}>
-                    <Box display="flex" justifyContent="space-between" alignItems="center" mb={2.5}>
-                      <Box>
-                        <Typography variant="subtitle1" fontWeight="700">Unlimited Media Inclusions</Typography>
-                        <Typography variant="caption" color="text.secondary">
-                          Permit users to upload infinite photo and video galleries per active publication.
-                        </Typography>
+                  {/* Photos and Videos limit */}
+                  <Box sx={{ p: 3.5, border: '1px solid rgba(0,0,0,0.06)', borderRadius: 4, bgcolor: '#F8FAFC', display: 'flex', flexDirection: 'column', gap: 3.5 }}>
+                    {/* Photos Limit Control */}
+                    <Box>
+                      <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+                        <Box>
+                          <Typography variant="subtitle1" fontWeight="700">Photos Illimitées</Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            Permettre aux utilisateurs de télécharger des galeries de photos illimitées par publication.
+                          </Typography>
+                        </Box>
+                        <Switch
+                          checked={currentPlan.photosLimit === -1}
+                          onChange={(e) => setCurrentPlan({ ...currentPlan, photosLimit: e.target.checked ? -1 : 10 })}
+                          color="primary"
+                        />
                       </Box>
-                      <Switch
-                        checked={currentPlan.photosVideosLimit === -1}
-                        onChange={(e) => setCurrentPlan({ ...currentPlan, photosVideosLimit: e.target.checked ? -1 : 10 })}
-                        color="primary"
-                      />
+
+                      {currentPlan.photosLimit !== -1 && (
+                        <Grid container spacing={3} alignItems="center">
+                          <Grid item xs={12} sm={8}>
+                            <TextField
+                              label="Photos Max par Publication"
+                              type="number"
+                              value={currentPlan.photosLimit || 0}
+                              onChange={(e) => setCurrentPlan({ ...currentPlan, photosLimit: Math.max(0, Number(e.target.value)) })}
+                              fullWidth
+                              sx={{ '& .MuiOutlinedInput-root': { borderRadius: 3, bgcolor: 'white' } }}
+                            />
+                          </Grid>
+                          <Grid item xs={12} sm={4}>
+                            <Box display="flex" gap={1}>
+                              {[5, 10, 15, 20].map((num) => (
+                                <Chip
+                                  key={num}
+                                  label={`${num} photos`}
+                                  onClick={() => setCurrentPlan({ ...currentPlan, photosLimit: num })}
+                                  color={currentPlan.photosLimit === num ? 'primary' : 'default'}
+                                  sx={{ borderRadius: 2, fontWeight: 600, fontSize: '0.7rem', cursor: 'pointer' }}
+                                />
+                              ))}
+                            </Box>
+                          </Grid>
+                        </Grid>
+                      )}
                     </Box>
-                    {currentPlan.photosVideosLimit !== -1 && (
-                      <Grid container spacing={3} alignItems="center">
-                        <Grid item xs={12} sm={8}>
-                          <TextField
-                            label="Max Photos & Videos per Publication"
-                            type="number"
-                            value={currentPlan.photosVideosLimit || 0}
-                            onChange={(e) => setCurrentPlan({ ...currentPlan, photosVideosLimit: Math.max(0, Number(e.target.value)) })}
-                            fullWidth
-                            sx={{ '& .MuiOutlinedInput-root': { borderRadius: 3, bgcolor: 'white' } }}
-                          />
+
+                    <Divider />
+
+                    {/* Videos Limit Control */}
+                    <Box>
+                      <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+                        <Box>
+                          <Typography variant="subtitle1" fontWeight="700">Vidéos Illimitées</Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            Permettre aux utilisateurs de télécharger des galeries de vidéos illimitées par publication.
+                          </Typography>
+                        </Box>
+                        <Switch
+                          checked={currentPlan.videosLimit === -1}
+                          onChange={(e) => setCurrentPlan({ ...currentPlan, videosLimit: e.target.checked ? -1 : 2 })}
+                          color="primary"
+                        />
+                      </Box>
+
+                      {currentPlan.videosLimit !== -1 && (
+                        <Grid container spacing={3} alignItems="center">
+                          <Grid item xs={12} sm={8}>
+                            <TextField
+                              label="Vidéos Max par Publication"
+                              type="number"
+                              value={currentPlan.videosLimit || 0}
+                              onChange={(e) => setCurrentPlan({ ...currentPlan, videosLimit: Math.max(0, Number(e.target.value)) })}
+                              fullWidth
+                              sx={{ '& .MuiOutlinedInput-root': { borderRadius: 3, bgcolor: 'white' } }}
+                            />
+                          </Grid>
+                          <Grid item xs={12} sm={4}>
+                            <Box display="flex" gap={1}>
+                              {[1, 2, 3, 5].map((num) => (
+                                <Chip
+                                  key={num}
+                                  label={`${num} vidéos`}
+                                  onClick={() => setCurrentPlan({ ...currentPlan, videosLimit: num })}
+                                  color={currentPlan.videosLimit === num ? 'primary' : 'default'}
+                                  sx={{ borderRadius: 2, fontWeight: 600, fontSize: '0.7rem', cursor: 'pointer' }}
+                                />
+                              ))}
+                            </Box>
+                          </Grid>
                         </Grid>
-                        <Grid item xs={12} sm={4}>
-                          <Box display="flex" gap={1}>
-                            {[5, 10, 15, 20].map((num) => (
-                              <Chip
-                                key={num}
-                                label={`${num} files`}
-                                onClick={() => setCurrentPlan({ ...currentPlan, photosVideosLimit: num })}
-                                color={currentPlan.photosVideosLimit === num ? 'primary' : 'default'}
-                                sx={{ borderRadius: 2, fontWeight: 600, fontSize: '0.7rem', cursor: 'pointer' }}
-                              />
-                            ))}
-                          </Box>
-                        </Grid>
-                      </Grid>
-                    )}
+                      )}
+                    </Box>
                   </Box>
                 </Stack>
               )}
@@ -2046,26 +2486,26 @@ export default function SubscriptionPage() {
                 <Stack spacing={5}>
                   <Box>
                     <Typography variant="h5" fontWeight="800" color="text.primary" mb={1} sx={{ letterSpacing: '-0.015em' }}>
-                      Plan Capabilities & Featured Benefits
+                      Capacités du Plan & Avantages Vedettes
                     </Typography>
                     <Typography variant="body2" color="text.secondary">
-                      Toggle operational permissions and define the bullet point benefits shown to users.
+                      Activez les autorisations opérationnelles et définissez les avantages présentés aux utilisateurs.
                     </Typography>
                   </Box>
 
                   {/* Capabilities Tiles */}
                   <Box>
                     <Typography variant="subtitle2" fontWeight="700" color="text.primary" mb={2.5}>
-                      Plan Capabilities
+                      Capacités du Plan
                     </Typography>
                     <Grid container spacing={3}>
                       {[
-                        { key: "hasChatAndMessaging", label: "Chat & Messagerie", desc: "Instant live chat with buyers & sellers.", icon: <SupportAgentIcon sx={{ fontSize: 24 }} /> },
-                        { key: "hasRatingAndHistory", label: "Rating & Historique", desc: "Allow buyers to submit scores & reviews.", icon: <StarIcon sx={{ fontSize: 24 }} /> },
-                        { key: "isDurationUnlimited", label: "Unlimited Duration", desc: "Never expire or require monthly re-subscription.", icon: <AllInclusiveIcon sx={{ fontSize: 24 }} /> },
-                        { key: "hasAutoTranslation", label: "Auto Translation", desc: "Automatic real-time post translation.", icon: <AutoAwesomeIcon sx={{ fontSize: 24 }} /> },
-                        { key: "hasMiseEnAvant", label: "Mise en Avant", desc: "Promote publications at the top of lists.", icon: <VisibilityIcon sx={{ fontSize: 24 }} /> },
-                        { key: "hasEmailNotification", label: "Email Notifications", desc: "Alerts for new bids and chat messages.", icon: <NotificationsActiveIcon sx={{ fontSize: 24 }} /> }
+                        { key: "hasChatAndMessaging", label: "Chat & Messagerie", desc: "Messagerie en direct instantanée entre acheteurs et vendeurs.", icon: <SupportAgentIcon sx={{ fontSize: 24 }} /> },
+                        { key: "hasRatingAndHistory", label: "Rating & Historique", desc: "Permet aux acheteurs de soumettre des évaluations et des avis.", icon: <StarIcon sx={{ fontSize: 24 }} /> },
+                        { key: "isDurationUnlimited", label: "Durée Illimitée", desc: "N'expire jamais et ne requiert aucun réabonnement mensuel.", icon: <AllInclusiveIcon sx={{ fontSize: 24 }} /> },
+                        { key: "hasAutoTranslation", label: "Traduction Automatique", desc: "Traduction automatique en temps réel des annonces.", icon: <AutoAwesomeIcon sx={{ fontSize: 24 }} /> },
+                        { key: "hasMiseEnAvant", label: "Mise en Avant", desc: "Met en avant les publications en tête de liste.", icon: <VisibilityIcon sx={{ fontSize: 24 }} /> },
+                        { key: "hasEmailNotification", label: "Notifications E-mail", desc: "Alertes e-mail pour les nouvelles enchères et messages.", icon: <NotificationsActiveIcon sx={{ fontSize: 24 }} /> }
                       ].map((item) => {
                         const isToggleOn = (currentPlan as any)[item.key] || false;
                         return (
@@ -2076,7 +2516,6 @@ export default function SubscriptionPage() {
                                   setCurrentPlan({
                                     ...currentPlan,
                                     isDurationUnlimited: !isToggleOn,
-                                    duration: !isToggleOn ? 0 : 1
                                   });
                                 } else {
                                   setCurrentPlan({ ...currentPlan, [item.key]: !isToggleOn });
@@ -2113,7 +2552,6 @@ export default function SubscriptionPage() {
                                       setCurrentPlan({
                                         ...currentPlan,
                                         isDurationUnlimited: e.target.checked,
-                                        duration: e.target.checked ? 0 : 1
                                       });
                                     } else {
                                       setCurrentPlan({ ...currentPlan, [item.key]: e.target.checked });
@@ -2140,11 +2578,11 @@ export default function SubscriptionPage() {
                   {/* Benefits Builder */}
                   <Box sx={{ p: 4, borderRadius: 4, bgcolor: '#F8FAFC', border: '1px solid rgba(0,0,0,0.04)' }}>
                     <Typography variant="subtitle2" fontWeight="700" mb={1.5}>
-                      Featured Plan Benefits Builder
+                      Générateur d'Avantages Vedettes
                     </Typography>
                     <Box display="flex" gap={2} mb={3}>
                       <TextField
-                        label="New Benefit Bulletpoint"
+                        label="Nouveau Point d'Avantage"
                         value={editBenefit}
                         onChange={(e) => setEditBenefit(e.target.value)}
                         onKeyPress={(e) => {
@@ -2155,7 +2593,7 @@ export default function SubscriptionPage() {
                         }}
                         fullWidth
                         variant="outlined"
-                        placeholder="e.g. priority live chat, professional profile status badge"
+                        placeholder="ex: support client VIP, badge de profil vérifié, etc."
                         sx={{
                           '& .MuiOutlinedInput-root': {
                             borderRadius: 3,
@@ -2169,7 +2607,7 @@ export default function SubscriptionPage() {
                         startIcon={<AddIcon />}
                         sx={{ px: 4, borderRadius: 3, boxShadow: '0 4px 14px rgba(14, 165, 233, 0.3)', color: 'white' }}
                       >
-                        Add
+                        Ajouter
                       </Button>
                     </Box>
 
@@ -2177,7 +2615,7 @@ export default function SubscriptionPage() {
                       <Box>
                         <Divider sx={{ mb: 2 }} />
                         <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700, display: 'block', mb: 1.5 }}>
-                          Active Plan Benefits List ({currentPlan.benefits.length}):
+                          Liste des Avantages Actifs ({currentPlan.benefits.length}) :
                         </Typography>
                         <Box display="flex" flexWrap="wrap" gap={1}>
                           {currentPlan.benefits.map((benefit, index) => (
@@ -2203,7 +2641,7 @@ export default function SubscriptionPage() {
                     ) : (
                       <Box sx={{ border: '1px dashed rgba(0,0,0,0.1)', p: 3, borderRadius: 3, textAlign: 'center' }}>
                         <Typography variant="caption" color="text.disabled" sx={{ display: 'block', fontStyle: 'italic' }}>
-                          No benefits added yet. Type a customized benefit above and click Add.
+                          Aucun avantage ajouté. Saisissez un avantage ci-dessus ou cliquez sur une suggestion.
                         </Typography>
                       </Box>
                     )}
@@ -2228,7 +2666,7 @@ export default function SubscriptionPage() {
                   startIcon={<CancelIcon />}
                   sx={{ borderRadius: 3.5, px: 3, py: 1.2, color: 'text.secondary', borderColor: 'rgba(0,0,0,0.1)' }}
                 >
-                  Cancel
+                  Annuler
                 </Button>
 
                 <Box display="flex" gap={2}>
@@ -2238,7 +2676,7 @@ export default function SubscriptionPage() {
                     onClick={() => setEditStep((prev) => Math.max(0, prev - 1))}
                     sx={{ borderRadius: 3.5, px: 3, py: 1.2 }}
                   >
-                    Back
+                    Retour
                   </Button>
 
                   {editStep < 2 ? (
@@ -2247,7 +2685,7 @@ export default function SubscriptionPage() {
                       onClick={() => setEditStep((prev) => Math.min(2, prev + 1))}
                       sx={{ borderRadius: 3.5, px: 4, py: 1.2, color: 'white' }}
                     >
-                      Next Step
+                      Étape suivante
                     </Button>
                   ) : (
                     <Button
@@ -2268,7 +2706,7 @@ export default function SubscriptionPage() {
                         }
                       }}
                     >
-                      Save Changes
+                      Enregistrer les modifications
                     </Button>
                   )}
                 </Box>
@@ -2305,10 +2743,10 @@ export default function SubscriptionPage() {
                   WebkitTextFillColor: 'transparent',
                 }}
               >
-                Subscription Management
+                Gestion des abonnements
               </Typography>
               <Typography variant="h6" sx={{ color: 'text.secondary', maxWidth: '600px', mx: 'auto', fontWeight: 400 }}>
-                Create, manage, and monitor subscription plans with our comprehensive dashboard
+                Créez, gérez et suivez les plans d'abonnement avec notre tableau de bord complet
               </Typography>
             </Box>
           </Fade>
@@ -2341,12 +2779,12 @@ export default function SubscriptionPage() {
                   }}
                 >
                   <Tab 
-                    label="Subscription Plans" 
+                    label="Plans d'abonnement" 
                     icon={<StarIcon />} 
                     iconPosition="start"
                   />
                   <Tab 
-                    label="User Subscriptions" 
+                    label="Abonnements utilisateurs" 
                     icon={<UsersIcon />} 
                     iconPosition="start"
                   />
@@ -2361,10 +2799,10 @@ export default function SubscriptionPage() {
                 <Box display="flex" justifyContent="space-between" alignItems="center" mb={4}>
                   <Box>
                     <Typography variant="h4" fontWeight="600" color="text.primary" gutterBottom>
-                      Available Plans
+                      Plans disponibles
                     </Typography>
                     <Typography variant="body1" color="text.secondary" sx={{ fontWeight: 400 }}>
-                      Manage and create subscription plans for your users
+                      Gérez et créez des plans d'abonnement pour vos utilisateurs
                     </Typography>
                   </Box>
                   <Button
@@ -2373,7 +2811,7 @@ export default function SubscriptionPage() {
                     startIcon={<AddIcon />}
                     onClick={() => { setCreateStep(0); setCreateDialogOpen(true); }}
                   >
-                    Create New Plan
+                    Créer un nouveau plan
                   </Button>
                 </Box>
 
@@ -2416,14 +2854,14 @@ export default function SubscriptionPage() {
                                 boxShadow: '0 4px 10px rgba(16, 185, 129, 0.25)',
                               }}
                             >
-                              Active
+                              Actif
                             </Box>
                           )}
                           
                           {/* Card Header matching the top blue banner */}
                           <Box
                             sx={{
-                              background: 'linear-gradient(135deg, #0EA5E9 0%, #38BDF8 100%)',
+                              background: plan.color || 'linear-gradient(135deg, #0EA5E9 0%, #38BDF8 100%)',
                               color: 'white',
                               py: 2,
                               textAlign: 'center',
@@ -2551,15 +2989,21 @@ export default function SubscriptionPage() {
                                   <Box display="flex" alignItems="flex-start" gap={1.25}>
                                     <Typography sx={{ color: '#0EA5E9', fontWeight: 900, fontSize: '1.1rem', lineHeight: 1.2 }}>✓</Typography>
                                     <Typography sx={{ color: '#1E3A8A', fontSize: '0.875rem', fontWeight: 550, opacity: 0.9, lineHeight: 1.45 }}>
-                                      {plan.announcesPerMonth} annonces par mois (active pendant {plan.isDurationUnlimited ? 'unlimited' : plan.duration * 30} jours)
+                                      {plan.announcesPerMonth === -1 ? 'Annonces par mois : Illimitées' : `${plan.announcesPerMonth} annonces par mois`} (active pendant {plan.isDurationUnlimited ? 'illimité' : plan.duration * 30} jours)
                                     </Typography>
                                   </Box>
 
-                                  {/* Media Limit */}
+                                  {/* Media Limits */}
                                   <Box display="flex" alignItems="flex-start" gap={1.25}>
                                     <Typography sx={{ color: '#0EA5E9', fontWeight: 900, fontSize: '1.1rem', lineHeight: 1.2 }}>✓</Typography>
                                     <Typography sx={{ color: '#1E3A8A', fontSize: '0.875rem', fontWeight: 550, opacity: 0.9, lineHeight: 1.45 }}>
-                                      Jusqu'à {plan.photosVideosLimit === -1 ? 'illimitées' : plan.photosVideosLimit} photos
+                                      {plan.photosLimit === -1 ? 'Photos : Illimitées' : `Jusqu'à ${plan.photosLimit || 0} photos`}
+                                    </Typography>
+                                  </Box>
+                                  <Box display="flex" alignItems="flex-start" gap={1.25}>
+                                    <Typography sx={{ color: '#0EA5E9', fontWeight: 900, fontSize: '1.1rem', lineHeight: 1.2 }}>✓</Typography>
+                                    <Typography sx={{ color: '#1E3A8A', fontSize: '0.875rem', fontWeight: 550, opacity: 0.9, lineHeight: 1.45 }}>
+                                      {plan.videosLimit === -1 ? 'Vidéos : Illimitées' : `Jusqu'à ${plan.videosLimit || 0} vidéos`}
                                     </Typography>
                                   </Box>
 
@@ -2567,7 +3011,7 @@ export default function SubscriptionPage() {
                                   <Box display="flex" alignItems="flex-start" gap={1.25}>
                                     <Typography sx={{ color: '#0EA5E9', fontWeight: 900, fontSize: '1.1rem', lineHeight: 1.2 }}>✓</Typography>
                                     <Typography sx={{ color: '#1E3A8A', fontSize: '0.875rem', fontWeight: 550, opacity: 0.9, lineHeight: 1.45 }}>
-                                      {plan.enchereSoumissionLimit} enchères / soumissions simultanées
+                                      {plan.enchereSoumissionLimit === -1 ? 'Enchères / soumissions simultanées : Illimitées' : `${plan.enchereSoumissionLimit} enchères / soumissions simultanées`}
                                     </Typography>
                                   </Box>
 
@@ -2575,7 +3019,7 @@ export default function SubscriptionPage() {
                                   <Box display="flex" alignItems="flex-start" gap={1.25}>
                                     <Typography sx={{ color: '#0EA5E9', fontWeight: 900, fontSize: '1.1rem', lineHeight: 1.2 }}>✓</Typography>
                                     <Typography sx={{ color: '#1E3A8A', fontSize: '0.875rem', fontWeight: 550, opacity: 0.9, lineHeight: 1.45 }}>
-                                      Statistiques d'accès tier : {plan.statisticsLevel || 'STANDARD'}
+                                      Niveau d'analyse : {plan.statisticsLevel === 'BASIC' ? 'Basique' : plan.statisticsLevel === 'ADVANCED' ? 'Avancé' : 'Standard'}
                                     </Typography>
                                   </Box>
 
@@ -2585,6 +3029,15 @@ export default function SubscriptionPage() {
                                       <Typography sx={{ color: '#0EA5E9', fontWeight: 900, fontSize: '1.1rem', lineHeight: 1.2 }}>✓</Typography>
                                       <Typography sx={{ color: '#1E3A8A', fontSize: '0.875rem', fontWeight: 550, opacity: 0.9, lineHeight: 1.45 }}>
                                         Chat & messagerie instantanés
+                                      </Typography>
+                                    </Box>
+                                  )}
+
+                                  {plan.hasRatingAndHistory && (
+                                    <Box display="flex" alignItems="flex-start" gap={1.25}>
+                                      <Typography sx={{ color: '#0EA5E9', fontWeight: 900, fontSize: '1.1rem', lineHeight: 1.2 }}>✓</Typography>
+                                      <Typography sx={{ color: '#1E3A8A', fontSize: '0.875rem', fontWeight: 550, opacity: 0.9, lineHeight: 1.45 }}>
+                                        Historique & évaluations
                                       </Typography>
                                     </Box>
                                   )}
@@ -2603,6 +3056,24 @@ export default function SubscriptionPage() {
                                       <Typography sx={{ color: '#0EA5E9', fontWeight: 900, fontSize: '1.1rem', lineHeight: 1.2 }}>✓</Typography>
                                       <Typography sx={{ color: '#1E3A8A', fontSize: '0.875rem', fontWeight: 550, opacity: 0.9, lineHeight: 1.45 }}>
                                         Mise en avant prioritaire de l'annonce
+                                      </Typography>
+                                    </Box>
+                                  )}
+
+                                  {plan.hasEmailNotification && (
+                                    <Box display="flex" alignItems="flex-start" gap={1.25}>
+                                      <Typography sx={{ color: '#0EA5E9', fontWeight: 900, fontSize: '1.1rem', lineHeight: 1.2 }}>✓</Typography>
+                                      <Typography sx={{ color: '#1E3A8A', fontSize: '0.875rem', fontWeight: 550, opacity: 0.9, lineHeight: 1.45 }}>
+                                        Notifications par e-mail
+                                      </Typography>
+                                    </Box>
+                                  )}
+
+                                  {plan.isDurationUnlimited && (
+                                    <Box display="flex" alignItems="flex-start" gap={1.25}>
+                                      <Typography sx={{ color: '#0EA5E9', fontWeight: 900, fontSize: '1.1rem', lineHeight: 1.2 }}>✓</Typography>
+                                      <Typography sx={{ color: '#1E3A8A', fontSize: '0.875rem', fontWeight: 550, opacity: 0.9, lineHeight: 1.45 }}>
+                                        Durée illimitée (N&apos;expire jamais et ne requiert aucun réabonnement)
                                       </Typography>
                                     </Box>
                                   )}
@@ -2654,17 +3125,17 @@ export default function SubscriptionPage() {
                           <CardContent sx={{ textAlign: "center", py: 8 }}>
                             <StarIcon sx={{ fontSize: 64, color: 'text.disabled', mb: 2 }} />
                             <Typography variant="h6" color="text.secondary" gutterBottom>
-                              No subscription plans found
+                              Aucun plan d'abonnement trouvé
                             </Typography>
                             <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-                              Create your first subscription plan to get started
+                              Créez votre premier plan d'abonnement pour commencer
                             </Typography>
                             <Button
                               variant="contained"
                               startIcon={<AddIcon />}
                               onClick={() => { setCreateStep(0); setCreateDialogOpen(true); }}
                             >
-                              Create First Plan
+                              Créer le premier plan
                             </Button>
                           </CardContent>
                         </Card>
@@ -2682,10 +3153,10 @@ export default function SubscriptionPage() {
                 <Box display="flex" justifyContent="space-between" alignItems="center" mb={4}>
                   <Box>
                     <Typography variant="h4" fontWeight="600" color="text.primary" gutterBottom>
-                      User Subscriptions
+                      Abonnements des utilisateurs
                     </Typography>
                     <Typography variant="body1" color="text.secondary">
-                      Monitor and manage all active user subscriptions
+                      Suivre et gérer tous les abonnements actifs des utilisateurs
                     </Typography>
                   </Box>
                   <Box display="flex" alignItems="center" gap={2}>
@@ -2694,7 +3165,7 @@ export default function SubscriptionPage() {
                         <TrendingUpIcon color="primary" />
                         <Box>
                           <Typography variant="body2" color="text.secondary">
-                            Total Subscriptions
+                            Total des abonnements
                           </Typography>
                           <Typography variant="h6" fontWeight="bold" color="primary.main">
                             {userSubscriptions.length}
@@ -2714,7 +3185,7 @@ export default function SubscriptionPage() {
                             <Grid item xs={12} md={2}>
                               <Box>
                                 <Typography variant="body2" color="text.secondary" gutterBottom>
-                                  Plan Name
+                                  Nom du plan
                                 </Typography>
                                 <Typography variant="h6" fontWeight="600">
                                   {subscription.planName}
@@ -2724,7 +3195,7 @@ export default function SubscriptionPage() {
                             <Grid item xs={6} md={2}>
                               <Box>
                                 <Typography variant="body2" color="text.secondary" gutterBottom>
-                                  Price
+                                  Prix
                                 </Typography>
                                 <Typography variant="body1" fontWeight="600" color="primary.main">
                                   {formatPrice(subscription.planPrice)}
@@ -2734,7 +3205,7 @@ export default function SubscriptionPage() {
                             <Grid item xs={6} md={1}>
                               <Box>
                                 <Typography variant="body2" color="text.secondary" gutterBottom>
-                                  Duration
+                                  Durée
                                 </Typography>
                                 <Typography variant="body1" fontWeight="600">
                                   {subscription.planDuration}m
@@ -2744,7 +3215,7 @@ export default function SubscriptionPage() {
                             <Grid item xs={6} md={2}>
                               <Box>
                                 <Typography variant="body2" color="text.secondary" gutterBottom>
-                                  Start Date
+                                  Date de début
                                 </Typography>
                                 <Typography variant="body1" fontWeight="500">
                                   {formatDate(subscription.startDate)}
@@ -2754,7 +3225,7 @@ export default function SubscriptionPage() {
                             <Grid item xs={6} md={2}>
                               <Box>
                                 <Typography variant="body2" color="text.secondary" gutterBottom>
-                                  End Date
+                                  Date de fin
                                 </Typography>
                                 <Typography variant="body1" fontWeight="500">
                                   {formatDate(subscription.endDate)}
@@ -2764,14 +3235,14 @@ export default function SubscriptionPage() {
                             <Grid item xs={12} md={2}>
                               <Box>
                                 <Typography variant="body2" color="text.secondary" gutterBottom>
-                                  Time Remaining
+                                  Temps restant
                                 </Typography>
                                 <CountdownTimer endDate={subscription.endDate} />
                               </Box>
                             </Grid>
                             <Grid item xs={12} md={1}>
                               <Chip
-                                label={subscription.status}
+                                label={subscription.status === 'ACTIVE' ? 'ACTIF' : 'EXPIRÉ'}
                                 color={subscription.status === 'ACTIVE' ? 'success' : 'default'}
                                 sx={{ fontWeight: 500 }}
                               />
@@ -2788,10 +3259,10 @@ export default function SubscriptionPage() {
                         <CardContent sx={{ textAlign: "center", py: 8 }}>
                           <UsersIcon sx={{ fontSize: 64, color: 'text.disabled', mb: 2 }} />
                           <Typography variant="h6" color="text.secondary" gutterBottom>
-                            No subscriptions found
+                            Aucun abonnement trouvé
                           </Typography>
                           <Typography variant="body2" color="text.secondary">
-                            When users subscribe to plans, they will appear here
+                            Les abonnements des utilisateurs s'afficheront ici lorsqu'ils s'inscriront.
                           </Typography>
                         </CardContent>
                       </Card>
@@ -2807,21 +3278,21 @@ export default function SubscriptionPage() {
             <DialogTitle sx={{ pb: 1 }}>
               <Box display="flex" alignItems="center" justifyContent="space-between">
                 <Typography variant="h5" fontWeight="600">
-                  Create New Subscription Plan
+                  Créer un nouveau plan d'abonnement
                 </Typography>
                 <IconButton onClick={() => setCreateDialogOpen(false)} size="small">
                   <CloseIcon />
                 </IconButton>
               </Box>
               <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                Fill in the details to create a new subscription plan
+                Remplissez les détails pour créer un nouveau plan d'abonnement
               </Typography>
             </DialogTitle>
             <DialogContent sx={{ pt: 3 }}>
               <Grid container spacing={3}>
                 <Grid item xs={12}>
                   <TextField
-                    label="Plan Name"
+                    label="Nom du Plan"
                     value={newPlan.name}
                     onChange={(e) => setNewPlan({ ...newPlan, name: e.target.value })}
                     fullWidth
@@ -2855,7 +3326,7 @@ export default function SubscriptionPage() {
                 </Grid>
                 <Grid item xs={6}>
                   <TextField
-                    label="Price (DZD)"
+                    label="Prix (DZD)"
                     type="number"
                     value={newPlan.price}
                     onChange={(e) => setNewPlan({ ...newPlan, price: Math.max(0, Number(e.target.value)) })}
@@ -2876,11 +3347,10 @@ export default function SubscriptionPage() {
                 </Grid>
                 <Grid item xs={6}>
                   <TextField
-                    label="Duration (months)"
+                    label="Durée (mois)"
                     type="number"
-                    value={newPlan.isDurationUnlimited ? "" : (newPlan.duration === 0 ? "" : newPlan.duration)}
+                    value={newPlan.duration === 0 ? "" : newPlan.duration}
                     onChange={(e) => setNewPlan({ ...newPlan, duration: e.target.value === "" ? 0 : Math.max(1, Number(e.target.value)) })}
-                    disabled={newPlan.isDurationUnlimited}
                     fullWidth
                     variant="outlined"
                     inputProps={{ min: 1, step: 1 }}
@@ -2904,22 +3374,22 @@ export default function SubscriptionPage() {
                       backdropFilter: 'blur(10px)',
                     }
                   }}>
-                    <InputLabel>Role</InputLabel>
+                    <InputLabel>Rôle</InputLabel>
                     <Select
                       value={newPlan.role}
                       onChange={(e) => setNewPlan({ ...newPlan, role: e.target.value })}
-                      label="Role"
+                      label="Rôle"
                     >
                       <MenuItem value="PROFESSIONAL">
                         <Box display="flex" alignItems="center" gap={1}>
                           <WorkIcon fontSize="small" />
-                          Professional
+                          Professionnel
                         </Box>
                       </MenuItem>
                       <MenuItem value="CLIENT">
                         <Box display="flex" alignItems="center" gap={1}>
                           <UsersIcon fontSize="small" />
-                          Client
+                          Particulier
                         </Box>
                       </MenuItem>
                     </Select>
@@ -2934,7 +3404,7 @@ export default function SubscriptionPage() {
                         color="primary"
                       />
                     }
-                    label="Active Plan"
+                    label="Plan Actif"
                     sx={{ mt: 2 }}
                   />
                 </Grid>
@@ -2942,14 +3412,14 @@ export default function SubscriptionPage() {
                 <Grid item xs={12}>
                   <Divider sx={{ my: 1 }} />
                   <Typography variant="subtitle1" fontWeight="600" color="primary.main" gutterBottom>
-                    Advanced Features & Limits
+                    Fonctionnalités avancées & limites
                   </Typography>
                 </Grid>
                 
                 {/* Announces limit */}
                 <Grid item xs={12} md={4}>
                   <TextField
-                    label="Announces / Month"
+                    label="Annonces / Mois"
                     type="number"
                     size="small"
                     value={newPlan.announcesPerMonth === -1 ? "" : newPlan.announcesPerMonth}
@@ -2959,26 +3429,53 @@ export default function SubscriptionPage() {
                   />
                 </Grid>
 
-                {/* Photos and Videos */}
+                {/* Photos Limit */}
                 <Grid item xs={12} md={4}>
                   <Stack spacing={1}>
                     <FormControlLabel
                       control={
                         <Switch
-                          checked={newPlan.photosVideosLimit === -1}
-                          onChange={(e) => setNewPlan({ ...newPlan, photosVideosLimit: e.target.checked ? -1 : 10 })}
+                          checked={newPlan.photosLimit === -1}
+                          onChange={(e) => setNewPlan({ ...newPlan, photosLimit: e.target.checked ? -1 : 10 })}
                           color="primary"
                         />
                       }
-                      label="Unlimited Photos & Videos"
+                      label="Photos illimitées"
                     />
-                    {newPlan.photosVideosLimit !== -1 && (
+                    {newPlan.photosLimit !== -1 && (
                       <TextField
-                        label="Photos & Videos / Post"
+                        label="Photos / Publication"
                         type="number"
                         size="small"
-                        value={newPlan.photosVideosLimit}
-                        onChange={(e) => setNewPlan({ ...newPlan, photosVideosLimit: Math.max(0, Number(e.target.value)) })}
+                        value={newPlan.photosLimit}
+                        onChange={(e) => setNewPlan({ ...newPlan, photosLimit: Math.max(0, Number(e.target.value)) })}
+                        fullWidth
+                        inputProps={{ min: 0 }}
+                      />
+                    )}
+                  </Stack>
+                </Grid>
+
+                {/* Videos Limit */}
+                <Grid item xs={12} md={4}>
+                  <Stack spacing={1}>
+                    <FormControlLabel
+                      control={
+                        <Switch
+                          checked={newPlan.videosLimit === -1}
+                          onChange={(e) => setNewPlan({ ...newPlan, videosLimit: e.target.checked ? -1 : 2 })}
+                          color="primary"
+                        />
+                      }
+                      label="Vidéos illimitées"
+                    />
+                    {newPlan.videosLimit !== -1 && (
+                      <TextField
+                        label="Vidéos / Publication"
+                        type="number"
+                        size="small"
+                        value={newPlan.videosLimit}
+                        onChange={(e) => setNewPlan({ ...newPlan, videosLimit: Math.max(0, Number(e.target.value)) })}
                         fullWidth
                         inputProps={{ min: 0 }}
                       />
@@ -3008,7 +3505,7 @@ export default function SubscriptionPage() {
                         onChange={(e) => setNewPlan({ ...newPlan, hasChatAndMessaging: e.target.checked })}
                       />
                     }
-                    label="Chat & Messaging"
+                    label="Chat & Messagerie"
                   />
                 </Grid>
                 
@@ -3020,7 +3517,7 @@ export default function SubscriptionPage() {
                         onChange={(e) => setNewPlan({ ...newPlan, hasRatingAndHistory: e.target.checked })}
                       />
                     }
-                    label="Ratings & History"
+                    label="Rating & Historique"
                   />
                 </Grid>
 
@@ -3034,12 +3531,11 @@ export default function SubscriptionPage() {
                           setNewPlan({ 
                             ...newPlan, 
                             isDurationUnlimited: isUnlimited, 
-                            duration: isUnlimited ? 0 : 1 
                           });
                         }}
                       />
                     }
-                    label="Unlimited Duration"
+                    label="Durée illimitée"
                   />
                 </Grid>
 
@@ -3051,21 +3547,21 @@ export default function SubscriptionPage() {
                         onChange={(e) => setNewPlan({ ...newPlan, hasAutoTranslation: e.target.checked })}
                       />
                     }
-                    label="Auto Translation"
+                    label="Traduction Automatique"
                   />
                 </Grid>
 
                 <Grid item xs={6} md={4}>
                   <FormControl fullWidth size="small">
-                    <InputLabel>Statistics Tier</InputLabel>
+                    <InputLabel>Niveau de statistiques</InputLabel>
                     <Select
                       value={newPlan.statisticsLevel || "STANDARD"}
                       onChange={(e) => setNewPlan({ ...newPlan, statisticsLevel: e.target.value })}
-                      label="Statistics Tier"
+                      label="Niveau de statistiques"
                     >
                       <MenuItem value="STANDARD">Standard</MenuItem>
-                      <MenuItem value="BASIC">Basic</MenuItem>
-                      <MenuItem value="ADVANCED">Advanced</MenuItem>
+                      <MenuItem value="BASIC">Basique</MenuItem>
+                      <MenuItem value="ADVANCED">Avancé</MenuItem>
                     </Select>
                   </FormControl>
                 </Grid>
@@ -3078,7 +3574,7 @@ export default function SubscriptionPage() {
                         onChange={(e) => setNewPlan({ ...newPlan, hasMiseEnAvant: e.target.checked })}
                       />
                     }
-                    label="Mise en Avant"
+                    label="Mise en avant"
                   />
                 </Grid>
 
@@ -3090,17 +3586,17 @@ export default function SubscriptionPage() {
                         onChange={(e) => setNewPlan({ ...newPlan, hasEmailNotification: e.target.checked })}
                       />
                     }
-                    label="Email Notifications"
+                    label="Notifications E-mail"
                   />
                 </Grid>
                 <Grid item xs={12}>
                   <Divider sx={{ my: 2 }} />
                   <Typography variant="h6" fontWeight="600" color="text.primary" mb={2}>
-                    Plan Benefits
+                    Avantages du Plan
                   </Typography>
                   <Box display="flex" gap={2} mb={2}>
                     <TextField
-                      label="Add Benefit"
+                      label="Ajouter un avantage"
                       value={newBenefit}
                       onChange={(e) => setNewBenefit(e.target.value)}
                       onKeyPress={(e) => {
@@ -3111,7 +3607,7 @@ export default function SubscriptionPage() {
                       }}
                       fullWidth
                       variant="outlined"
-                      placeholder="e.g., Unlimited listings"
+                      placeholder="ex: Annonces illimitées"
                       sx={{
                         '& .MuiOutlinedInput-root': {
                           borderRadius: 2,
@@ -3126,7 +3622,7 @@ export default function SubscriptionPage() {
                       startIcon={<AddIcon />}
                       sx={{ minWidth: '120px' }}
                     >
-                      Add
+                      Ajouter
                     </Button>
                   </Box>
                   {newPlan.benefits && newPlan.benefits.length > 0 && (
@@ -3139,7 +3635,7 @@ export default function SubscriptionPage() {
                       }}
                     >
                       <Typography variant="body2" color="text.secondary" mb={1.5}>
-                        Benefits List ({newPlan.benefits.length}):
+                        Liste des Avantages ({newPlan.benefits.length}) :
                       </Typography>
                       <Box display="flex" flexDirection="column" gap={1}>
                         {newPlan.benefits.map((benefit, index) => (
@@ -3187,14 +3683,14 @@ export default function SubscriptionPage() {
                 variant="outlined"
                 startIcon={<CancelIcon />}
               >
-                Cancel
+                Annuler
               </Button>
               <Button 
                 variant="contained" 
                 onClick={handleCreatePlan}
                 startIcon={<SaveIcon />}
               >
-                Create Plan
+                Créer le plan
               </Button>
             </DialogActions>
           </Dialog>
@@ -3215,18 +3711,18 @@ export default function SubscriptionPage() {
                 </Avatar>
                 <Box>
                   <Typography variant="h6" fontWeight="600">
-                    Delete Subscription Plan
+                    Supprimer le plan d'abonnement
                   </Typography>
                   <Typography variant="body2" color="text.secondary">
-                    This action cannot be undone
+                    Cette action est irréversible
                   </Typography>
                 </Box>
               </Box>
             </DialogTitle>
             <DialogContent>
               <Typography variant="body1" color="text.secondary">
-                Are you sure you want to delete "<strong>{currentPlan?.name}</strong>"? 
-                This will permanently remove the subscription plan and cannot be undone.
+                Êtes-vous sûr de vouloir supprimer le plan d'abonnement « <strong>{currentPlan?.name}</strong> » ? 
+                Cette opération supprimera définitivement le plan d'abonnement et ne peut pas être annulée.
               </Typography>
             </DialogContent>
             <DialogActions sx={{ p: 3, gap: 2 }}>
@@ -3237,7 +3733,7 @@ export default function SubscriptionPage() {
                 }}
                 variant="outlined"
               >
-                Cancel
+                Annuler
               </Button>
               <Button 
                 variant="contained" 
@@ -3245,7 +3741,7 @@ export default function SubscriptionPage() {
                 onClick={handleDeletePlan}
                 startIcon={<DeleteIcon />}
               >
-                Delete Plan
+                Supprimer le plan
               </Button>
             </DialogActions>
           </Dialog>
