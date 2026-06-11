@@ -48,6 +48,10 @@ export default function AccountPopover() {
     navigate('/login');
   };
 
+  const displayName = auth.user?.firstName
+    ? `${auth.user.firstName} ${auth.user.lastName || ''}`.trim()
+    : 'Admin';
+
   return (
     <>
       <IconButton
@@ -62,7 +66,7 @@ export default function AccountPopover() {
                   content: "''",
                   width: '100%',
                   height: '100%',
-                  borderRadius: '50%',
+                  borderRadius: auth.user?.picture?.path ? '50%' : '20px',
                   position: 'absolute',
                   bgcolor: (theme) => alpha(theme.palette.grey[900], 0.8),
                 },
@@ -70,7 +74,22 @@ export default function AccountPopover() {
             : {}),
         }}
       >
-        <Avatar src={auth.user?.picture?.path!} alt="photoURL" />
+        <Avatar
+          src={auth.user?.picture?.path!}
+          alt="photoURL"
+          sx={{
+            width: auth.user?.picture?.path ? 40 : 'auto',
+            height: 40,
+            px: auth.user?.picture?.path ? 0 : 2,
+            borderRadius: auth.user?.picture?.path ? '50%' : '20px',
+            fontSize: '12px',
+            fontWeight: 600,
+            bgcolor: 'primary.main',
+            color: 'primary.contrastText',
+          }}
+        >
+          {displayName}
+        </Avatar>
       </IconButton>
 
       <MenuPopover

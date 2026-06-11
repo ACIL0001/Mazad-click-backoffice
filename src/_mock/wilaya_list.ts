@@ -56,6 +56,17 @@ export default [
     { value: "TOUGGOURT", label: "TOUGGOURT" },
     { value: "DJANET", label: "DJANET" },
     { value: "INSALAH", label: "IN SALAH" },
-    { value: "INGUEZZAM", label: "IN GUEZZAM" }
+    { value: "INGUEZZAM", label: "IN GUEZZAM" },
+    { value: "AFLOU", label: "AFLOU" },
+    { value: "BARIKA", label: "BARIKA" },
+    { value: "ELKANTARA", label: "EL KANTARA" },
+    { value: "BIRELATER", label: "BIR EL ATER" },
+    { value: "ELARICHA", label: "EL ARICHA" },
+    { value: "KSARCHELLALA", label: "KSAR CHELLALA" },
+    { value: "AINOUSSARA", label: "AIN OUSSARA" },
+    { value: "MESSAAD", label: "MESSAAD" },
+    { value: "KSARELBOUKHARI", label: "KSAR EL BOUKHARI" },
+    { value: "BOUSAADA", label: "BOU SAÂDA" },
+    { value: "ELABIODHSIDICHEIKH", label: "EL ABIODH SIDI CHEIKH" }
   ];
   

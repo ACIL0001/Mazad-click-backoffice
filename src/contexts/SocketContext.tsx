@@ -82,9 +82,19 @@ export default function SocketProvider({ children }: any) {
         ? 'https://mazadclick-server.onrender.com/'
         : 'http://127.0.0.1:3000/')).replace(/\/$/, '');
 
+    // Extract token from auth state or localStorage
+    let token = '';
+    try {
+      const authData = window.localStorage.getItem('auth');
+      if (authData) {
+        const parsed = JSON.parse(authData);
+        token = parsed?.tokens?.accessToken || parsed?.tokens?.access_token || parsed?.token || '';
+      }
+    } catch (e) {}
+
     // const so: Socket = io('http://127.0.0.1:3000', {
     const so: Socket = io(socketUrl, {
-      query: { userId: auth.user._id },
+      query: { userId: auth.user._id, token },
       transports: ['websocket', 'polling'],
       autoConnect: true,
       reconnection: true,

@@ -5,23 +5,7 @@ import useAuth from '../hooks/useAuth';
 import { UserAPI } from '@/api/user';
 import User from '@/types/User';
 
-interface IUserContext {
-  users: User[];
-  updateAllUsers: () => Promise<void>;
-  updateClients: () => Promise<void>;
-  updateAdmins: () => Promise<void>;
-  admins: User[];
-  clients: User[];
-}
-
-export const UserContext = createContext<IUserContext>({
-  users: [] as User[],
-  updateAllUsers: async () => {},
-  updateClients: async () => {},
-  updateAdmins: async () => {},
-  admins: [],
-  clients: [],
-});
+import { UserContext } from './UserContextStore';
 
 const UserProvider = ({ children }: any) => {
     const [users, setUsers] = useState<User[]>([]) 

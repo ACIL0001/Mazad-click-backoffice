@@ -76,10 +76,7 @@ export default function DashboardSidebar({ isOpenSidebar, onCloseSidebar }: any)
             {isLogged && !!auth.user?.picture && <Avatar src={app.route + auth.user?.picture.filename} alt="photoURL" />}
             <Box sx={{ ml: 2 }}>
               <Typography variant="subtitle2" sx={{ color: 'text.primary' }}>
-                {isLogged && auth.user ? `${auth.user.firstName || 'Admin'} ${auth.user.lastName || ''}` : 'Administrateur'}
-              </Typography>
-              <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                {isLogged && auth.user?.type ? getRoleDisplayName(auth.user.type as RoleCode) : 'Admin'}
+                Administrateur
               </Typography>
             </Box>
           </AccountStyle>
@@ -89,29 +86,6 @@ export default function DashboardSidebar({ isOpenSidebar, onCloseSidebar }: any)
       <NavSection />
 
       <Box sx={{ flexGrow: 1 }} />
-
-      <Box sx={{ px: 2.5, pb: 3, mt: 10 }}>
-        <Stack alignItems="center" spacing={3} sx={{ pt: 5, borderRadius: 2, position: 'relative' }}>
-          <Box
-            component="img"
-            src="/logo mazadclick.jpeg"
-            sx={{ width: 200, height: 100, borderRadius: 1, position: 'absolute', top: -50, objectFit: 'contain' }}
-          />
-
-          <Box sx={{ textAlign: 'center' }}>
-            <Typography gutterBottom variant="h6">
-              {app.name} office
-            </Typography>
-            <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-              Gérer votre buisness
-            </Typography>
-          </Box>
-          {/*}
-          <Button href="https://material-ui.com/store/items/minimal-dashboard/" target="_blank" variant="contained">
-            Upgrade to Pro
-            </Button> */}
-        </Stack>
-      </Box>
     </Scrollbar>
   );
 

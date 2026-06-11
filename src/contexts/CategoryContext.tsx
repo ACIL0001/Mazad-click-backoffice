@@ -5,15 +5,7 @@ import useAuth from '../hooks/useAuth';
 import { ICategory } from '@/types/Category';
 import { CategoryAPI } from '@/api/category';
 
-interface ICategoryContext {
-  categories: ICategory[]
-  updateCategory: () => Promise<void>;
-}
-
-export const CategoryContext = createContext<ICategoryContext>({
-  categories: [] as ICategory[],
-  updateCategory: async () => {},
-});
+import { CategoryContext } from './CategoryContextStore';
 
 const CategoryProvider = ({ children }: any) => {
 

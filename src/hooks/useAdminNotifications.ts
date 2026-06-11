@@ -4,6 +4,7 @@ import { ChatAPI } from '@/api/Chat';
 import { MessageAPI } from '@/api/message';
 import { SocketContext } from '@/contexts/SocketContext';
 import useAuth from './useAuth';
+import { authStore } from '@/contexts/authStore';
 
 export const useAdminNotifications = () => {
   const [notifications, setNotifications] = useState([]);
@@ -29,11 +30,12 @@ export const useAdminNotifications = () => {
 
   // Combined function to get both notifications and unread messages - optimized
   const getAllAdminNotifications = useCallback(async () => {
+    const currentAuth = authStore.getState().auth;
     // Only fetch if we have a valid auth token and user
-    if (!auth?.tokens?.accessToken || !auth?.user?._id) {
+    if (!currentAuth?.tokens?.accessToken || !currentAuth?.user?._id) {
       console.log('🔐 Skipping admin notification fetch - auth not ready:', {
-        hasToken: !!auth?.tokens?.accessToken,
-        hasUser: !!auth?.user?._id
+        hasToken: !!currentAuth?.tokens?.accessToken,
+        hasUser: !!currentAuth?.user?._id
       });
       setNotifications([]);
       setAdminNotificationCount(0);

@@ -7,25 +7,7 @@ import {
 } from '../api/stats';
 import { useSnackbar } from 'notistack';
 
-interface StatsContextType {
-  userStats: UserStats | null;
-  auctionStats: AuctionStats | null;
-  categoryStats: CategoryStats[] | null;
-  userTimeSeries: { labels: string[]; data: number[] } | null;
-  auctionTimeSeries: { labels: string[]; data: number[] } | null;
-  auctionStatusTimeSeries: { labels: string[]; series: { name: string; data: number[] }[] } | null;
-  auctionCategoryTimeSeries: { labels: string[]; series: { name: string; data: number[] }[] } | null;
-  // FIXED: Added the missing 'online' property to the interface
-  online?: {
-    client: any[];
-    admin: any[];
-  } | null;
-  loading: boolean;
-  error: string | null;
-  refetch: () => void;
-}
-
-const StatsContext = createContext<StatsContextType | undefined>(undefined);
+import { StatsContext } from './StatsContextStore';
 
 interface StatsProviderProps {
   children: ReactNode;
@@ -105,14 +87,6 @@ export const StatsProvider = ({ children }: StatsProviderProps) => {
   return <StatsContext.Provider value={value}>{children}</StatsContext.Provider>;
 };
 
-// Custom hook to use the context
-export const useStatsData = () => {
-  const context = useContext(StatsContext);
-  if (context === undefined) {
-    throw new Error('useStatsData must be used within a StatsProvider');
-  }
-  return context;
-};
 
-export default StatsProvider;
-export { StatsContext };
+
+export default StatsProvider;

@@ -4,15 +4,7 @@ import { useState, useEffect, createContext } from 'react';
 import useAuth from '../hooks/useAuth';
 import { IdentityAPI, IdentityDocument } from '@/api/identity';
 
-interface IIdentityContext {
-  identities: IdentityDocument[]
-  updateIdentity: () => Promise<void>;
-}
-
-export const IdentityContext = createContext<IIdentityContext>({
-  identities: [] as IdentityDocument[],
-  updateIdentity: async () => {},
-});
+import { IdentityContext } from './IdentityContextStore';
 
 const IdentityProvider = ({ children }: any) => {
 

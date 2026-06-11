@@ -20,6 +20,7 @@ import { NotificationAPI } from '@/api/notification';
 import { useContext } from 'react';
 import { SocketContext } from '@/contexts/SocketContext';
 import { Link as RouterLink } from 'react-router-dom';
+import { authStore } from '@/contexts/authStore';
 import { isValidToken } from '@/utils/jwt';
 
 
@@ -81,8 +82,9 @@ function DashboardNavbar({ onOpenSidebar, onOpenRightSidebar }) {
       
       // Set up polling for notifications every 30 seconds as fallback
       const interval = setInterval(() => {
-        // Double check auth inside interval to be safe
-        if (auth?.tokens?.accessToken) {
+        // Double check auth inside interval using fresh state from the store to avoid stale closure issues
+        const currentToken = authStore.getState()?.auth?.tokens?.accessToken;
+        if (currentToken) {
           getNotifications();
         }
       }, 30000);
@@ -183,24 +185,6 @@ function DashboardNavbar({ onOpenSidebar, onOpenRightSidebar }) {
             onRefresh={handleRefreshNotifications}
             loading={notificationsLoading}
           />
-          <IconButton onClick={onOpenRightSidebar} sx={{ color: 'text.primary' }}>
-            <Badge
-              anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
-              badgeContent={totalOnline}
-              color="success"
-              max={99}
-              sx={{
-                marginRight: 1,
-                '& .MuiBadge-badge': {
-                  backgroundColor: '#fff',
-                  color: (theme) => theme.palette.info.main,
-                  boxShadow: '0 0 0 1px rgba(0,0,0,0.1)',
-                },
-              }}
-            >
-              <Iconify icon="mdi:account-group" width={24} height={24} />
-            </Badge>
-          </IconButton>
           {isLogged && <AccountPopover />}
         </Stack>
       </ToolbarStyle>

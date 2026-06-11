@@ -50,7 +50,7 @@ const pulse = keyframes`
   }
 `;
 
-export enum NotificationType {
+enum NotificationType {
   ORDER = "Order",
   ARRIVAL = 'Arrival',
   USER = 'User',
@@ -59,7 +59,7 @@ export enum NotificationType {
 }
 
 
-export enum NotificationAction {
+enum NotificationAction {
   CREATED = 'CREATED',
   UPDATED = 'UPDATED',
   DELETED = 'DELETED'
