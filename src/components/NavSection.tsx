@@ -311,6 +311,12 @@ export default function NavSection({ ...other }) {
         icon: getIcon('typcn:chart-pie'),
       },
       {
+        title: 'Analytics',
+        path: '/dashboard/analytics',
+        icon: getIcon('mdi:chart-areaspline'),
+        requiresAdmin: true,
+      },
+      {
         title: 'Utilisateurs',
         path: '/dashboard/users',
         icon: getIcon('mdi:user-online'),
@@ -328,12 +334,7 @@ export default function NavSection({ ...other }) {
             icon: getIcon('mdi:account-group'),
             requiresAdmin: true,
           },
-          {
-            title: 'Resellers',
-            path: '/dashboard/users/resellers',
-            icon: getIcon('mdi:store'),
-            requiresAdmin: true,
-          },
+
         ],
       },
       {

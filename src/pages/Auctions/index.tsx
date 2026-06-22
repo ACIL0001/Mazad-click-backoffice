@@ -245,8 +245,8 @@ export default function Auctions() {
                 tabIndex={-1}
                 sx={{
                   '& .MuiTableCell-root': {
-                    fontSize: isMobile ? '0.75rem' : '0.875rem',
-                    padding: isMobile ? '8px' : '16px',
+                    fontSize: isMobile ? '0.7rem' : '0.8rem',
+                    padding: isMobile ? '6px 8px' : '8px 12px',
                   },
                 }}
               >

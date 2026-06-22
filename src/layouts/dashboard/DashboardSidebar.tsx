@@ -63,7 +63,7 @@ export default function DashboardSidebar({ isOpenSidebar, onCloseSidebar }: any)
     <Scrollbar
       sx={{
         height: 1,
-        '& .simplebar-content': { height: 1, display: 'flex', flexDirection: 'column' },
+        '& .simplebar-content': { height: 1, display: 'flex', flexDirection: 'column', backgroundColor: '#ffffff' },
       }}
     >
       <Box sx={{ px: 2.5, py: 3, display: 'inline-flex' }}>
@@ -96,7 +96,7 @@ export default function DashboardSidebar({ isOpenSidebar, onCloseSidebar }: any)
           open={isOpenSidebar}
           onClose={onCloseSidebar}
           PaperProps={{
-            sx: { width: DRAWER_WIDTH },
+            sx: { width: DRAWER_WIDTH, bgcolor: '#ffffff' },
           }}
         >
           {renderContent}
@@ -110,7 +110,7 @@ export default function DashboardSidebar({ isOpenSidebar, onCloseSidebar }: any)
           PaperProps={{
             sx: {
               width: DRAWER_WIDTH,
-              bgcolor: 'background.default',
+              bgcolor: '#ffffff',
               borderRightStyle: 'dashed',
             },
           }}

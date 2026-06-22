@@ -46,7 +46,9 @@
     "wilaya": "Province",
     "role": "Role",
     "unexpectedFormat": "Unexpected response format.",
-    "loadingFailed": "Loading failed."
+    "loadingFailed": "Loading failed.",
+    "type": "Type",
+    "status": "Status"
   },
   "auctions": {
     "title": "Auctions",
@@ -101,6 +103,8 @@
     "promoCode": "Promo Code",
     "certified": "Certified",
     "uncertified": "Uncertified",
+    "withDocuments": "With Documents",
+    "withoutDocuments": "Without Documents",
     "rate": "Rating",
     "infoMessage": "This page displays all professionals (verified and unverified). Use the filters below to refine your search."
   },
@@ -220,6 +224,7 @@
     "isActive": "Active",
     "isDisplayed": "Displayed",
     "order": "Order",
+    "createdAt": "Created At",
     "actions": "Actions",
     "create": "Create Ad",
     "update": "Update",

@@ -54,12 +54,10 @@ export default function Identity() {
         queryFn: async () => {
             const [
                 professionalVerifications,
-                resellerConversions,
                 acceptedResponse,
                 allPending
             ] = await Promise.all([
                 IdentityAPI.getPendingProfessionals(),
-                IdentityAPI.getPendingResellers(),
                 IdentityAPI.getAcceptedIdentities(),
                 IdentityAPI.getPendingIdentities()
             ]);
@@ -71,7 +69,6 @@ export default function Identity() {
             const legacyRecords = allPending.filter(identity => !identity.conversionType);
             const categorizedLegacy = {
                 professionals: [] as IdentityDocument[],
-                resellers: [] as IdentityDocument[],
                 clientToProfessional: [] as IdentityDocument[]
             };
 
@@ -80,9 +77,6 @@ export default function Identity() {
                 switch (conversionType) {
                     case 'PROFESSIONAL_VERIFICATION':
                         categorizedLegacy.professionals.push(identity);
-                        break;
-                    case 'CLIENT_TO_RESELLER':
-                        categorizedLegacy.resellers.push(identity);
                         break;
                     case 'CLIENT_TO_PROFESSIONAL':
                         categorizedLegacy.clientToProfessional.push(identity);
@@ -107,7 +101,6 @@ export default function Identity() {
 
             return {
                 pendingProfessionals: enrichIdentitiesWithUserData([...professionalVerifications, ...categorizedLegacy.professionals]),
-                pendingResellers: enrichIdentitiesWithUserData([...resellerConversions, ...categorizedLegacy.resellers]),
                 pendingClientToProfessional: enrichIdentitiesWithUserData([...clientToProfessionalConversions, ...categorizedLegacy.clientToProfessional]),
                 acceptedIdentities: enrichIdentitiesWithUserData(acceptedResponse)
             };
@@ -116,7 +109,6 @@ export default function Identity() {
     });
 
     const pendingProfessionals = identitiesData?.pendingProfessionals || [];
-    const pendingResellers = identitiesData?.pendingResellers || [];
     const pendingClientToProfessional = identitiesData?.pendingClientToProfessional || [];
     const acceptedIdentities = identitiesData?.acceptedIdentities || [];
 
@@ -166,17 +158,7 @@ export default function Identity() {
         }
     }, [enqueueSnackbar]);
 
-    const handleDeletePendingResellers = useCallback(async (idsToDelete: string[]) => {
-        try {
-            await IdentityAPI.deleteIdentities(idsToDelete);
-            enqueueSnackbar(`${idsToDelete.length} conversions vers revendeur supprimées.`, { variant: "success" });
-            queryClient.invalidateQueries({ queryKey: ['identities'] });
-        } catch (error: any) {
-            console.error("Error deleting pending resellers:", error);
-            enqueueSnackbar(`Erreur lors de la suppression: ${error.message || "Erreur inconnue"}`, { variant: "error" });
-            throw error;
-        }
-    }, [enqueueSnackbar]);
+
 
     const handleDeletePendingClientToProfessional = useCallback(async (idsToDelete: string[]) => {
         try {
@@ -226,20 +208,8 @@ export default function Identity() {
                         loading={loading}
                     />
                 );
+
             case 1:
-                // Client to Reseller Tab
-                return (
-                    <PendingAndRejectedSellers 
-                        pendingAndRejectedSellers={pendingResellers} 
-                        onOpenVerificationModal={handleOpenVerificationModal}
-                        onDeleteSellers={handleDeletePendingResellers}
-                        onVerifyIdentity={handleVerifyIdentity}
-                        title="Clients → Revendeurs"
-                        subtitle="Clients souhaitant devenir revendeurs"
-                        loading={loading}
-                    />
-                );
-            case 2:
                 // Client to Professional Tab
                 return (
                     <PendingAndRejectedSellers 
@@ -252,7 +222,7 @@ export default function Identity() {
                         loading={loading}
                     />
                 );
-            case 3:
+            case 2:
                 // Accepted Users Tab
                 return (
                     <AcceptedSellers 
@@ -302,12 +272,6 @@ export default function Identity() {
                             count: pendingProfessionals.length, 
                             icon: 'eva:shield-checkmark-outline', 
                             color: theme.palette.info 
-                        },
-                        { 
-                            title: 'Client → Revendeur', 
-                            count: pendingResellers.length, 
-                            icon: 'eva:trending-up-outline', 
-                            color: theme.palette.warning 
                         },
                         { 
                             title: 'Client → Professionnel', 
@@ -361,20 +325,7 @@ export default function Identity() {
                             }
                             sx={{ minHeight: isMobile ? 40 : 48 }}
                         />
-                        <Tab
-                            label={
-                                <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 0.5, sm: 1 }, px: { xs: 0.5, sm: 1 } }}>
-                                    <Iconify icon="eva:trending-up-outline" width={isMobile ? 18 : 20} height={isMobile ? 18 : 20} />
-                                    <Typography variant="subtitle2" sx={{ textTransform: 'none', fontSize: isMobile ? '0.75rem' : 'inherit' }}>
-                                        Client → Revendeur
-                                        {pendingResellers.length > 0 && (
-                                            <Badge badgeContent={pendingResellers.length} color="warning" sx={{ ml: 1 }} />
-                                        )}
-                                    </Typography>
-                                </Box>
-                            }
-                            sx={{ minHeight: isMobile ? 40 : 48 }}
-                        />
+
                         <Tab
                             label={
                                 <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 0.5, sm: 1 }, px: { xs: 0.5, sm: 1 } }}>

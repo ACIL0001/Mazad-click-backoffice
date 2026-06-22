@@ -117,10 +117,6 @@ export default function ClientDetailsPage() {
     const [isVerifying, setIsVerifying] = useState(false);
     const [isUpdatingActiveStatus, setIsUpdatingActiveStatus] = useState(false);
     const [isUpdatingBannedStatus, setIsUpdatingBannedStatus] = useState(false);
-    const [isPromoting, setIsPromoting] = useState(false);
-    
-    // Promotion dialog state
-    const [openPromotionDialog, setOpenPromotionDialog] = useState(false);
 
     const { data: clientDetails, isLoading: loading, error } = useQuery({
         queryKey: ['client', id],
@@ -201,21 +197,6 @@ export default function ClientDetailsPage() {
         }
     };
 
-    const handlePromoteToReseller = async () => {
-        if (!clientDetails?._id) return;
-        setIsPromoting(true);
-        try {
-            await UserAPI.promoteToReseller(clientDetails._id);
-            enqueueSnackbar('Client promu au rang de revendeur avec succès!', { variant: 'success' });
-            setOpenPromotionDialog(false);
-            queryClient.invalidateQueries({ queryKey: ['client', id] });
-            queryClient.invalidateQueries({ queryKey: ['users'] });
-        } catch (err: any) {
-            enqueueSnackbar(err.message || 'Échec de la promotion au rang de revendeur.', { variant: 'error' });
-        } finally {
-            setIsPromoting(false);
-        }
-    };
 
     if (loading) {
         return (

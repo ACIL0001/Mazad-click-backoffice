@@ -5,7 +5,7 @@ import { getStorageKey } from '@/config';
 import { LoginResponseData } from '@/types/Auth';
 import { isValidToken } from '@/utils/jwt';
 
-const initialState: { tokens?: { accessToken: string; refreshToken: string }; user?: User } = {
+const initialState: { tokens?: { accessToken: string; refreshToken?: string }; user?: User } = {
   tokens: undefined,
   user: undefined,
 };
@@ -15,7 +15,7 @@ interface IAuthStore {
   isLogged: boolean;
   auth: typeof initialState;
   user?: User;
-  tokens?: { accessToken: string; refreshToken: string };
+  tokens?: { accessToken: string; refreshToken?: string };
   refreshUserData: () => Promise<void>;
 
   set: (data: LoginResponseData) => void;
@@ -67,14 +67,14 @@ export const authStore = create<IAuthStore>((zustandSet, zustandGet) => ({
     const accessToken = data.session?.accessToken;
     const refreshToken = data.session?.refreshToken;
 
-    if (!accessToken || !refreshToken) {
-      console.error('🚨 NO TOKENS FOUND!', data.session);
+    if (!accessToken) {
+      console.error('🚨 NO ACCESS TOKEN FOUND!', data.session);
       return;
     }
 
     console.log('🚨 Tokens extracted:', {
       accessToken: accessToken?.substring(0, 20) + '...',
-      refreshToken: refreshToken?.substring(0, 20) + '...'
+      hasRefreshToken: !!refreshToken
     });
 
     const tokens = { accessToken, refreshToken };

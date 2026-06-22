@@ -100,9 +100,9 @@ export default function LoginForm() {
           }
         }
 
-        // Verify tokens exist in session
-        if (!data.session?.accessToken || !data.session?.refreshToken) {
-          console.error('Missing tokens in session:', data.session);
+        // Verify tokens exist in session (note: refreshToken is cookie-based)
+        if (!data.session?.accessToken) {
+          console.error('Missing accessToken in session:', data.session);
           throw new Error('Tokens manquants dans la réponse');
         }
 

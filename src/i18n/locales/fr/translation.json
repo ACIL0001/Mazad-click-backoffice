@@ -46,7 +46,9 @@
     "wilaya": "Wilaya",
     "role": "Rôle",
     "unexpectedFormat": "Format de réponse inattendu.",
-    "loadingFailed": "Chargement échoué."
+    "loadingFailed": "Chargement échoué.",
+    "type": "Type",
+    "status": "Statut"
   },
   "auctions": {
     "title": "Enchères",
@@ -101,6 +103,8 @@
     "promoCode": "Code promo",
     "certified": "Certifiés",
     "uncertified": "Non Certifiés",
+    "withDocuments": "Avec Documents",
+    "withoutDocuments": "Sans Documents",
     "rate": "Note",
     "infoMessage": "Cette page affiche tous les professionnels (vérifiés et non vérifiés). Utilisez les filtres ci-dessous pour affiner votre recherche."
   },
@@ -220,6 +224,7 @@
     "isActive": "Actif",
     "isDisplayed": "Affiché",
     "order": "Ordre",
+    "createdAt": "Date de création",
     "actions": "Actions",
     "create": "Créer une publicité",
     "update": "Mettre à jour",

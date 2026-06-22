@@ -19,7 +19,7 @@ const instance = axios.create({
 const response = (res: AxiosResponse) => res.data;
 
 export const requests = {
-  get: (url: string) => instance.get(url).then(response),
+  get: (url: string, config?: any) => instance.get(url, config).then(response),
   post: (url: string, body: {}, returnFullResponse = false) => {
     const config: any = {};
     if (body instanceof FormData) {
@@ -93,28 +93,20 @@ const AxiosInterceptor = ({ children }: any) => {
     isRefreshing = true;
     try {
       const currentAuth = authStore.getState();
-      const getRefreshToken = () => {
-        if (currentAuth.auth?.tokens?.refreshToken) return currentAuth.auth.tokens.refreshToken;
-        return null;
-      };
-      const refreshToken = getRefreshToken();
-
-      console.log(`🔄 Proactive Refresh Token Available: ${!!refreshToken}`);
-
-      if (!currentAuth.isLogged || !refreshToken) {
-        console.warn('⚠️ No refresh token or not logged in - clearing session');
+      if (!currentAuth.isLogged) {
+        console.warn('⚠️ Not logged in - clearing session');
         isRefreshing = false;
         clear();
-        throw new Error('No refresh token available');
+        throw new Error('Not logged in');
       }
 
-      console.log('🔄 Calling AuthAPI.refresh...');
-      const tokens = await AuthAPI.refresh(refreshToken);
+      console.log('🔄 Calling AuthAPI.refresh (using cookies)...');
+      const tokens = await AuthAPI.refresh('');
       console.log('✅ Refresh Successful! Tokens received.');
 
       const tokensData = {
         accessToken: tokens.accessToken || tokens.access_token || '',
-        refreshToken: tokens.refreshToken || tokens.refresh_token || '',
+        refreshToken: tokens.refreshToken || tokens.refresh_token || undefined,
       };
 
       const authUpdate: LoginResponseData = {

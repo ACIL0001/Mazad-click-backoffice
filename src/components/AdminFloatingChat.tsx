@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import './FloatingAdminChat.css';
 import { useTranslation } from 'react-i18next';
 import { useCreateSocket } from '../contexts/SocketContext';
@@ -87,6 +87,19 @@ const FloatingAdminChat: React.FC = () => {
   const typingTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
+  const isOpenRef = useRef(isOpen);
+  useEffect(() => {
+    isOpenRef.current = isOpen;
+  }, [isOpen]);
+
+  const adminChatRef = useRef(adminChat);
+  useEffect(() => {
+    adminChatRef.current = adminChat;
+  }, [adminChat]);
+
+  const processedMessagesRef = useRef<Set<string>>(new Set());
+  const handleNewMessageRef = useRef<(data: any, eventType: string) => void>();
+
   // Auto-scroll to bottom
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -136,26 +149,7 @@ const FloatingAdminChat: React.FC = () => {
       return;
     }
 
-    // Additional safety check - verify auth state from localStorage
-    const authFromStorage = typeof window !== 'undefined' ? window.localStorage.getItem('auth') : null;
-    if (!authFromStorage) {
-      console.log('FloatingAdminChat: No auth in localStorage, skipping chat initialization');
-      return;
-    }
-
-    let parsedAuth;
-    try {
-      parsedAuth = JSON.parse(authFromStorage);
-    } catch (error) {
-      console.error('FloatingAdminChat: Error parsing auth from localStorage:', error);
-      return;
-    }
-
-    const { tokens, user } = parsedAuth;
-    if (!tokens?.accessToken || !user?._id || user._id !== auth.user._id) {
-      console.log('FloatingAdminChat: Incomplete or mismatched auth data, skipping initialization');
-      return;
-    }
+    // Zustand auth store has already verified and restored credentials
 
     console.log('FloatingAdminChat: All auth checks passed, initializing chat');
     setIsLoading(true);
@@ -336,93 +330,117 @@ const FloatingAdminChat: React.FC = () => {
     }
   };
 
-  // Handle socket messages
-  useEffect(() => {
-    if (!socketContext?.socket) {
-      console.log('❌ Socket not available in FloatingAdminChat');
+  // Define incoming message handler (memoized with useCallback)
+  const handleIncomingMessage = useCallback((data: any, eventType: string) => {
+    console.log(`📨 ${eventType} message received in FloatingAdminChat:`, data);
+    
+    // Support both _id and messageId/id
+    const rawId = data._id || data.messageId || data.id || 'unknown';
+    const msgId = String(rawId);
+    
+    // Deduplicate using persistent ref set
+    const messageKey = `${msgId}-${data.message}-${data.sender}-${data.createdAt}`;
+    if (processedMessagesRef.current.has(messageKey)) {
+      console.log(`🚫 ${eventType} message already processed, skipping:`, messageKey);
       return;
     }
+    processedMessagesRef.current.add(messageKey);
+    // Keep in set for 5 seconds to deduplicate
+    setTimeout(() => processedMessagesRef.current.delete(messageKey), 5000);
 
-    const socket = socketContext.socket as SocketWithReadyState;
+    const currentChat = adminChatRef.current;
 
-    console.log('🔌 Socket status in FloatingAdminChat:', {
-      connected: socket.connected,
-      id: socket.id
+    // Check if this message belongs to our admin chat
+    const isForCurrentChat = currentChat?._id && (data.idChat === currentChat._id || data.chatId === currentChat._id);
+    const isFromAdmin = data.sender === 'admin' || data.sender === 'ADMIN' || data.senderId === 'admin';
+    const isForCurrentUser = auth?.user?._id && (
+      data.reciver === auth.user._id || 
+      data.receiverId === auth.user._id || 
+      data.reciver === 'admin' || 
+      data.reciver === 'ADMIN'
+    );
+
+    console.log('🔍 Message analysis:', {
+      eventType,
+      isForCurrentChat,
+      isFromAdmin,
+      isForCurrentUser,
+      messageSender: data.sender,
+      messageReceiver: data.reciver,
+      currentUserId: auth?.user?._id,
+      chatId: data.idChat || data.chatId,
+      currentChatId: currentChat?._id
     });
-
-    const handleNewMessage = (data: Message) => {
-      console.log('📨 Received socket message:', data);
-      console.log('📨 Current adminChat:', adminChat);
-      
-      // Check if this message belongs to our admin chat
-      const isAdminMessage = data.reciver === 'admin' || data.reciver === 'ADMIN';
-      const isFromAdmin = data.sender === 'admin' || data.sender === 'ADMIN';
-      const isFromCurrentUser = data.sender === auth?.user?._id;
-      const isToCurrentUser = data.reciver === auth?.user?._id;
-      const isInCurrentChat = adminChat && data.idChat === adminChat._id;
-      
-      console.log('🔍 Message analysis:', {
-        isAdminMessage,
-        isFromAdmin,
-        isFromCurrentUser,
-        isToCurrentUser,
-        isInCurrentChat,
-        messageSender: data.sender,
-        messageReceiver: data.reciver,
-        currentUserId: auth?.user?._id,
-        chatId: data.idChat,
-        currentChatId: adminChat?._id
+    
+    if (isForCurrentChat && isForCurrentUser) {
+      console.log('✅ Accepting message, adding to messages');
+      setMessages(prev => {
+        // Check if message already exists to avoid duplicates
+        const messageExists = prev.some(msg => 
+          msg._id === msgId || 
+          (msg.message === data.message && msg.sender === data.sender && 
+           Math.abs(new Date(msg.createdAt).getTime() - new Date(data.createdAt).getTime()) < 1000)
+        );
+        if (messageExists) {
+          console.log('⚠️ Message already exists, skipping');
+          return prev;
+        }
+        
+        // Build normalized Message
+        const normalizedMsg: Message = {
+          _id: msgId,
+          message: data.message || '',
+          sender: data.sender || '',
+          reciver: data.reciver || '',
+          idChat: data.idChat || data.chatId || currentChat?._id || '',
+          createdAt: data.createdAt || data.timestamp || new Date().toISOString()
+        };
+        
+        return [...prev, normalizedMsg];
       });
       
-      // Accept messages that are either:
-      // 1. From users to admin (reciver === 'admin') - these are support requests
-      // 2. From admin to users (sender === 'admin') - these are admin responses
-      // 3. In the same chat as our adminChat (if it exists)
-      const shouldAcceptMessage = (
-        isAdminMessage || // User sending to admin
-        isFromAdmin ||    // Admin sending to user
-        isInCurrentChat   // Messages in current chat
-      );
-      
-      if (shouldAcceptMessage) {
-        console.log('✅ Accepting message, adding to messages');
-        setMessages(prev => {
-          // Check if message already exists to avoid duplicates
-          const messageExists = prev.some(msg => 
-            msg._id === data._id || 
-            (msg.message === data.message && msg.sender === data.sender && 
-             Math.abs(new Date(msg.createdAt).getTime() - new Date(data.createdAt).getTime()) < 1000)
-          );
-          if (messageExists) {
-            console.log('⚠️ Message already exists, skipping');
-            return prev;
-          }
-          return [...prev, data];
-        });
-        
-        // Only increment unread count if message is FROM users TO admin (not from admin)
-        if (!isOpen && isAdminMessage && !isFromAdmin) {
-          console.log('📊 Incrementing unread count for user message to admin');
-          setUnreadCount(prev => prev + 1);
-        }
-      } else {
-        console.log('❌ Message not for admin chat, ignoring');
+      // Only increment unread count if chat is closed and it is not own message
+      if (!isOpenRef.current && data.sender !== auth?.user?._id) {
+        console.log('📊 Incrementing unread count');
+        setUnreadCount(prev => prev + 1);
       }
+
+      setTimeout(() => {
+        scrollToBottom();
+      }, 50);
+    } else {
+      console.log('❌ Message not for admin chat, ignoring');
+    }
+  }, [auth?.user?._id]);
+
+  // Keep ref current on every render
+  handleNewMessageRef.current = handleIncomingMessage;
+
+  // Handle socket message event listeners
+  useEffect(() => {
+    if (!socketContext?.socket) return;
+    const socket = socketContext.socket as SocketWithReadyState;
+
+    console.log('🔌 AdminFloatingChat: Registering stable socket listeners');
+
+    const handleSendMessage = (data: any) => {
+      handleNewMessageRef.current?.(data, 'sendMessage');
+    };
+    const handleAdminMessage = (data: any) => {
+      handleNewMessageRef.current?.(data, 'adminMessage');
+    };
+    const handleNewMessage = (data: any) => {
+      handleNewMessageRef.current?.(data, 'newMessage');
+    };
+    const handleChatMessageUpdate = (data: any) => {
+      const normalizedData = {
+        ...data,
+        _id: data._id || data.messageId,
+        idChat: data.idChat || data.chatId,
+      };
+      handleNewMessageRef.current?.(normalizedData, 'chatMessageUpdate');
     };
 
-    console.log('🔌 Setting up socket listener for sendMessage');
-    socket.on('sendMessage', handleNewMessage);
-    
-    // Also listen for adminMessage events (for consistency)
-    socket.on('adminMessage', handleNewMessage);
-
-    // Test socket connection by emitting a test event
-    if (socket.connected) {
-      console.log('🔌 Socket is connected, testing with a test event');
-      socket.emit('test', { message: 'Test from FloatingAdminChat' });
-    }
-
-    // Add test event listeners
     const handleTestResponse = (data: any) => {
       console.log('🧪 Test response received:', data);
     };
@@ -431,34 +449,63 @@ const FloatingAdminChat: React.FC = () => {
       console.log('🧪 Test broadcast received:', data);
     };
 
-    // Handle notifications - now using the admin notifications hook
     const handleNotification = (notification: any) => {
       console.log('🔔 Received notification:', notification);
-      
-      // Check if this notification is for the current user
       const isForCurrentUser = notification.userId === auth?.user?._id;
       const isAdminMessageNotification = notification.type === 'MESSAGE_ADMIN' || notification.type === 'MESSAGE_RECEIVED';
       
       if (isForCurrentUser && isAdminMessageNotification) {
         console.log('✅ Accepting notification for current user');
-        // Refresh admin notifications to update unread count
         refreshNotifications();
       }
     };
 
+    socket.on('sendMessage', handleSendMessage);
+    socket.on('adminMessage', handleAdminMessage);
+    socket.on('newMessage', handleNewMessage);
+    socket.on('chatMessageUpdate', handleChatMessageUpdate);
     socket.on('testResponse', handleTestResponse);
     socket.on('testBroadcast', handleTestBroadcast);
     socket.on('notification', handleNotification);
 
     return () => {
-      console.log('🔌 Cleaning up socket listener');
-      socket?.off('sendMessage', handleNewMessage);
-      socket?.off('adminMessage', handleNewMessage);
-      socket?.off('testResponse', handleTestResponse);
-      socket?.off('testBroadcast', handleTestBroadcast);
-      socket?.off('notification', handleNotification);
+      console.log('🔌 AdminFloatingChat: Cleaning up stable socket listeners');
+      socket.off('sendMessage', handleSendMessage);
+      socket.off('adminMessage', handleAdminMessage);
+      socket.off('newMessage', handleNewMessage);
+      socket.off('chatMessageUpdate', handleChatMessageUpdate);
+      socket.off('testResponse', handleTestResponse);
+      socket.off('testBroadcast', handleTestBroadcast);
+      socket.off('notification', handleNotification);
     };
-  }, [socketContext?.socket, adminChat, isOpen, auth?.user?._id]);
+  }, [socketContext?.socket, auth?.user?._id]);
+
+  // Handle room joining/leaving and connection state changes
+  useEffect(() => {
+    const socket = socketContext?.socket;
+    if (!socket || !adminChat?._id) return;
+
+    const joinRoom = () => {
+      if (socket.connected) {
+        socket.emit('joinChat', { chatId: adminChat._id, userId: auth?.user?._id || '' });
+        console.log('🔌 AdminFloatingChat: Joined chat room:', adminChat._id);
+        socket.emit('test', { message: 'Test from FloatingAdminChat' });
+      }
+    };
+
+    joinRoom();
+
+    socket.on('connect', joinRoom);
+
+    return () => {
+      socket.off('connect', joinRoom);
+      if (socket.connected) {
+        socket.emit('leaveChat', { chatId: adminChat._id, userId: auth?.user?._id || '' });
+        console.log('🔌 AdminFloatingChat: Left chat room:', adminChat._id);
+      }
+    };
+  }, [socketContext?.socket, adminChat?._id, auth?.user?._id]);
+
 
   // Initialize chat when component mounts - with delays and auth page guards
   useEffect(() => {
@@ -897,63 +944,83 @@ const FloatingAdminChat: React.FC = () => {
           left: 0;
           right: 0;
           bottom: 0;
-          background: rgba(0, 0, 0, 0.5);
+          background: rgba(15, 23, 42, 0.4);
+          backdrop-filter: blur(6px);
           z-index: 1400;
           display: flex;
           align-items: center;
           justify-content: center;
           padding: 20px;
+          animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
         }
 
         .chat-dialog {
-          width: 400px;
+          width: 420px;
           height: 600px;
-          max-height: 80vh;
-          background: white;
-          border-radius: 12px;
-          overflow: hidden;
-          box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+          max-height: 85vh;
+          background: #ffffff;
+          border-radius: 20px;
+          box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(0, 0, 0, 0.05);
           display: flex;
           flex-direction: column;
+          overflow: hidden;
+          animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+          border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        @keyframes slideUp {
+          from { opacity: 0; transform: translateY(40px) scale(0.95); }
+          to { opacity: 1; transform: translateY(0) scale(1); }
         }
 
         .chat-header {
-          background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+          background: linear-gradient(135deg, #1e40af 0%, #2563eb 100%);
           color: white;
-          padding: 16px;
+          padding: 18px 24px;
           display: flex;
           align-items: center;
           justify-content: space-between;
+          border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+          box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+          z-index: 2;
         }
 
         .chat-header-content {
           display: flex;
           align-items: center;
-          gap: 12px;
+          gap: 14px;
         }
 
         .admin-avatar {
-          width: 40px;
-          height: 40px;
+          width: 44px;
+          height: 44px;
           border-radius: 50%;
           background: rgba(255, 255, 255, 0.2);
           display: flex;
           align-items: center;
           justify-content: center;
-          font-size: 20px;
+          font-size: 22px;
+          box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
         }
 
         .chat-title h4 {
           margin: 0;
           font-size: 18px;
           font-weight: 600;
+          letter-spacing: -0.01em;
+          font-family: 'Inter', system-ui, sans-serif;
         }
 
         .online-status {
           display: flex;
           align-items: center;
           gap: 6px;
-          font-size: 12px;
+          font-size: 13px;
           opacity: 0.9;
         }
 
@@ -961,57 +1028,59 @@ const FloatingAdminChat: React.FC = () => {
           width: 8px;
           height: 8px;
           border-radius: 50%;
-          background: #4CAF50;
+          background: #4ade80;
           animation: pulse 2s infinite;
         }
 
         @keyframes pulse {
-          0% {
-            box-shadow: 0 0 0 0 rgba(76, 175, 80, 0.7);
-          }
-          70% {
-            box-shadow: 0 0 0 10px rgba(76, 175, 80, 0);
-          }
-          100% {
-            box-shadow: 0 0 0 0 rgba(76, 175, 80, 0);
-          }
+          0% { box-shadow: 0 0 0 0 rgba(74, 222, 128, 0.7); }
+          70% { box-shadow: 0 0 0 8px rgba(74, 222, 128, 0); }
+          100% { box-shadow: 0 0 0 0 rgba(74, 222, 128, 0); }
         }
 
         .close-chat-btn {
-          background: none;
+          background: rgba(255, 255, 255, 0.15);
           border: none;
           color: white;
-          font-size: 24px;
+          font-size: 16px;
           cursor: pointer;
-          padding: 8px;
-          border-radius: 4px;
-          transition: background 0.2s;
+          width: 32px;
+          height: 32px;
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          transition: all 0.2s ease;
+          backdrop-filter: blur(4px);
         }
 
         .close-chat-btn:hover {
-          background: rgba(255, 255, 255, 0.1);
+          background: rgba(255, 255, 255, 0.3);
+          transform: rotate(90deg);
         }
 
         .chat-content {
           flex: 1;
           display: flex;
           flex-direction: column;
-          background: #f8f9fa;
+          background: #f8fafc;
         }
 
         .messages-area {
           flex: 1;
-          padding: 16px;
+          padding: 20px;
           overflow-y: auto;
           display: flex;
           flex-direction: column;
-          gap: 8px;
+          gap: 12px;
+          background-image: radial-gradient(#e2e8f0 1px, transparent 1px);
+          background-size: 20px 20px;
         }
 
         .loading-messages {
           text-align: center;
           padding: 40px 20px;
-          color: #6c757d;
+          color: #64748b;
           display: flex;
           flex-direction: column;
           align-items: center;
@@ -1019,10 +1088,10 @@ const FloatingAdminChat: React.FC = () => {
         }
 
         .loading-spinner {
-          width: 32px;
-          height: 32px;
-          border: 3px solid #f3f3f3;
-          border-top: 3px solid #007bff;
+          width: 36px;
+          height: 36px;
+          border: 3px solid #f1f5f9;
+          border-top: 3px solid #3b82f6;
           border-radius: 50%;
           animation: spin 1s linear infinite;
         }
@@ -1035,27 +1104,35 @@ const FloatingAdminChat: React.FC = () => {
         .empty-chat {
           text-align: center;
           padding: 40px 20px;
-          color: #6c757d;
+          color: #64748b;
         }
 
         .empty-chat i {
-          font-size: 48px;
+          font-size: 54px;
           margin-bottom: 16px;
-          color: #dee2e6;
+          color: #3b82f6;
+          opacity: 0.4;
         }
 
         .empty-chat p {
           margin: 8px 0;
           font-weight: 500;
+          color: #475569;
         }
 
         .empty-chat small {
-          color: #adb5bd;
+          color: #94a3b8;
         }
 
         .message {
           display: flex;
-          margin-bottom: 8px;
+          margin-bottom: 4px;
+          animation: messageSlide 0.3s ease;
+        }
+
+        @keyframes messageSlide {
+          from { opacity: 0; transform: translateY(10px); }
+          to { opacity: 1; transform: translateY(0); }
         }
 
         .message.own {
@@ -1067,47 +1144,54 @@ const FloatingAdminChat: React.FC = () => {
         }
 
         .message-bubble {
-          max-width: 75%;
-          padding: 12px 16px;
-          border-radius: 18px;
+          max-width: 82%;
+          padding: 12px 18px;
+          border-radius: 20px;
           background: white;
-          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+          box-shadow: 0 2px 5px rgba(0, 0, 0, 0.03);
           position: relative;
+          font-size: 14.5px;
+          line-height: 1.5;
         }
 
         .message.own .message-bubble {
-          background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+          background: linear-gradient(135deg, #2563eb 0%, #3b82f6 100%);
           color: white;
           border-bottom-right-radius: 4px;
         }
 
         .message.other .message-bubble {
           border-bottom-left-radius: 4px;
-          background: #fff;
-          border: 1px solid #e9ecef;
+          background: #ffffff;
+          border: 1px solid #e2e8f0;
+          color: #1e293b;
         }
 
         .message-bubble.typing {
           font-style: italic;
           opacity: 0.7;
-          background: #e9ecef;
+          background: #f1f5f9;
         }
 
         .message-bubble p {
-          margin: 0 0 4px 0;
-          line-height: 1.4;
+          margin: 0 0 6px 0;
+          line-height: 1.5;
           word-wrap: break-word;
         }
 
         .message-time {
           font-size: 11px;
-          opacity: 0.7;
+          opacity: 0.8;
+          display: block;
+          text-align: right;
         }
 
         .message-input-area {
-          padding: 16px;
-          background: white;
-          border-top: 1px solid #dee2e6;
+          padding: 16px 20px;
+          background: #ffffff;
+          border-top: 1px solid #e2e8f0;
+          box-shadow: 0 -4px 15px rgba(0, 0, 0, 0.02);
+          z-index: 2;
         }
 
         .input-container {
@@ -1118,38 +1202,38 @@ const FloatingAdminChat: React.FC = () => {
         }
 
         .input-wrapper {
-          width: 90%;
+          flex: 1;
           position: relative;
-          background: #f8f9fa;
-          border-radius: 20px;
-          border: 2px solid #e9ecef;
+          background: #f8fafc;
+          border-radius: 24px;
+          border: 1px solid #cbd5e1;
           transition: all 0.2s ease;
         }
 
         .input-wrapper:focus-within {
-          border-color: #007bff;
-          box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
-          background: white;
+          border-color: #3b82f6;
+          box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+          background: #ffffff;
         }
 
         .message-input {
           width: 100%;
-          padding: 10px 60px 10px 16px;
+          padding: 12px 70px 12px 18px;
           border: none;
-          border-radius: 20px;
+          border-radius: 24px;
           resize: none;
           outline: none;
           font-family: inherit;
-          font-size: 14px;
-          line-height: 1.3;
+          font-size: 14.5px;
+          line-height: 1.4;
           background: transparent;
-          min-height: 18px;
-          max-height: 100px;
+          min-height: 44px;
+          max-height: 120px;
           overflow-y: auto;
         }
 
         .message-input::placeholder {
-          color: #adb5bd;
+          color: #94a3b8;
         }
 
         .message-input:disabled {
@@ -1160,8 +1244,7 @@ const FloatingAdminChat: React.FC = () => {
         .input-actions {
           position: absolute;
           right: 8px;
-          top: 50%;
-          transform: translateY(-50%);
+          bottom: 6px;
           display: flex;
           gap: 4px;
         }
@@ -1172,7 +1255,7 @@ const FloatingAdminChat: React.FC = () => {
           height: 32px;
           border: none;
           background: none;
-          color: #6c757d;
+          color: #64748b;
           border-radius: 50%;
           cursor: pointer;
           display: flex;
@@ -1184,46 +1267,47 @@ const FloatingAdminChat: React.FC = () => {
 
         .emoji-btn:hover,
         .attach-btn:hover {
-          background: #f1f3f4;
-          color: #007bff;
+          background: #f1f5f9;
+          color: #3b82f6;
         }
 
         .send-btn {
-          width: calc(10% - 12px);
-          min-width: 40px;
-          height: 40px;
+          width: 44px;
+          height: 44px;
           border-radius: 50%;
           border: none;
-          background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+          background: linear-gradient(135deg, #2563eb 0%, #3b82f6 100%);
           color: white;
           cursor: pointer;
           display: flex;
           align-items: center;
           justify-content: center;
-          transition: all 0.2s ease;
-          font-size: 16px;
+          transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+          font-size: 18px;
           flex-shrink: 0;
+          box-shadow: 0 4px 10px rgba(37, 99, 235, 0.3);
         }
 
         .send-btn:hover:not(:disabled) {
-          transform: scale(1.05);
-          box-shadow: 0 4px 12px rgba(0, 123, 255, 0.3);
+          transform: scale(1.1) translateY(-2px);
+          box-shadow: 0 6px 15px rgba(37, 99, 235, 0.4);
         }
 
         .send-btn:disabled {
-          background: #6c757d;
+          background: #cbd5e1;
+          box-shadow: none;
           cursor: not-allowed;
           transform: none;
-          opacity: 0.6;
+          opacity: 1;
         }
 
         .send-btn.sending {
-          background: #28a745;
+          background: #22c55e;
         }
 
         .sending-spinner {
-          width: 20px;
-          height: 20px;
+          width: 22px;
+          height: 22px;
           border: 2px solid rgba(255, 255, 255, 0.3);
           border-top: 2px solid white;
           border-radius: 50%;
@@ -1240,36 +1324,37 @@ const FloatingAdminChat: React.FC = () => {
 
         .input-hint {
           font-size: 12px;
-          color: #6c757d;
-          opacity: 0.7;
+          color: #64748b;
+          opacity: 0.8;
           flex: 1;
         }
 
         .char-count {
           font-size: 11px;
-          color: #6c757d;
-          background: #f8f9fa;
-          padding: 4px 8px;
+          color: #94a3b8;
+          background: #f8fafc;
+          padding: 4px 10px;
           border-radius: 12px;
           font-weight: 500;
         }
 
         .char-count.warning {
-          color: #dc3545;
-          background: #f8d7da;
+          color: #ef4444;
+          background: #fef2f2;
         }
 
         .emoji-picker {
           position: absolute;
-          bottom: 100%;
+          bottom: calc(100% + 10px);
           right: 0;
           background: white;
-          border: 1px solid #e9ecef;
+          border: 1px solid #e2e8f0;
           border-radius: 12px;
-          box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+          box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
           z-index: 1450;
           min-width: 240px;
           margin-bottom: 8px;
+          animation: fadeIn 0.2s ease;
         }
 
         .emoji-grid {
@@ -1294,18 +1379,18 @@ const FloatingAdminChat: React.FC = () => {
         }
 
         .emoji-item:hover {
-          background: #f8f9fa;
+          background: #f1f5f9;
           transform: scale(1.1);
         }
 
         .emoji-picker-footer {
           padding: 8px 12px;
-          border-top: 1px solid #f1f3f4;
+          border-top: 1px solid #e2e8f0;
           text-align: center;
         }
 
         .emoji-picker-footer small {
-          color: #6c757d;
+          color: #94a3b8;
           font-size: 11px;
         }
 
@@ -1317,59 +1402,79 @@ const FloatingAdminChat: React.FC = () => {
 
         .messages-area::-webkit-scrollbar-track,
         .message-input::-webkit-scrollbar-track {
-          background: #f1f1f1;
-          border-radius: 3px;
+          background: transparent;
         }
 
         .messages-area::-webkit-scrollbar-thumb,
         .message-input::-webkit-scrollbar-thumb {
-          background: #c1c1c1;
-          border-radius: 3px;
+          background: #cbd5e1;
+          border-radius: 10px;
         }
 
         .messages-area::-webkit-scrollbar-thumb:hover,
         .message-input::-webkit-scrollbar-thumb:hover {
-          background: #a8a8a8;
+          background: #94a3b8;
         }
 
         @media (max-width: 768px) {
           .floating-chat-button {
-            bottom: 16px;
+            bottom: 24px;
             right: 80px;
+          }
+          .chat-dialog {
+            height: 70vh;
+            max-width: 380px;
           }
         }
 
         @media (max-width: 480px) {
+          .chat-dialog-overlay {
+            padding: 0;
+            align-items: flex-end;
+          }
+          
           .chat-dialog {
-            width: 100%;
-            height: 100%;
-            max-height: 100vh;
-            border-radius: 0;
+            width: 100vw;
+            height: 85vh;
+            max-height: none;
+            max-width: none;
+            border-radius: 24px 24px 0 0;
+            animation: slideUpMobile 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+          }
+
+          @keyframes slideUpMobile {
+            from { transform: translateY(100%); }
+            to { transform: translateY(0); }
           }
           
           .floating-chat-button {
-            bottom: 100px;
-            right: 16px;
+            bottom: 90px;
+            right: 20px;
           }
           
           .chat-fab {
             width: 56px;
             height: 56px;
-            font-size: 20px;
+            font-size: 22px;
+          }
+
+          .chat-header {
+            border-radius: 24px 24px 0 0;
+            padding: 16px 20px;
           }
 
           .input-container {
-            gap: 8px;
+            gap: 10px;
           }
 
           .send-btn {
-            width: 44px;
-            height: 44px;
-            font-size: 16px;
+            width: 42px;
+            height: 42px;
+            font-size: 18px;
           }
 
           .message-input {
-            padding: 12px 50px 12px 16px;
+            padding: 12px 60px 12px 16px;
             font-size: 16px; /* Prevents zoom on iOS */
           }
         }

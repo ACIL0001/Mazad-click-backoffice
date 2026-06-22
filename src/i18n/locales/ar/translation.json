@@ -46,7 +46,9 @@
     "wilaya": "الولاية",
     "role": "الدور",
     "unexpectedFormat": "تنسيق استجابة غير متوقع.",
-    "loadingFailed": "فشل التحميل."
+    "loadingFailed": "فشل التحميل.",
+    "type": "النوع",
+    "status": "الحالة"
   },
   "auctions": {
     "title": "المزادات",
@@ -101,6 +103,8 @@
     "promoCode": "رمز الخصم",
     "certified": "معتمد",
     "uncertified": "غير معتمد",
+    "withDocuments": "مع مستندات",
+    "withoutDocuments": "بدون مستندات",
     "rate": "التقييم",
     "infoMessage": "تعرض هذه الصفحة جميع المهنيين (الم verified وغير الم verified). استخدم المرشحات أدناه لتحسين بحثك."
   },
@@ -220,6 +224,7 @@
     "isActive": "نشط",
     "isDisplayed": "معروض",
     "order": "الترتيب",
+    "createdAt": "تاريخ الإنشاء",
     "actions": "الإجراءات",
     "create": "إنشاء إعلان",
     "update": "تحديث",

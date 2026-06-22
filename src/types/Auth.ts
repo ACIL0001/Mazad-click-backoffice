@@ -7,7 +7,7 @@ import Role, { RoleCode } from './Role';
 // Tokens interface
 export interface Tokens {
   accessToken: string;
-  refreshToken: string;
+  refreshToken?: string;
 }
 
 // Backend response structure from auth.service.ts SignIn method
@@ -15,7 +15,7 @@ export interface Tokens {
 export interface LoginResponseData {
   session: {
     accessToken: string;
-    refreshToken: string;
+    refreshToken?: string;
   };
   user: {
     _id: string;
@@ -65,7 +65,7 @@ export interface AuthState {
 // Legacy Auth interface (for backward compatibility)
 export default interface Auth<T = undefined> {
   accessToken: string;
-  refreshToken: string;
+  refreshToken?: string;
   tokens: Tokens;
   user: {
     _id?: string;

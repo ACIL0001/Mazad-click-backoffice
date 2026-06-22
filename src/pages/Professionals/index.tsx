@@ -31,6 +31,8 @@ import {
     ToggleButton,
     ToggleButtonGroup,
     Tooltip,
+    Avatar,
+    Link,
 } from '@mui/material';
 // components
 import Page from '../../components/Page';
@@ -78,35 +80,44 @@ import { ChangeEvent, MouseEvent } from 'react';
 
 const StyledCard = styled(Card)(({ theme }) => ({
     display: 'flex',
-    alignItems: 'center',
-    padding: theme.spacing(3),
-    borderRadius: theme.shape.borderRadius,
-    boxShadow: theme.customShadows ? theme.customShadows.z4 : '0 4px 20px 0 rgba(0, 0, 0, 0.05)',
+    flexDirection: 'column',
+    alignItems: 'flex-start',
+    padding: theme.spacing(1.5, 1.5, 1.25),
+    borderRadius: theme.shape.borderRadius * 1.5,
+    border: '1px solid',
+    borderColor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.08)' : 'rgba(145, 158, 171, 0.12)',
+    boxShadow: theme.customShadows ? theme.customShadows.z1 : '0 2px 8px rgba(0, 0, 0, 0.04)',
     backgroundColor: theme.palette.background.paper,
+    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+    width: '100%',
+    minHeight: 100,
+    '&:hover': {
+        transform: 'translateY(-3px)',
+        boxShadow: theme.customShadows ? theme.customShadows.z16 : '0 10px 30px 0 rgba(0, 0, 0, 0.08)',
+    },
     [theme.breakpoints.down('sm')]: {
-        padding: theme.spacing(2),
-        flexDirection: 'column',
+        padding: theme.spacing(1.25),
+        alignItems: 'center',
         textAlign: 'center',
     },
 }));
 
 const IconWrapperStyle = styled('div')(({ theme }) => ({
-    marginRight: theme.spacing(2),
-    width: 48,
-    height: 48,
+    width: 36,
+    height: 36,
     display: 'flex',
     borderRadius: '50%',
     alignItems: 'center',
     justifyContent: 'center',
-    color: theme.palette.primary.main,
-    backgroundColor: alpha(theme.palette.primary.main, 0.16),
+    transition: 'all 0.3s ease',
+    marginBottom: theme.spacing(1),
+    '& svg': { fontSize: 18 },
     [theme.breakpoints.down('sm')]: {
-        marginRight: 0,
-        marginBottom: theme.spacing(1),
-        width: 40,
-        height: 40,
+        marginBottom: theme.spacing(0.75),
+        width: 32,
+        height: 32,
         '& svg': {
-            fontSize: 24,
+            fontSize: 18,
         },
     },
 }));
@@ -353,6 +364,7 @@ export default function Professionals() {
         { id: 'secteur', label: t('professionals.sector') || 'Secteur', alignRight: false, searchable: true },
         { id: 'postOccupé', label: t('professionals.position') || 'Post occupé', alignRight: false, searchable: false },
         { id: 'promoCode', label: t('professionals.promoCode') || 'Code promo', alignRight: false, searchable: false },
+        { id: 'subscriptionPlan', label: 'Abonnement', alignRight: false, searchable: false },
         { id: 'isVerified', label: t('professionals.verified') || 'Vérifié', alignRight: false, searchable: false },
         { id: 'isCertified', label: t('professionals.certified') || 'Certifié', alignRight: false, searchable: false },
         { id: 'isActive', label: t('professionals.active') || 'Activé', alignRight: false, searchable: false },
@@ -507,8 +519,12 @@ export default function Professionals() {
         return (filterParam === 'certified' || filterParam === 'uncertified') ? filterParam : 'all';
     });
     const [verifiedFilter, setVerifiedFilter] = useState<'all' | 'verified' | 'unverified'>(() => {
-        const filterParam = initialSearchParams.get('verifiedFilter');
-        return (filterParam === 'verified' || filterParam === 'unverified') ? filterParam : 'all';
+        const params = new URLSearchParams(window.location.search);
+        return (params.get('verifiedFilter') as 'all' | 'verified' | 'unverified') || 'all';
+    });
+    const [documentsFilter, setDocumentsFilter] = useState<'all' | 'with_documents' | 'without_documents'>(() => {
+        const params = new URLSearchParams(window.location.search);
+        return (params.get('documentsFilter') as 'all' | 'with_documents' | 'without_documents') || 'all';
     });
 
     const [openConfirmDialog, setOpenConfirmDialog] = useState(false);
@@ -527,6 +543,7 @@ export default function Professionals() {
     // Documents modal state
     const [openDocumentsDialog, setOpenDocumentsDialog] = useState(false);
     const [userDocuments, setUserDocuments] = useState<UserDocuments | null>(null);
+    const [hasNoDocuments, setHasNoDocuments] = useState(false);
     const [documentsLoading, setDocumentsLoading] = useState(false);
     const [professionalNameForDocumentsDialog, setProfessionalNameForDocumentsDialog] = useState('');
     const [currentUserId, setCurrentUserId] = useState('');
@@ -546,6 +563,7 @@ export default function Professionals() {
         const filterNameParam = searchParams.get('filterName');
         const certifiedFilterParam = searchParams.get('certifiedFilter');
         const verifiedFilterParam = searchParams.get('verifiedFilter');
+        const documentsFilterParam = searchParams.get('documentsFilter');
 
         // Always update page from URL - force update to ensure correct page is displayed
         if (pageParam !== null) {
@@ -599,6 +617,15 @@ export default function Professionals() {
             }
         } else if (verifiedFilterParam === null && verifiedFilter !== 'all') {
             setVerifiedFilter('all');
+        }
+
+        // Update documentsFilter
+        if (documentsFilterParam === 'with_documents' || documentsFilterParam === 'without_documents') {
+            if (documentsFilter !== documentsFilterParam) {
+                setDocumentsFilter(documentsFilterParam);
+            }
+        } else if (documentsFilterParam === null && documentsFilter !== 'all') {
+            setDocumentsFilter('all');
         }
     }, [location.search]);
 
@@ -1007,6 +1034,7 @@ export default function Professionals() {
         if (filterName) params.set('filterName', filterName);
         if (certifiedFilter !== 'all') params.set('certifiedFilter', certifiedFilter);
         if (verifiedFilter !== 'all') params.set('verifiedFilter', verifiedFilter);
+        if (documentsFilter !== 'all') params.set('documentsFilter', documentsFilter);
         // Also save the user ID so we can potentially scroll to it later
         params.set('returnUserId', user._id);
         console.log('Navigating to profile - saving state:', { 
@@ -1015,6 +1043,7 @@ export default function Professionals() {
             filterName, 
             certifiedFilter,
             verifiedFilter,
+            documentsFilter,
             url: `/dashboard/users/professionals/${user._id}?${params.toString()}`
         });
         navigate(`/dashboard/users/professionals/${user._id}?${params.toString()}`);
@@ -1026,13 +1055,21 @@ export default function Professionals() {
         setOpenDocumentsDialog(true);
         setDocumentsLoading(true);
         setUserDocuments(null);
+        setHasNoDocuments(false);
 
         try {
             const documents = await IdentityAPI.getUserDocuments(userId);
-            setUserDocuments(documents);
+            if (documents) {
+                setUserDocuments(documents);
+                setHasNoDocuments(false);
+            } else {
+                setUserDocuments(null);
+                setHasNoDocuments(true);
+            }
         } catch (error) {
             console.error('Failed to fetch user documents:', error);
             enqueueSnackbar('Erreur lors du chargement des documents.', { variant: 'error' });
+            setHasNoDocuments(false);
         } finally {
             setDocumentsLoading(false);
         }
@@ -1111,36 +1148,18 @@ export default function Professionals() {
         }
 
         if (displayedData.length === 0) {
-            return (
-                <TableBody>
-                    <TableRow>
-                        <TableCell colSpan={COLUMNS.length} align="center" sx={{ py: 6 }}>
-                            <Box sx={{ textAlign: 'center' }}>
-                                <InfoIcon sx={{ fontSize: 48, color: 'text.secondary', mb: 2 }} />
-                                <Typography variant="h6" sx={{ mb: 1, color: 'text.secondary' }}>
-                                    Aucun professionnel trouvé
-                                </Typography>
-                                <Typography variant="body2" sx={{ color: 'text.secondary', maxWidth: 400, mx: 'auto' }}>
-                                    Il n'y a pas encore de professionnels enregistrés dans le système.
-                                </Typography>
-                            </Box>
-                        </TableCell>
-                    </TableRow>
-                </TableBody>
-            );
+            return null;
         }
 
         return (
             <TableBody>
                 {displayedData.map((row, index) => {
-                    const { _id, firstName, lastName, phone, entreprise, postOccupé, promoCode, isVerified, isCertified, isActive, isBanned, isRecommended, createdAt, rate, category, productCategory } = row;
+                    const { _id, firstName, lastName, phone, entreprise, postOccupé, promoCode, isVerified, isCertified, isActive, isBanned, isRecommended, createdAt, rate, category, productCategory, identity, subscriptionPlan } = row;
                     const normalizedPromoCode = promoCode || row?.promo_code || row?.promotionCode || row?.promotion_code;
 
                     const professionalFullName = `${firstName} ${lastName}`;
                     const isItemSelected = selected.indexOf(professionalFullName) !== -1;
                     
-                    // Get subscription plan color
-
                     let rateColor: 'success' | 'warning' | 'error' | 'info' = 'info';
                     if (rate !== undefined && rate !== null) {
                         if (rate >= 7) {
@@ -1163,35 +1182,53 @@ export default function Professionals() {
                             aria-checked={isItemSelected}
                             sx={{
                                 '& .MuiTableCell-root': {
-                                    fontSize: isMobile ? '0.75rem' : '0.875rem',
-                                    padding: isMobile ? '8px' : '16px',
+                                    fontSize: isMobile ? '0.7rem' : '0.8rem',
+                                    padding: isMobile ? '6px 8px' : '8px 12px',
                                 },
                             }}
                         >
                             <TableCell padding="checkbox">
                                 <Checkbox
-                                   checked={isItemSelected}
-                                   onChange={(event) => handleClick(event, professionalFullName)}
+                                    checked={isItemSelected}
+                                    onChange={(event) => handleClick(event, professionalFullName)}
                                     sx={{
-                                       '& .MuiSvgIcon-root': { fontSize: isMobile ? 20 : 24 },
-                                   }}
+                                        '& .MuiSvgIcon-root': { fontSize: isMobile ? 20 : 24 },
+                                    }}
                                 />
-                             </TableCell>
+                            </TableCell>
 
                             <TableCell component="th" scope="row" padding="none">
                                 <Stack direction="row" alignItems="center" spacing={isMobile ? 1 : 2}>
-                                    <Typography variant="subtitle2" noWrap sx={{ fontSize: isMobile ? '0.8rem' : '0.9rem' }}>
-                                        <Chip
-                                            onClick={() => goToProfile(row)}
-                                            label={firstName || 'N/A'}
-                                            component="a"
-                                            href="#"
-                                            clickable
-                                            sx={{ fontSize: isMobile ? '0.7rem' : '0.8rem' }}
-                                            icon={isRecommended ? <RecommendIcon sx={{ fontSize: '16px !important' }} /> : undefined}
-                                            color={isRecommended ? 'primary' : 'default'}
-                                        />
-                                    </Typography>
+                                    <Avatar
+                                        src={row.picture?.filename ? (row.picture.filename.startsWith('http') ? row.picture.filename : `${app.route}${row.picture.filename.startsWith('/') ? '' : '/'}${row.picture.filename}`) : undefined}
+                                        sx={{
+                                            width: 32,
+                                            height: 32,
+                                            fontSize: '0.8rem',
+                                            fontWeight: 'bold',
+                                            bgcolor: (theme) => alpha(theme.palette.primary.main, 0.12),
+                                            color: 'primary.main',
+                                            boxShadow: (theme) => `0 2px 8px 0 ${alpha(theme.palette.primary.main, 0.15)}`
+                                        }}
+                                    >
+                                        {(firstName?.[0] || '').toUpperCase() + (lastName?.[0] || '').toUpperCase()}
+                                    </Avatar>
+                                    <Link
+                                        component="button"
+                                        variant="subtitle2"
+                                        onClick={() => goToProfile(row)}
+                                        sx={{
+                                            fontWeight: 'bold',
+                                            color: 'text.primary',
+                                            textDecoration: 'none',
+                                            fontSize: isMobile ? '0.8rem' : '0.9rem',
+                                            textAlign: 'left',
+                                            '&:hover': { color: 'primary.main' }
+                                        }}
+                                    >
+                                        {firstName || 'N/A'}
+                                    </Link>
+                                    {isRecommended && <RecommendIcon sx={{ fontSize: '16px !important', color: 'primary.main' }} />}
                                 </Stack>
                             </TableCell>
 
@@ -1246,6 +1283,25 @@ export default function Professionals() {
                             </TableCell>
 
                             <TableCell align="left">
+                                {subscriptionPlan ? (
+                                    <Label
+                                        variant="ghost"
+                                        color={getSubscriptionPlanColor(subscriptionPlan).color}
+                                        sx={{
+                                            fontSize: isMobile ? '0.7rem' : '0.75rem',
+                                            fontWeight: 'bold',
+                                        }}
+                                    >
+                                        {subscriptionPlan}
+                                    </Label>
+                                ) : (
+                                    <Label variant="ghost" color="default" sx={{ fontSize: isMobile ? '0.7rem' : '0.75rem' }}>
+                                        Aucun
+                                    </Label>
+                                )}
+                            </TableCell>
+
+                            <TableCell align="left">
                                 <Box
                                     onClick={() => !togglingStatus[`verified-${_id}`] && toggleVerified(_id, isVerified)}
                                     sx={{
@@ -1264,6 +1320,29 @@ export default function Professionals() {
                                     >
                                         {togglingStatus[`verified-${_id}`] ? '...' : sentenceCase(isVerified ? "Compte Valide" : 'Compte Non Valide')}
                                     </Label>
+                                </Box>
+                                <Box sx={{ mt: 0.5 }}>
+                                    {!!identity ? (
+                                        isVerified ? (
+                                            <Typography variant="caption" color="success.main" sx={{ display: 'block', fontSize: '0.7rem', fontWeight: 500 }}>
+                                                Documents validés
+                                            </Typography>
+                                        ) : (
+                                            <Typography variant="caption" color="warning.main" sx={{ display: 'block', fontSize: '0.7rem', fontWeight: 500 }}>
+                                                Documents soumis
+                                            </Typography>
+                                        )
+                                    ) : (
+                                        isVerified ? (
+                                            <Typography variant="caption" color="info.main" sx={{ display: 'block', fontSize: '0.7rem', fontWeight: 500 }}>
+                                                Ancien Workflow
+                                            </Typography>
+                                        ) : (
+                                            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', fontSize: '0.7rem', opacity: 0.7 }}>
+                                                Aucun document
+                                            </Typography>
+                                        )
+                                    )}
                                 </Box>
                             </TableCell>
 
@@ -1431,7 +1510,18 @@ export default function Professionals() {
 
     return (
         <Page title="Users - Professionals">
-            <Container maxWidth="xl" sx={{ py: { xs: 2, sm: 3 } }}>
+            <Container
+                maxWidth="xl"
+                sx={{
+                    py: { xs: 2, sm: 3 },
+                    bgcolor: '#ffffff',
+                    p: { xs: 2, md: 4 },
+                    borderRadius: 2,
+                    border: '1px solid',
+                    borderColor: 'divider',
+                    boxShadow: (theme) => theme.customShadows.z1
+                }}
+            >
                 {/* Info Alert - Updated message */}
                 <Alert 
                     severity="info" 
@@ -1445,16 +1535,17 @@ export default function Professionals() {
                     <Grid item xs={12} sm={6} md={2.4}>
                         <StyledCard>
                             <IconWrapperStyle sx={{
-                                color: theme.palette.info.dark,
-                                backgroundImage: `linear-gradient(135deg, ${alpha(theme.palette.info.dark, 0)} 0%, ${alpha(theme.palette.info.dark, 0.24)} 100%)`
+                                color: 'info.main',
+                                bgcolor: (theme) => alpha(theme.palette.info.main, 0.12),
+                                boxShadow: (theme) => `0 4px 12px 0 ${alpha(theme.palette.info.main, 0.15)}`
                             }}>
                                 <PeopleAltIcon fontSize={isMobile ? 'small' : 'medium'} />
                             </IconWrapperStyle>
                             <Box>
-                                <Typography variant={isMobile ? "body2" : "h6"} color="textSecondary" sx={{ opacity: 0.72 }}>
+                                <Typography variant="body2" color="textSecondary" sx={{ opacity: 0.72, fontSize: '0.68rem', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: 0.5 }}>
                                     {t('professionals.total') || 'Total Professionnels'}
                                 </Typography>
-                                <Typography variant={isMobile ? "h5" : "h4"} component="div">
+                                <Typography variant="h6" component="div" fontWeight="800" sx={{ mt: 0.25, fontSize: '1.15rem', lineHeight: 1.2 }}>
                                     {totalProfessionals}
                                 </Typography>
                             </Box>
@@ -1464,16 +1555,17 @@ export default function Professionals() {
                     <Grid item xs={12} sm={6} md={2.4}>
                         <StyledCard>
                             <IconWrapperStyle sx={{
-                                color: theme.palette.success.dark,
-                                backgroundImage: `linear-gradient(135deg, ${alpha(theme.palette.success.dark, 0)} 0%, ${alpha(theme.palette.success.dark, 0.24)} 100%)`
+                                color: 'success.main',
+                                bgcolor: (theme) => alpha(theme.palette.success.main, 0.12),
+                                boxShadow: (theme) => `0 4px 12px 0 ${alpha(theme.palette.success.main, 0.15)}`
                             }}>
                                 <VerifiedUserIcon fontSize={isMobile ? 'small' : 'medium'} />
                             </IconWrapperStyle>
                             <Box>
-                                <Typography variant={isMobile ? "body2" : "h6"} color="textSecondary" sx={{ opacity: 0.72 }}>
+                                <Typography variant="body2" color="textSecondary" sx={{ opacity: 0.72, fontSize: '0.68rem', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: 0.5 }}>
                                     {t('professionals.certified') || 'Certifiés'}
                                 </Typography>
-                                <Typography variant={isMobile ? "h5" : "h4"} component="div">
+                                <Typography variant="h6" component="div" fontWeight="800" sx={{ mt: 0.25, fontSize: '1.15rem', lineHeight: 1.2 }}>
                                     {certifiedProfessionals}
                                 </Typography>
                             </Box>
@@ -1483,16 +1575,17 @@ export default function Professionals() {
                     <Grid item xs={12} sm={6} md={2.4}>
                         <StyledCard>
                             <IconWrapperStyle sx={{
-                                color: theme.palette.warning.dark,
-                                backgroundImage: `linear-gradient(135deg, ${alpha(theme.palette.warning.dark, 0)} 0%, ${alpha(theme.palette.warning.dark, 0.24)} 100%)`
+                                color: 'warning.main',
+                                bgcolor: (theme) => alpha(theme.palette.warning.main, 0.12),
+                                boxShadow: (theme) => `0 4px 12px 0 ${alpha(theme.palette.warning.main, 0.15)}`
                             }}>
                                 <HowToRegIcon fontSize={isMobile ? 'small' : 'medium'} />
                             </IconWrapperStyle>
                             <Box>
-                                <Typography variant={isMobile ? "body2" : "h6"} color="textSecondary" sx={{ opacity: 0.72 }}>
+                                <Typography variant="body2" color="textSecondary" sx={{ opacity: 0.72, fontSize: '0.68rem', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: 0.5 }}>
                                     {t('professionals.active') || 'Professionnels Actifs'}
                                 </Typography>
-                                <Typography variant={isMobile ? "h5" : "h4"} component="div">
+                                <Typography variant="h6" component="div" fontWeight="800" sx={{ mt: 0.25, fontSize: '1.15rem', lineHeight: 1.2 }}>
                                     {activeProfessionals}
                                 </Typography>
                             </Box>
@@ -1502,16 +1595,17 @@ export default function Professionals() {
                     <Grid item xs={12} sm={6} md={2.4}>
                         <StyledCard>
                             <IconWrapperStyle sx={{
-                                color: theme.palette.primary.dark,
-                                backgroundImage: `linear-gradient(135deg, ${alpha(theme.palette.primary.dark, 0)} 0%, ${alpha(theme.palette.primary.dark, 0.24)} 100%)`
+                                color: 'primary.main',
+                                bgcolor: (theme) => alpha(theme.palette.primary.main, 0.12),
+                                boxShadow: (theme) => `0 4px 12px 0 ${alpha(theme.palette.primary.main, 0.15)}`
                             }}>
                                 <RecommendIcon fontSize={isMobile ? 'small' : 'medium'} />
                             </IconWrapperStyle>
                             <Box>
-                                <Typography variant={isMobile ? "body2" : "h6"} color="textSecondary" sx={{ opacity: 0.72 }}>
+                                <Typography variant="body2" color="textSecondary" sx={{ opacity: 0.72, fontSize: '0.68rem', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: 0.5 }}>
                                     {t('professionals.recommended') || 'Recommandés'}
                                 </Typography>
-                                <Typography variant={isMobile ? "h5" : "h4"} component="div">
+                                <Typography variant="h6" component="div" fontWeight="800" sx={{ mt: 0.25, fontSize: '1.15rem', lineHeight: 1.2 }}>
                                     {recommendedProfessionals}
                                 </Typography>
                             </Box>
@@ -1521,16 +1615,17 @@ export default function Professionals() {
                     <Grid item xs={12} sm={6} md={2.4}>
                         <StyledCard>
                             <IconWrapperStyle sx={{
-                                color: theme.palette.error.dark,
-                                backgroundImage: `linear-gradient(135deg, ${alpha(theme.palette.error.dark, 0)} 0%, ${alpha(theme.palette.error.dark, 0.24)} 100%)`
+                                color: 'error.main',
+                                bgcolor: (theme) => alpha(theme.palette.error.main, 0.12),
+                                boxShadow: (theme) => `0 4px 12px 0 ${alpha(theme.palette.error.main, 0.15)}`
                             }}>
                                 <GppBadIcon fontSize={isMobile ? 'small' : 'medium'} />
                             </IconWrapperStyle>
                             <Box>
-                                <Typography variant={isMobile ? "body2" : "h6"} color="textSecondary" sx={{ opacity: 0.72 }}>
+                                <Typography variant="body2" color="textSecondary" sx={{ opacity: 0.72, fontSize: '0.68rem', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: 0.5 }}>
                                     {t('professionals.banned') || 'Professionnels Bannis'}
                                 </Typography>
-                                <Typography variant={isMobile ? "h5" : "h4"} component="div">
+                                <Typography variant="h6" component="div" fontWeight="800" sx={{ mt: 0.25, fontSize: '1.15rem', lineHeight: 1.2 }}>
                                     {bannedProfessionals}
                                 </Typography>
                             </Box>
@@ -1538,75 +1633,184 @@ export default function Professionals() {
                     </Grid>
                 </Grid>
 
-                {/* Filters Container */}
-                <Box sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 3, flexWrap: 'wrap' }}>
-                {/* Combined Filter Toggle */}
-                <Box sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
+                {/* Enhanced Filters Container */}
+                <Box sx={{ mb: 3, display: 'flex', flexDirection: 'column', gap: 2 }}>
                     <Typography variant="body2" sx={{ fontWeight: 600, color: 'text.secondary' }}>
-                        Filtrer par statut:
+                        Filtres de statut:
                     </Typography>
-                    <ToggleButtonGroup
-                        value={verifiedFilter !== 'all' ? verifiedFilter : (certifiedFilter !== 'all' ? certifiedFilter : 'all')}
-                        exclusive
-                        onChange={(event, newValue) => {
-                            if (newValue !== null) {
-                                setPage(0);
-                                const params = new URLSearchParams(location.search);
-                                params.delete('page');
-                                
-                                // Reset both first
-                                setVerifiedFilter('all');
-                                setCertifiedFilter('all');
-                                params.delete('verifiedFilter');
-                                params.delete('certifiedFilter');
+                    
+                    <Stack direction={{ xs: 'column', md: 'row' }} spacing={3} alignItems={{ xs: 'stretch', md: 'center' }}>
+                        {/* Verification Filter */}
+                        <Box>
+                            <Typography variant="caption" sx={{ display: 'block', mb: 0.8, color: 'text.secondary', fontWeight: 600, fontSize: '0.75rem' }}>
+                                Validation du compte
+                            </Typography>
+                            <ToggleButtonGroup
+                                value={verifiedFilter}
+                                exclusive
+                                onChange={(event, newValue) => {
+                                    if (newValue !== null) {
+                                        setPage(0);
+                                        setVerifiedFilter(newValue);
+                                        const params = new URLSearchParams(location.search);
+                                        params.delete('page');
+                                        if (newValue === 'all') params.delete('verifiedFilter');
+                                        else params.set('verifiedFilter', newValue);
+                                        navigate({ search: params.toString() }, { replace: true });
+                                    }
+                                }}
+                                size="small"
+                                sx={{
+                                    bgcolor: (theme) => theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.05)' : '#F4F6F8',
+                                    p: 0.5,
+                                    borderRadius: 1.5,
+                                    border: 'none',
+                                    display: 'inline-flex',
+                                    '& .MuiToggleButton-root': {
+                                        px: 2.5,
+                                        py: 0.75,
+                                        fontSize: '0.8rem',
+                                        fontWeight: 600,
+                                        textTransform: 'none',
+                                        borderRadius: '8px !important',
+                                        border: 'none !important',
+                                        color: 'text.secondary',
+                                        transition: 'all 0.2s ease',
+                                        '&.Mui-selected': {
+                                            bgcolor: 'background.paper',
+                                            color: 'primary.main',
+                                            boxShadow: (theme) => theme.customShadows?.z1 || '0 2px 8px rgba(0, 0, 0, 0.08)',
+                                            '&:hover': {
+                                                bgcolor: 'background.paper',
+                                            }
+                                        },
+                                        '&:hover': {
+                                            bgcolor: 'transparent',
+                                            color: 'text.primary',
+                                        }
+                                    }
+                                }}
+                            >
+                                <ToggleButton value="all">{t('professionals.all') || 'Tous'}</ToggleButton>
+                                <ToggleButton value="verified">{t('professionals.verified') || 'Validé'} ({professionals.filter((p: any) => p.isVerified).length})</ToggleButton>
+                                <ToggleButton value="unverified">{t('professionals.unverified') || 'Non Validé'} ({professionals.filter((p: any) => !p.isVerified).length})</ToggleButton>
+                            </ToggleButtonGroup>
+                        </Box>
 
-                                if (newValue === 'verified' || newValue === 'unverified') {
-                                    setVerifiedFilter(newValue);
-                                    params.set('verifiedFilter', newValue);
-                                } else if (newValue === 'certified' || newValue === 'uncertified') {
-                                    setCertifiedFilter(newValue);
-                                    params.set('certifiedFilter', newValue);
-                                }
-                                // if newValue is 'all', we already reset everything above
+                        {/* Certification Filter */}
+                        <Box>
+                            <Typography variant="caption" sx={{ display: 'block', mb: 0.8, color: 'text.secondary', fontWeight: 600, fontSize: '0.75rem' }}>
+                                Certification
+                            </Typography>
+                            <ToggleButtonGroup
+                                value={certifiedFilter}
+                                exclusive
+                                onChange={(event, newValue) => {
+                                    if (newValue !== null) {
+                                        setPage(0);
+                                        setCertifiedFilter(newValue);
+                                        const params = new URLSearchParams(location.search);
+                                        params.delete('page');
+                                        if (newValue === 'all') params.delete('certifiedFilter');
+                                        else params.set('certifiedFilter', newValue);
+                                        navigate({ search: params.toString() }, { replace: true });
+                                    }
+                                }}
+                                size="small"
+                                sx={{
+                                    bgcolor: (theme) => theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.05)' : '#F4F6F8',
+                                    p: 0.5,
+                                    borderRadius: 1.5,
+                                    border: 'none',
+                                    display: 'inline-flex',
+                                    '& .MuiToggleButton-root': {
+                                        px: 2.5,
+                                        py: 0.75,
+                                        fontSize: '0.8rem',
+                                        fontWeight: 600,
+                                        textTransform: 'none',
+                                        borderRadius: '8px !important',
+                                        border: 'none !important',
+                                        color: 'text.secondary',
+                                        transition: 'all 0.2s ease',
+                                        '&.Mui-selected': {
+                                            bgcolor: 'background.paper',
+                                            color: 'info.main',
+                                            boxShadow: (theme) => theme.customShadows?.z1 || '0 2px 8px rgba(0, 0, 0, 0.08)',
+                                            '&:hover': {
+                                                bgcolor: 'background.paper',
+                                            }
+                                        },
+                                        '&:hover': {
+                                            bgcolor: 'transparent',
+                                            color: 'text.primary',
+                                        }
+                                    }
+                                }}
+                            >
+                                <ToggleButton value="all">{t('professionals.all') || 'Tous'}</ToggleButton>
+                                <ToggleButton value="certified">{t('professionals.certified') || 'Certifié'} ({professionals.filter((p: any) => p.isCertified).length})</ToggleButton>
+                                <ToggleButton value="uncertified">{t('professionals.uncertified') || 'Non Certifié'} ({professionals.filter((p: any) => !p.isCertified).length})</ToggleButton>
+                            </ToggleButtonGroup>
+                        </Box>
 
-                                navigate({ search: params.toString() }, { replace: true });
-                            }
-                        }}
-                        size="small"
-                        sx={{
-                            '& .MuiToggleButton-root': {
-                                px: 2,
-                                py: 0.75,
-                                fontSize: '0.875rem',
-                                textTransform: 'none',
-                                borderColor: 'divider',
-                                '&.Mui-selected': {
-                                    backgroundColor: theme.palette.primary.main,
-                                    color: 'white',
-                                    '&:hover': {
-                                        backgroundColor: theme.palette.primary.dark,
-                                    },
-                                },
-                            },
-                        }}
-                    >
-                        <ToggleButton value="all">
-                            {t('professionals.all') || 'Tous'} ({professionals.length})
-                        </ToggleButton>
-                        <ToggleButton value="verified">
-                            {t('professionals.verified') || 'Compte Validé'} ({professionals.filter((p: any) => p.isVerified).length})
-                        </ToggleButton>
-                        <ToggleButton value="unverified">
-                            {t('professionals.unverified') || 'Compte Non Validé'} ({professionals.filter((p: any) => !p.isVerified).length})
-                        </ToggleButton>
-                        <ToggleButton value="certified">
-                            {t('professionals.certified') || 'Certifié'} ({professionals.filter((p: any) => p.isCertified).length})
-                        </ToggleButton>
-                        <ToggleButton value="uncertified">
-                            {t('professionals.uncertified') || 'Non Certifié'} ({professionals.filter((p: any) => !p.isCertified).length})
-                        </ToggleButton>
-                    </ToggleButtonGroup>
-                </Box>
+                        {/* Documents Filter */}
+                        <Box>
+                            <Typography variant="caption" sx={{ display: 'block', mb: 0.8, color: 'text.secondary', fontWeight: 600, fontSize: '0.75rem' }}>
+                                Documents
+                            </Typography>
+                            <ToggleButtonGroup
+                                value={documentsFilter}
+                                exclusive
+                                onChange={(event, newValue) => {
+                                    if (newValue !== null) {
+                                        setPage(0);
+                                        setDocumentsFilter(newValue);
+                                        const params = new URLSearchParams(location.search);
+                                        params.delete('page');
+                                        if (newValue === 'all') params.delete('documentsFilter');
+                                        else params.set('documentsFilter', newValue);
+                                        navigate({ search: params.toString() }, { replace: true });
+                                    }
+                                }}
+                                size="small"
+                                sx={{
+                                    bgcolor: (theme) => theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.05)' : '#F4F6F8',
+                                    p: 0.5,
+                                    borderRadius: 1.5,
+                                    border: 'none',
+                                    display: 'inline-flex',
+                                    '& .MuiToggleButton-root': {
+                                        px: 2.5,
+                                        py: 0.75,
+                                        fontSize: '0.8rem',
+                                        fontWeight: 600,
+                                        textTransform: 'none',
+                                        borderRadius: '8px !important',
+                                        border: 'none !important',
+                                        color: 'text.secondary',
+                                        transition: 'all 0.2s ease',
+                                        '&.Mui-selected': {
+                                            bgcolor: 'background.paper',
+                                            color: 'success.main',
+                                            boxShadow: (theme) => theme.customShadows?.z1 || '0 2px 8px rgba(0, 0, 0, 0.08)',
+                                            '&:hover': {
+                                                bgcolor: 'background.paper',
+                                            }
+                                        },
+                                        '&:hover': {
+                                            bgcolor: 'transparent',
+                                            color: 'text.primary',
+                                        }
+                                    }
+                                }}
+                            >
+                                <ToggleButton value="all">{t('professionals.all') || 'Tous'}</ToggleButton>
+                                <ToggleButton value="with_documents">{t('professionals.withDocuments') || 'Avec'} ({professionals.filter((p: any) => !!p.identity).length})</ToggleButton>
+                                <ToggleButton value="without_documents">{t('professionals.withoutDocuments') || 'Sans'} ({professionals.filter((p: any) => !p.identity).length})</ToggleButton>
+                            </ToggleButtonGroup>
+                        </Box>
+                    </Stack>
                 </Box>
 
                 {professionals && (() => {
@@ -1625,6 +1829,13 @@ export default function Professionals() {
                         filteredProfessionals = filteredProfessionals.filter((p: any) => p.isVerified === true);
                     } else if (verifiedFilter === 'unverified') {
                         filteredProfessionals = filteredProfessionals.filter((p: any) => p.isVerified !== true);
+                    }
+
+                    // Apply Documents Filter
+                    if (documentsFilter === 'with_documents') {
+                        filteredProfessionals = filteredProfessionals.filter((p: any) => !!p.identity);
+                    } else if (documentsFilter === 'without_documents') {
+                        filteredProfessionals = filteredProfessionals.filter((p: any) => !p.identity);
                     }
 
                     // Calculate numSelected based on filtered data only
@@ -1649,7 +1860,7 @@ export default function Professionals() {
                     
                     return (
                      <MuiTable
-                            key={`table-${displayPage}-${rowsPerPage}-${certifiedFilter}-${verifiedFilter}`} // Force re-render when page/rowsPerPage/filter changes
+                            key={`table-${displayPage}-${rowsPerPage}-${certifiedFilter}-${verifiedFilter}-${documentsFilter}`} // Force re-render when page/rowsPerPage/filter changes
                             data={filteredProfessionals}
                         columns={COLUMNS}
                         page={displayPage}
@@ -1872,6 +2083,37 @@ export default function Professionals() {
                                 </Typography>
                             </Box>
                         </Fade>
+                    ) : hasNoDocuments ? (
+                        <Fade in={true} timeout={600}>
+                            <Box sx={{ 
+                                textAlign: 'center', 
+                                py: 6,
+                                background: `linear-gradient(135deg, ${alpha(theme.palette.background.paper, 0.5)} 0%, ${alpha(theme.palette.primary.main, 0.02)} 100%)`,
+                                borderRadius: 2,
+                                border: `2px dashed ${alpha(theme.palette.primary.main, 0.2)}`,
+                            }}>
+                                <Zoom in={true} timeout={800}>
+                                    <Box sx={{
+                                        width: 80,
+                                        height: 80,
+                                        borderRadius: '50%',
+                                        background: `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.1)} 0%, ${alpha(theme.palette.secondary.main, 0.1)} 100%)`,
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        margin: '0 auto 16px',
+                                    }}>
+                                        <DescriptionIcon sx={{ fontSize: 40, color: theme.palette.primary.main }} />
+                                    </Box>
+                                </Zoom>
+                                <Typography variant="h6" sx={{ color: 'text.secondary', fontWeight: 500, mb: 1 }}>
+                                    Aucun document trouvé
+                                </Typography>
+                                <Typography variant="body2" color="text.secondary">
+                                    Ce professionnel n'a pas encore soumis de documents d'identité.
+                                </Typography>
+                            </Box>
+                        </Fade>
                     ) : userDocuments ? (
                         <Fade in={!documentsLoading} timeout={500}>
                         <Grid container spacing={3}>
@@ -1939,109 +2181,144 @@ export default function Professionals() {
 
                                 const document = value as any;
                                 const documentName = key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
+                                
+                                const isImage = document.originalname?.match(/\.(jpeg|jpg|gif|png)$/i) || (document.mimetype && document.mimetype.startsWith('image/'));
+                                const isPdf = document.originalname?.match(/\.pdf$/i) || (document.mimetype && document.mimetype.includes('pdf'));
+                                const baseUrl = app.baseURL.endsWith('/') ? app.baseURL.slice(0, -1) : app.baseURL;
+                                const documentUrl = document.url.startsWith('/') ? document.url : `/${document.url}`;
+                                const fullUrl = `${baseUrl}${documentUrl}`;
 
                                 return (
                                     <Grid item xs={12} sm={6} md={4} key={key}>
-                                            <Zoom in={true} timeout={300 + index * 100}>
-                                                <DocumentCard sx={{ p: 3, height: '100%' }}>
-                                                    <DocumentIconWrapper>
-                                                        <DescriptionIcon className="document-icon" />
-                                                    </DocumentIconWrapper>
-                                                    
+                                        <Zoom in={true} timeout={300 + index * 100}>
+                                            <DocumentCard sx={{ p: 3, height: '100%', display: 'flex', flexDirection: 'column', gap: 2 }}>
+                                                <Box sx={{ position: 'relative', height: 140, display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: 'background.neutral', overflow: 'hidden', borderRadius: 1, border: '1px solid', borderColor: 'divider' }}>
+                                                    {isImage ? (
+                                                        <Box 
+                                                            component="img"
+                                                            src={fullUrl}
+                                                            alt={documentName}
+                                                            sx={{
+                                                                width: '100%',
+                                                                height: '100%',
+                                                                objectFit: 'cover',
+                                                                transition: 'transform 0.3s ease',
+                                                                '&:hover': { transform: 'scale(1.08)' }
+                                                            }}
+                                                        />
+                                                    ) : (
+                                                        <DocumentIconWrapper sx={{ mb: 0 }}>
+                                                            <DescriptionIcon className="document-icon" sx={{ color: isPdf ? 'error.main' : 'primary.main' }} />
+                                                        </DocumentIconWrapper>
+                                                    )}
+                                                    {isPdf && (
+                                                        <Chip 
+                                                            label="PDF" 
+                                                            size="small" 
+                                                            color="error" 
+                                                            sx={{ position: 'absolute', top: 8, right: 8, fontWeight: 'bold', fontSize: '0.65rem', height: 18 }} 
+                                                        />
+                                                    )}
+                                                </Box>
+                                                
+                                                <Box sx={{ flexGrow: 1, textAlign: 'center' }}>
                                                     <Typography 
-                                                        variant="h6" 
+                                                        variant="subtitle1" 
                                                         gutterBottom 
                                                         sx={{ 
-                                                            textAlign: 'center',
                                                             fontWeight: 600,
                                                             color: theme.palette.text.primary,
-                                                            mb: 1
+                                                            mb: 0.5
                                                         }}
                                                     >
-                                                {documentName}
-                                            </Typography>
+                                                        {documentName}
+                                                    </Typography>
                                                     
                                                     <Typography 
-                                                        variant="body2" 
+                                                        variant="caption" 
                                                         color="text.secondary" 
                                                         sx={{ 
-                                                            mb: 3, 
-                                                            textAlign: 'center',
-                                                            wordBreak: 'break-word',
+                                                            display: 'block',
+                                                            wordBreak: 'break-all',
                                                             minHeight: '2.5em',
-                                                            display: '-webkit-box',
-                                                            WebkitLineClamp: 2,
-                                                            WebkitBoxOrient: 'vertical',
                                                             overflow: 'hidden',
+                                                            textOverflow: 'ellipsis',
+                                                            whiteSpace: 'nowrap'
+                                                        }}
+                                                        title={document.originalname}
+                                                    >
+                                                        {document.originalname}
+                                                    </Typography>
+                                                </Box>
+                                                
+                                                <Stack direction="row" spacing={1} sx={{ width: '100%', mt: 'auto' }}>
+                                                    <AnimatedButton
+                                                        variant="contained"
+                                                        className="document-button"
+                                                        onClick={() => {
+                                                            window.open(fullUrl, '_blank');
+                                                        }}
+                                                        startIcon={<VisibilityIcon />}
+                                                        sx={{
+                                                            background: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.secondary.main} 100%)`,
+                                                            color: 'white',
+                                                            flex: 1,
+                                                            py: 1,
+                                                            minWidth: 0,
+                                                            '&:hover': {
+                                                                background: `linear-gradient(135deg, ${theme.palette.primary.dark} 0%, ${theme.palette.secondary.dark} 100%)`,
+                                                            },
                                                         }}
                                                     >
-                                                {document.originalname}
-                                            </Typography>
-                                                    
-                                                    <Stack direction="row" spacing={1} sx={{ width: '100%' }}>
-                                                        <AnimatedButton
-                                                            variant="contained"
-                                                            className="document-button"
-                                                            onClick={() => {
-                                                                const baseUrl = app.baseURL.endsWith('/') ? app.baseURL.slice(0, -1) : app.baseURL;
-                                                                const documentUrl = document.url.startsWith('/') ? document.url : `/${document.url}`;
-                                                                window.open(`${baseUrl}${documentUrl}`, '_blank');
-                                                            }}
-                                                            startIcon={<VisibilityIcon />}
-                                                            sx={{
-                                                                background: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.secondary.main} 100%)`,
-                                                                color: 'white',
-                                                                flex: 1,
-                                                                '&:hover': {
-                                                                    background: `linear-gradient(135deg, ${theme.palette.primary.dark} 0%, ${theme.palette.secondary.dark} 100%)`,
-                                                                },
-                                                            }}
-                                                        >
-                                                            Voir
-                                                        </AnimatedButton>
-                                                        <AnimatedButton
-                                                            variant="contained"
-                                                            className="document-button"
-                                                            onClick={() => handleUpdateDocument(key)}
-                                                            disabled={updatingDocument === key}
-                                                            startIcon={<RefreshIcon />}
-                                                            sx={{
-                                                                background: `linear-gradient(135deg, ${theme.palette.warning.main} 0%, ${theme.palette.warning.dark} 100%)`,
-                                                                color: 'white',
-                                                                flex: 1,
-                                                                '&:hover': {
-                                                                    background: `linear-gradient(135deg, ${theme.palette.warning.dark} 0%, #e65100 100%)`,
-                                                                },
-                                                                '&:disabled': {
-                                                                    background: alpha(theme.palette.warning.main, 0.5),
-                                                                },
-                                                            }}
-                                                        >
-                                                            {updatingDocument === key ? '...' : 'Modifier'}
-                                                        </AnimatedButton>
-                                                        <AnimatedButton
-                                                            variant="contained"
-                                                            className="document-button"
-                                                            onClick={() => handleDeleteDocument(key)}
-                                                            disabled={updatingDocument === key}
-                                                            startIcon={<DeleteIcon />}
-                                                            sx={{
-                                                                background: `linear-gradient(135deg, ${theme.palette.error.main} 0%, ${theme.palette.error.dark} 100%)`,
-                                                                color: 'white',
-                                                                flex: 1,
-                                                                '&:hover': {
-                                                                    background: `linear-gradient(135deg, ${theme.palette.error.dark} 0%, #b71c1c 100%)`,
-                                                                },
-                                                                '&:disabled': {
-                                                                    background: alpha(theme.palette.error.main, 0.5),
-                                                                },
-                                                            }}
-                                                        >
-                                                            {updatingDocument === key ? '...' : 'Supprimer'}
-                                                        </AnimatedButton>
-                                                    </Stack>
-                                                </DocumentCard>
-                                            </Zoom>
+                                                        Voir
+                                                    </AnimatedButton>
+                                                    <AnimatedButton
+                                                        variant="contained"
+                                                        className="document-button"
+                                                        onClick={() => handleUpdateDocument(key)}
+                                                        disabled={updatingDocument === key}
+                                                        startIcon={<RefreshIcon />}
+                                                        sx={{
+                                                            background: `linear-gradient(135deg, ${theme.palette.warning.main} 0%, ${theme.palette.warning.dark} 100%)`,
+                                                            color: 'white',
+                                                            flex: 1,
+                                                            py: 1,
+                                                            minWidth: 0,
+                                                            '&:hover': {
+                                                                background: `linear-gradient(135deg, ${theme.palette.warning.dark} 0%, #e65100 100%)`,
+                                                            },
+                                                            '&:disabled': {
+                                                                background: alpha(theme.palette.warning.main, 0.5),
+                                                            },
+                                                        }}
+                                                    >
+                                                        {updatingDocument === key ? '...' : 'Modifier'}
+                                                    </AnimatedButton>
+                                                    <AnimatedButton
+                                                        variant="contained"
+                                                        className="document-button"
+                                                        onClick={() => handleDeleteDocument(key)}
+                                                        disabled={updatingDocument === key}
+                                                        startIcon={<DeleteIcon />}
+                                                        sx={{
+                                                            background: `linear-gradient(135deg, ${theme.palette.error.main} 0%, ${theme.palette.error.dark} 100%)`,
+                                                            color: 'white',
+                                                            flex: 1,
+                                                            py: 1,
+                                                            minWidth: 0,
+                                                            '&:hover': {
+                                                                background: `linear-gradient(135deg, ${theme.palette.error.dark} 0%, #b71c1c 100%)`,
+                                                            },
+                                                            '&:disabled': {
+                                                                background: alpha(theme.palette.error.main, 0.5),
+                                                            },
+                                                        }}
+                                                    >
+                                                        {updatingDocument === key ? '...' : 'Supprimer'}
+                                                    </AnimatedButton>
+                                                </Stack>
+                                            </DocumentCard>
+                                        </Zoom>
                                     </Grid>
                                 );
                             })}

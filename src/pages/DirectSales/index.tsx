@@ -259,6 +259,12 @@ export default function DirectSales() {
                 tabIndex={-1}
                 role="checkbox"
                 selected={isItemSelected}
+                sx={{
+                  '& .MuiTableCell-root': {
+                    fontSize: isMobile ? '0.7rem' : '0.8rem',
+                    padding: isMobile ? '6px 8px' : '8px 12px',
+                  },
+                }}
               >
                 <TableCell padding="checkbox">
                   <Checkbox 

@@ -302,6 +302,12 @@ export default function Ads() {
               role="checkbox"
               selected={isAdSelected}
               aria-checked={isAdSelected}
+              sx={{
+                '& .MuiTableCell-root': {
+                  fontSize: isMobile ? '0.7rem' : '0.8rem',
+                  padding: isMobile ? '6px 8px' : '8px 12px',
+                },
+              }}
             >
               <TableCell padding="checkbox">
                 <Checkbox

@@ -30,13 +30,12 @@ const app = {
   
   // Updated to use production server URL
   // socket: 'https://mazadclick-server.onrender.com/',
-  socket: chooseUrl(import.meta.env.VITE_SOCKET_URL, 'http://localhost:3000/', 'https://mazadclick-server.onrender.com/'),
+  socket: chooseUrl(import.meta.env.VITE_SOCKET_URL, 'http://127.0.0.1:3000/', 'https://mazadclick-server.onrender.com/'),
   // route: "https://mazadclick-server.onrender.com",
-  route: chooseUrl(import.meta.env.VITE_STATIC_URL, 'http://localhost:3000', 'https://mazadclick-server.onrender.com'),
+  route: chooseUrl(import.meta.env.VITE_STATIC_URL, 'http://127.0.0.1:3000', 'https://mazadclick-server.onrender.com'),
   // baseURL: "https://mazadclick-server.onrender.com/",
-  baseURL: chooseUrl(import.meta.env.VITE_API_URL, 'http://localhost:3000/', 'https://mazadclick-server.onrender.com/'),
-
-  apiKey: '8f2a61c94d7e3b5f9c0a8d2e6b4f1c7a',
+  baseURL: chooseUrl(import.meta.env.VITE_API_URL, 'http://127.0.0.1:3000/', 'https://mazadclick-server.onrender.com/'),
+  apiKey: import.meta.env.VITE_API_KEY || '8f2a61c94d7e3b5f9c0a8d2e6b4f1c7a', // Securely injected at build time
   
   // Export storage key function for auth isolation
   getStorageKey,

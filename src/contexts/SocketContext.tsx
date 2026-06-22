@@ -8,7 +8,7 @@ export interface ISocketContext {
   socket: Socket;
   notificationSocket?: Socket;
   addListener: (eventName: string, handler: (data?: any) => void) => void;
-  removeListener: (eventName: string) => void;
+  removeListener: (eventName: string, handler?: (data?: any) => void) => void;
   emit: (eventName: string, data?: any) => void;
   messages: any[];
   setMessages: (messages: any[]) => void;
@@ -82,15 +82,8 @@ export default function SocketProvider({ children }: any) {
         ? 'https://mazadclick-server.onrender.com/'
         : 'http://127.0.0.1:3000/')).replace(/\/$/, '');
 
-    // Extract token from auth state or localStorage
-    let token = '';
-    try {
-      const authData = window.localStorage.getItem('auth');
-      if (authData) {
-        const parsed = JSON.parse(authData);
-        token = parsed?.tokens?.accessToken || parsed?.tokens?.access_token || parsed?.token || '';
-      }
-    } catch (e) {}
+    // Extract token directly from reactive auth state
+    const token = auth?.tokens?.accessToken || '';
 
     // const so: Socket = io('http://127.0.0.1:3000', {
     const so: Socket = io(socketUrl, {
@@ -104,7 +97,7 @@ export default function SocketProvider({ children }: any) {
     });
 
     so.on('connect', () => {
-      console.log('✅ Connected to backend!');
+      console.log('✅ Socket connected to backend');
     });
 
     so.on('connect_error', (error) => {
@@ -114,79 +107,22 @@ export default function SocketProvider({ children }: any) {
     so.on('disconnect', (reason) => {
       console.log('🔌 Socket disconnected:', reason);
     });
-    
-    setSocket(so);
 
-    /* 
-    // Internal listener commented out to prevent interference with ChatLayout
-    so.on('sendMessage', (data) => {
-      console.log('📨 Admin received message via socket (Internal Context):', data);
-      
-      // Check if this message is for admin (reciver === 'admin' or sender is not admin)
-      const isAdminMessage = data.reciver === 'admin' || data.reciver === 'ADMIN';
-      const isFromAdmin = data.sender === 'admin' || data.sender === 'ADMIN';
-      
-      // Only add messages that are either:
-      // 1. From users to admin (reciver === 'admin')
-      // 2. From admin to users (sender === 'admin')
-      if (isAdminMessage || isFromAdmin) {
-        console.log('✅ Adding admin message to state');
-        setMessages((prev) => {
-          // Check for duplicates
-          const exists = prev.some(msg => 
-            msg._id === data._id || 
-            (msg.message === data.message && msg.sender === data.sender && 
-             Math.abs(new Date(msg.createdAt).getTime() - new Date(data.createdAt).getTime()) < 1000)
-          );
-          
-          if (exists) {
-            console.log('⚠️ Message already exists, skipping');
-            return prev;
-          }
-          
-          return [...prev, data];
-        });
-      }
-    }); 
-    */
-    
-    // Also listen for adminMessage events (for consistency)
-    so.on('adminMessage', (data) => {
-      console.log('📨 Admin received adminMessage via socket:', data);
-      
-      // adminMessage events are always for admin chat
-      setMessages((prev) => {
-        // Check for duplicates
-        const exists = prev.some(msg => 
-          msg._id === data._id || 
-          (msg.message === data.message && msg.sender === data.sender && 
-           Math.abs(new Date(msg.createdAt).getTime() - new Date(data.createdAt).getTime()) < 1000)
-        );
-        
-        if (exists) {
-          console.log('⚠️ AdminMessage already exists, skipping');
-          return prev;
-        }
-        
-        console.log('✅ Adding adminMessage to state');
-        return [...prev, data];
-      });
-    });
-    
     so.on('notification', (data) => {
-      console.log('🔔 Admin received notification via socket:', data);
+      console.log('🔔 Socket notification received:', data);
       setUnread((prev) => prev + 1);
     });
-    
-    so.on('newMessage', () => setUnread((prev) => prev + 1));
 
-    // Cleanup function to properly disconnect
+    setSocket(so);
+
     return () => {
-      console.log('🧹 Cleaning up socket connection');
-      so.removeAllListeners(); // Remove all event listeners
-      so.disconnect(); // Disconnect the socket
+      console.log('🧹 Cleaning up socket connection (disconnect only — do NOT removeAllListeners)');
+      // IMPORTANT: do NOT call so.removeAllListeners() here.
+      // Components like ChatLayout register their own handlers on this socket object.
+      // Calling removeAllListeners() would wipe them out, breaking real-time delivery.
+      so.disconnect();
     };
-  }, [auth?.user?._id]); // Use _id instead of user object to prevent unnecessary re-renders
+  }, [auth?.user?._id]);
 
   // Handle online users
   useEffect(() => {

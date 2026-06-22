@@ -26,8 +26,6 @@ import {
   Skeleton,
   Stack,
   Container,
-  ThemeProvider,
-  createTheme,
   IconButton,
   Avatar,
   Divider,
@@ -84,146 +82,7 @@ import {
 import { SubscriptionAPI, SubscriptionPlan, CreatePlanDto } from '../api/subscription'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 
-const theme = createTheme({
-  palette: {
-    mode: 'light',
-    primary: {
-      main: "#0EA5E9",
-      light: "#38BDF8",
-      dark: "#0284C7",
-      contrastText: "#ffffff",
-    },
-    secondary: {
-      main: "#06B6D4",
-      light: "#22D3EE",
-      dark: "#0891B2",
-    },
-    neutral: {
-      main: "#64748B",
-      light: "#94A3B8",
-      dark: "#475569",
-      contrastText: "#ffffff",
-    },
-    success: {
-      main: "#10B981",
-      light: "#34D399",
-      dark: "#059669",
-    },
-    background: {
-      default: "#F8FAFC",
-      paper: "#ffffff",
-    },
-    text: {
-      primary: "#1E293B",
-      secondary: "#64748B",
-    }
-  },
-  typography: {
-    fontFamily: '"Inter", "Roboto", "Helvetica", "Arial", sans-serif',
-    h3: {
-      fontWeight: 700,
-      fontSize: '2.25rem',
-      letterSpacing: '-0.025em',
-    },
-    h4: {
-      fontWeight: 600,
-      fontSize: '1.875rem',
-      letterSpacing: '-0.025em',
-    },
-    h5: {
-      fontWeight: 600,
-      fontSize: '1.25rem',
-    }
-  },
-  status: {
-    danger: '#FF5630',
-  },
-  components: {
-    MuiButton: {
-      styleOverrides: {
-        root: {
-          borderRadius: 16,
-          textTransform: "none",
-          fontWeight: 500,
-          fontSize: '0.9rem',
-          padding: '12px 24px',
-          transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-          border: 'none',
-        },
-        contained: {
-          background: "linear-gradient(135deg, #0EA5E9 0%, #FFFFFF 100%)",
-          color: "#1E293B",
-          boxShadow: '0 4px 20px rgba(14, 165, 233, 0.3)',
-          "&:hover": {
-            background: "linear-gradient(135deg, #0284C7 0%, #F1F5F9 100%)",
-            transform: "translateY(-2px)",
-            boxShadow: '0 8px 30px rgba(14, 165, 233, 0.4)',
-          },
-        },
-        outlined: {
-          borderWidth: '1.5px',
-          borderColor: 'rgba(14, 165, 233, 0.3)',
-          background: 'rgba(255, 255, 255, 0.7)',
-          backdropFilter: 'blur(10px)',
-          "&:hover": {
-            borderWidth: '1.5px',
-            borderColor: 'rgba(14, 165, 233, 0.6)',
-            background: 'rgba(255, 255, 255, 0.9)',
-            transform: "translateY(-1px)",
-          }
-        }
-      },
-    },
-    MuiCard: {
-      styleOverrides: {
-        root: {
-          borderRadius: 24,
-          border: 'none',
-          background: 'rgba(255, 255, 255, 0.7)',
-          backdropFilter: 'blur(20px)',
-          boxShadow: '0 8px 32px rgba(14, 165, 233, 0.1)',
-          transition: "all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1)",
-          "&:hover": {
-            transform: "translateY(-12px)",
-            boxShadow: "0 20px 60px rgba(14, 165, 233, 0.15), 0 0 0 1px rgba(14, 165, 233, 0.1)",
-            background: 'rgba(255, 255, 255, 0.85)',
-          },
-        },
-      },
-    },
-    MuiPaper: {
-      styleOverrides: {
-        root: {
-          borderRadius: 20,
-          border: 'none',
-          background: 'rgba(255, 255, 255, 0.8)',
-          backdropFilter: 'blur(20px)',
-          boxShadow: '0 8px 32px rgba(14, 165, 233, 0.08)',
-        }
-      }
-    },
-    MuiDialog: {
-      styleOverrides: {
-        paper: {
-          borderRadius: 24,
-          background: 'rgba(255, 255, 255, 0.95)',
-          backdropFilter: 'blur(20px)',
-          boxShadow: '0 25px 50px rgba(0, 0, 0, 0.1)',
-          border: 'none',
-        }
-      }
-    },
-    MuiChip: {
-      styleOverrides: {
-        root: {
-          borderRadius: 12,
-          fontWeight: 500,
-          border: 'none',
-        }
-      }
-    }
-  },
-})
+
 
 interface UserSubscription {
   _id: string
@@ -423,6 +282,7 @@ function CountdownTimer({ endDate }: { endDate: string }) {
 }
 
 export default function SubscriptionPage() {
+  const theme = useTheme();
   const queryClient = useQueryClient();
 
   const { data, isLoading: loading } = useQuery({
@@ -795,52 +655,49 @@ export default function SubscriptionPage() {
 
   if (loading) {
     return (
-      <ThemeProvider theme={theme}>
-        <Box
-          sx={{
-            minHeight: "100vh",
-            background: "#F8FAFC",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            position: 'relative',
-          }}
-        >
-          <Fade in={loading}>
-            <Box 
-              textAlign="center" 
-              sx={{ 
-                p: 6,
-                borderRadius: 4,
-                background: 'rgba(255, 255, 255, 0.8)',
-                backdropFilter: 'blur(20px)',
-                boxShadow: '0 20px 60px rgba(14, 165, 233, 0.1)',
-                border: 'none'
-              }}
-            >
-              <Stack spacing={2} alignItems="center" mb={3} width="100%">
-                <Skeleton variant="circular" width={60} height={60} />
-                <Skeleton variant="text" width={200} height={30} />
-                <Skeleton variant="text" width={250} height={20} />
-              </Stack>
-            </Box>
-          </Fade>
-        </Box>
-      </ThemeProvider>
+      <Box
+        sx={{
+          minHeight: "100vh",
+          background: "transparent",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          position: 'relative',
+        }}
+      >
+        <Fade in={loading}>
+          <Box 
+            textAlign="center" 
+            sx={{ 
+              p: 6,
+              borderRadius: 4,
+              background: 'rgba(255, 255, 255, 0.8)',
+              backdropFilter: 'blur(20px)',
+              boxShadow: '0 20px 60px rgba(14, 165, 233, 0.1)',
+              border: 'none'
+            }}
+          >
+            <Stack spacing={2} alignItems="center" mb={3} width="100%">
+              <Skeleton variant="circular" width={60} height={60} />
+              <Skeleton variant="text" width={200} height={30} />
+              <Skeleton variant="text" width={250} height={20} />
+            </Stack>
+          </Box>
+        </Fade>
+      </Box>
     )
   }
 
   if (createDialogOpen) {
     return (
-      <ThemeProvider theme={theme}>
-        <Box
-          sx={{
-            minHeight: "100vh",
-            background: "#F8FAFC",
-            position: 'relative',
-            py: 6,
-          }}
-        >
+      <Box
+        sx={{
+          minHeight: "100vh",
+          background: "transparent",
+          position: 'relative',
+          py: 6,
+        }}
+      >
           <Container maxWidth="lg" sx={{ position: 'relative', zIndex: 1 }}>
             {/* Header / Navigation */}
             <Box mb={4} display="flex" flexDirection="column" gap={2}>
@@ -1815,21 +1672,19 @@ export default function SubscriptionPage() {
             </Paper>
           </Container>
         </Box>
-      </ThemeProvider>
     );
   }
 
   if (editDialogOpen && currentPlan) {
     return (
-      <ThemeProvider theme={theme}>
-        <Box
-          sx={{
-            minHeight: "100vh",
-            background: "#F8FAFC",
-            position: 'relative',
-            py: 6,
-          }}
-        >
+      <Box
+        sx={{
+          minHeight: "100vh",
+          background: "transparent",
+          position: 'relative',
+          py: 6,
+        }}
+      >
           <Container maxWidth="lg" sx={{ position: 'relative', zIndex: 1 }}>
             {/* Header / Navigation */}
             <Box mb={4} display="flex" flexDirection="column" gap={2}>
@@ -2714,20 +2569,31 @@ export default function SubscriptionPage() {
             </Paper>
           </Container>
         </Box>
-      </ThemeProvider>
     );
   }
 
   return (
-    <ThemeProvider theme={theme}>
-      <Box
-        sx={{
-          minHeight: "100vh",
-          background: "#F8FAFC",
-          position: 'relative',
-        }}
-      >
-        <Container maxWidth="xl" sx={{ position: 'relative', zIndex: 1, py: 6 }}>
+    <Box
+      sx={{
+        minHeight: "100vh",
+        background: "transparent",
+        position: 'relative',
+      }}
+    >
+        <Container
+          maxWidth="xl"
+          sx={{
+            py: { xs: 2, sm: 3 },
+            bgcolor: '#ffffff',
+            p: { xs: 2, md: 4 },
+            borderRadius: 2,
+            border: '1px solid',
+            borderColor: 'divider',
+            boxShadow: (theme) => theme.customShadows.z1,
+            position: 'relative',
+            zIndex: 1
+          }}
+        >
           <Fade in timeout={800}>
             <Box mb={6} textAlign="center">
               <Typography 
@@ -3747,6 +3613,5 @@ export default function SubscriptionPage() {
           </Dialog>
         </Container>
       </Box>
-    </ThemeProvider>
-  )
-}
+    )
+  }

@@ -1,63 +1,70 @@
 import { Navigate, useRoutes } from 'react-router-dom';
+import { Suspense, lazy } from 'react';
+
 // layouts
 import DashboardLayout from './layouts/dashboard';
 import LogoOnlyLayout from './layouts/LogoOnlyLayout';
-//
-import Users from './pages/Users';
-import Ads from './pages/Ads/index';
 
-import Auctions from './pages/Auctions/index';
-import AuctionDetail from './pages/Auctions/AuctionDetail';
-
-// Tenders imports
-import Tenders from './pages/Tenders/index';
-import TenderDetail from './pages/Tenders/TendersDetail';
-
-// DirectSales imports
-import DirectSales from './pages/DirectSales/index';
-import DirectSaleDetail from './pages/DirectSales/DirectSaleDetail';
-
-import Login from './pages/Login';
-import NotFound from './pages/Page404';
-import Register from './pages/Register';
-import DashboardApp from './pages/DashboardApp';
-import Account from './pages/Account';
-
-import Configuration from './pages/Configuration';
-import Appearance from './pages/Appearance';
-import Profile from './pages/Profile';
-import Identity from './pages/Identities';
-import IdentityVerificationDetailsPage from './pages/Identities/IdentityVerificationDetailsPage'; 
-import VerificationHistory from './pages/VerificationHistory';
-import Categories from './pages/Categories';
-import AddCategory from './pages/Categories/AddCategory';
-import UpdateCategory from './pages/Categories/UpdateCategory';
-import CategoryDetailsPage from './pages/Categories/CategoryDetailsPage';
-
-// Subscription imports
-import Subscription from './pages/Subscription';
-
-// Terms imports
-import Terms from './pages/Terms';
-
-import { ChatLayout } from './pages/chat/ChatLayout';
-import Notification from './pages/Communication/Notification';
-import Sms from './pages/Communication/Sms';
-import Email from './pages/Communication/Email';
-
-import Professional from './pages/Professionals'; 
-import ProfessionalsDetailsPage from './pages/Professionals/ProfessionalsDetailsPage';
-import Resellers from './pages/Reseller'; 
-import ResellersDetailsPage from './pages/Reseller/ResellersDetailsPage';
-import Clients from './pages/Clients';
-import ClientsDetailsPage from './pages/Clients/ClientsDetailsPage';
+// Direct components that should load instantly
 import RequirePhoneVerification from './components/RequirePhoneVerification';
 
-// Admin pages
-import { AdminManagement, AdminProfile, AdminPermissions } from './pages/Admin';
+// Lazy loaded pages
+const Users = lazy(() => import('./pages/Users'));
+const Ads = lazy(() => import('./pages/Ads/index'));
+const Auctions = lazy(() => import('./pages/Auctions/index'));
+const AuctionDetail = lazy(() => import('./pages/Auctions/AuctionDetail'));
+
+const Tenders = lazy(() => import('./pages/Tenders/index'));
+const TenderDetail = lazy(() => import('./pages/Tenders/TendersDetail'));
+
+const DirectSales = lazy(() => import('./pages/DirectSales/index'));
+const DirectSaleDetail = lazy(() => import('./pages/DirectSales/DirectSaleDetail'));
+
+const Login = lazy(() => import('./pages/Login'));
+const NotFound = lazy(() => import('./pages/Page404'));
+const Register = lazy(() => import('./pages/Register'));
+const DashboardApp = lazy(() => import('./pages/DashboardApp'));
+const Account = lazy(() => import('./pages/Account'));
+
+const Configuration = lazy(() => import('./pages/Configuration'));
+const Appearance = lazy(() => import('./pages/Appearance'));
+const Profile = lazy(() => import('./pages/Profile'));
+const Identity = lazy(() => import('./pages/Identities'));
+const IdentityVerificationDetailsPage = lazy(() => import('./pages/Identities/IdentityVerificationDetailsPage')); 
+const VerificationHistory = lazy(() => import('./pages/VerificationHistory'));
+const Categories = lazy(() => import('./pages/Categories'));
+const AddCategory = lazy(() => import('./pages/Categories/AddCategory'));
+const UpdateCategory = lazy(() => import('./pages/Categories/UpdateCategory'));
+const CategoryDetailsPage = lazy(() => import('./pages/Categories/CategoryDetailsPage'));
+
+const Subscription = lazy(() => import('./pages/Subscription'));
+const Terms = lazy(() => import('./pages/Terms'));
+
+const ChatLayout = lazy(() => import('./pages/chat/ChatLayout').then(module => ({ default: module.ChatLayout })));
+const Notification = lazy(() => import('./pages/Communication/Notification'));
+const Sms = lazy(() => import('./pages/Communication/Sms'));
+const Email = lazy(() => import('./pages/Communication/Email'));
+
+const Professional = lazy(() => import('./pages/Professionals')); 
+const ProfessionalsDetailsPage = lazy(() => import('./pages/Professionals/ProfessionalsDetailsPage'));
+const Clients = lazy(() => import('./pages/Clients'));
+const ClientsDetailsPage = lazy(() => import('./pages/Clients/ClientsDetailsPage'));
+
+const AdminManagement = lazy(() => import('./pages/Admin').then(m => ({ default: m.AdminManagement })));
+const AdminProfile = lazy(() => import('./pages/Admin').then(m => ({ default: m.AdminProfile })));
+const AdminPermissions = lazy(() => import('./pages/Admin').then(m => ({ default: m.AdminPermissions })));
+
+const Analytics = lazy(() => import('./pages/Analytics/index'));
+
+const SuspenseLoader = () => (
+  <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+    <div className="spinner-border text-primary"></div>
+    <span style={{ marginLeft: '10px' }}>Chargement...</span>
+  </div>
+);
 
 export default function Router() {
-    return useRoutes([
+    const routes = useRoutes([
         {
             path: '/',
             element: <LogoOnlyLayout />,
@@ -75,6 +82,7 @@ export default function Router() {
             element: <DashboardLayout />,
             children: [
                 { path: 'app', element: <RequirePhoneVerification><DashboardApp /></RequirePhoneVerification> },
+                { path: 'analytics', element: <RequirePhoneVerification><Analytics /></RequirePhoneVerification> },
                 {
                     path: 'users',
                     children: [
@@ -82,8 +90,7 @@ export default function Router() {
                         { path: 'clients/:id', element: <RequirePhoneVerification><ClientsDetailsPage /></RequirePhoneVerification> }, 
                         { path: 'professionals', element: <RequirePhoneVerification><Professional /></RequirePhoneVerification> }, 
                         { path: 'professionals/:id', element: <RequirePhoneVerification><ProfessionalsDetailsPage /></RequirePhoneVerification> },
-                        { path: 'resellers', element: <RequirePhoneVerification><Resellers /></RequirePhoneVerification> }, 
-                        { path: 'resellers/:id', element: <RequirePhoneVerification><ResellersDetailsPage /></RequirePhoneVerification> }, 
+
                     ]
                 },
                 {
@@ -137,4 +144,10 @@ export default function Router() {
             ],
         },
     ]);
+
+    return (
+        <Suspense fallback={<SuspenseLoader />}>
+            {routes}
+        </Suspense>
+    );
 }

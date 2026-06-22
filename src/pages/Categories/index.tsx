@@ -149,6 +149,10 @@ function CategoryItem({
           cursor: "pointer",
           transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
           borderBottom: `1px solid ${alpha(theme.palette.divider, 0.8)}`,
+          "& .MuiTableCell-root": {
+            fontSize: isMobile ? "0.68rem" : "0.72rem",
+            padding: isMobile ? "4px 6px" : "5px 8px",
+          },
           "&:hover": {
             backgroundColor: alpha(theme.palette.primary.main, 0.04),
             transform: "translateY(-1px)",
@@ -165,7 +169,7 @@ function CategoryItem({
           },
         }}
       >
-        <TableCell padding="checkbox" sx={{ pl: { xs: 1, sm: 3 } }}>
+        <TableCell padding="checkbox" sx={{ pl: { xs: 1, sm: 2 } }}>
           <Checkbox
             checked={isItemSelected}
             onClick={(e) => e.stopPropagation()}
@@ -178,22 +182,22 @@ function CategoryItem({
             }}
           />
         </TableCell>
-        <TableCell align="left" sx={{ py: { xs: 1, sm: 2 }, pl: { xs: 1, sm: 3 } }}>
-          <Stack direction="row" alignItems="center" spacing={2} sx={{ pl: depth * 2 }}>
+        <TableCell align="left" sx={{ py: { xs: 0.5, sm: 0.8 }, pl: { xs: 1, sm: 2 } }}>
+          <Stack direction="row" alignItems="center" spacing={1.5} sx={{ pl: depth * 1.5 }}>
             {categoryThumbUrl ? (
               <Avatar
                 src={categoryThumbUrl}
                 alt={category.name}
                 variant="rounded"
                 sx={{
-                  width: { xs: 40, sm: 44 },
-                  height: { xs: 40, sm: 44 },
+                  width: { xs: 28, sm: 32 },
+                  height: { xs: 28, sm: 32 },
                   borderRadius: 1,
                   bgcolor: alpha(theme.palette.grey[500], 0.08),
                   border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
                   "& img": {
                     objectFit: "contain",
-                    padding: "4px",
+                    padding: "2px",
                   }
                 }}
                 imgProps={{
@@ -205,8 +209,8 @@ function CategoryItem({
             ) : (
               <Box
                 sx={{
-                  width: { xs: 40, sm: 44 },
-                  height: { xs: 40, sm: 44 },
+                  width: { xs: 28, sm: 32 },
+                  height: { xs: 28, sm: 32 },
                   borderRadius: 1,
                   display: "flex",
                   alignItems: "center",
@@ -217,8 +221,8 @@ function CategoryItem({
               >
                 <Iconify
                   icon={category.type.toLowerCase() === "product" ? "solar:tag-bold" : "solar:case-minimalistic-bold"}
-                  width={20}
-                  height={20}
+                  width={16}
+                  height={16}
                   sx={{ color: theme.palette.primary.main }}
                 />
               </Box>
@@ -226,7 +230,7 @@ function CategoryItem({
           </Stack>
         </TableCell>
         <TableCell component="th" scope="row" padding="none">
-          <Stack direction="row" alignItems="center" spacing={1} sx={{ py: { xs: 1, sm: 2 }, pl: depth * 2 }}>
+          <Stack direction="row" alignItems="center" spacing={1} sx={{ py: { xs: 0.5, sm: 0.8 }, pl: depth * 1.5 }}>
             {hasSubcategories && (
               <IconButton
                 size="small"
@@ -235,8 +239,8 @@ function CategoryItem({
                   setOpen(!open)
                 }}
                 sx={{
-                  width: 28,
-                  height: 28,
+                  width: 22,
+                  height: 22,
                   borderRadius: 1,
                   backgroundColor: alpha(theme.palette.grey[500], 0.08),
                   transition: "all 0.2s ease-in-out",
@@ -245,18 +249,18 @@ function CategoryItem({
                   },
                 }}
               >
-                {open ? <ExpandMoreIcon fontSize="small" /> : <ChevronRightIcon fontSize="small" />}
+                {open ? <ExpandMoreIcon sx={{ fontSize: 16 }} /> : <ChevronRightIcon sx={{ fontSize: 16 }} />}
               </IconButton>
             )}
-            {!hasSubcategories && depth > 0 && <Box sx={{ width: 28, height: 28 }} />}
+            {!hasSubcategories && depth > 0 && <Box sx={{ width: 22, height: 22 }} />}
             <Box>
               <Typography
                 variant="subtitle1"
                 sx={{
                   fontWeight: 600,
                   color: theme.palette.text.primary,
-                  fontSize: "0.95rem",
-                  lineHeight: 1.4,
+                  fontSize: "0.82rem",
+                  lineHeight: 1.3,
                 }}
               >
                 {category.name}
@@ -266,7 +270,7 @@ function CategoryItem({
                   variant="body2"
                   sx={{
                     color: theme.palette.text.secondary,
-                    fontSize: "0.75rem",
+                    fontSize: "0.7rem",
                     maxWidth: 300,
                     overflow: "hidden",
                     textOverflow: "ellipsis",
@@ -279,16 +283,16 @@ function CategoryItem({
             </Box>
           </Stack>
         </TableCell>
-        <TableCell align="left" sx={{ py: { xs: 1, sm: 2 }, display: isMobile ? 'none' : 'table-cell' }}>
+        <TableCell align="left" sx={{ py: { xs: 0.5, sm: 0.8 }, display: isMobile ? 'none' : 'table-cell' }}>
           <Chip
             label={sentenceCase(category.type)}
             size="small"
             sx={{
-              height: 28,
+              height: 22,
               borderRadius: 2,
               fontWeight: 600,
-              fontSize: "0.75rem",
-              minWidth: 80,
+              fontSize: "0.68rem",
+              minWidth: 70,
               ...(category.type.toLowerCase() === "product" && {
                 backgroundColor: alpha(theme.palette.primary.main, 0.12),
                 color: theme.palette.primary.main,

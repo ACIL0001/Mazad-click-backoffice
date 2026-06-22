@@ -459,7 +459,7 @@ export default function MuiTable({
     return validField
   })
 
-  const tableMinWidth = isSmallMobile ? 650 : isMobile ? 700 : isTablet ? 900 : 1000;
+  const tableMinWidth = isSmallMobile ? 550 : isMobile ? 600 : isTablet ? 750 : 800;
 
   // Debug logging
   useEffect(() => {
@@ -630,8 +630,8 @@ export default function MuiTable({
         )}
 
         {/* Search Section */}
-        <Box sx={{ p: { xs: 2, sm: 3, md: 4 } }}>
-          <Stack spacing={{ xs: 3, sm: 4 }}>
+        <Box sx={{ p: { xs: 1.5, sm: 2, md: 2.5 } }}>
+          <Stack spacing={{ xs: 1.5, sm: 2 }}>
 
             <Stack direction={{ xs: "column", md: "row" }} spacing={{ xs: 2, md: 3 }} alignItems={{ xs: "stretch", md: "center" }}>
               <ModernTextField
@@ -644,18 +644,18 @@ export default function MuiTable({
                     <InputAdornment position="start">
                       <Box
                         sx={{
-                          width: { xs: 40, sm: 48 },
-                          height: { xs: 40, sm: 48 },
-                          borderRadius: 2,
+                          width: { xs: 28, sm: 32 },
+                          height: { xs: 28, sm: 32 },
+                          borderRadius: 1.5,
                           backgroundColor: theme.palette.primary.main,
                           display: "flex",
                           alignItems: "center",
                           justifyContent: "center",
-                          mr: { xs: 1, sm: 2 },
+                          mr: { xs: 0.5, sm: 1 },
                           boxShadow: theme.shadows[1],
                         }}
                       >
-                        <SearchIcon sx={{ color: "white", width: { xs: 20, sm: 24 }, height: { xs: 20, sm: 24 } }} />
+                        <SearchIcon sx={{ color: "white", width: { xs: 14, sm: 16 }, height: { xs: 14, sm: 16 } }} />
                       </Box>
                     </InputAdornment>
                   ),
@@ -664,7 +664,7 @@ export default function MuiTable({
               />
 
               {allSearchFields.length > 1 && (
-                <FormControl sx={{ minWidth: { xs: '100%', sm: 250 } }}>
+                <FormControl sx={{ minWidth: { xs: '100%', sm: 180 } }}>
                   <InputLabel
                     sx={{
                       fontWeight: 600,
@@ -745,15 +745,15 @@ export default function MuiTable({
               <Chip
                 label={`${filteredData.length} résultat${filteredData.length !== 1 ? "s" : ""}`}
                 sx={{
-                  height: { xs: 48, sm: 56 },
+                  height: { xs: 30, sm: 34 },
                   borderRadius: 2,
-                  fontWeight: 700,
-                  fontSize: { xs: "0.9rem", sm: "1rem" },
+                  fontWeight: 600,
+                  fontSize: { xs: "0.72rem", sm: "0.78rem" },
                   backgroundColor: theme.palette.info.main,
                   color: "white",
-                  boxShadow: theme.shadows[2],
+                  boxShadow: theme.shadows[1],
                   "& .MuiChip-label": {
-                    px: { xs: 2, sm: 3 },
+                    px: { xs: 1.5, sm: 2 },
                   },
                   width: { xs: '100%', md: 'auto' },
                 }}
@@ -774,11 +774,12 @@ export default function MuiTable({
                     backgroundColor: alpha(theme.palette.grey[100], 0.8),
                     "& .MuiTableCell-head": {
                       fontWeight: 700,
-                      fontSize: { xs: "0.8rem", sm: "0.95rem" },
+                      fontSize: { xs: "0.72rem", sm: "0.78rem" },
                       color: theme.palette.text.primary,
                       textTransform: "uppercase",
                       letterSpacing: "0.5px",
-                      py: { xs: 2, sm: 3 },
+                      py: { xs: 1.2, sm: 1.5 },
+                      px: { xs: 1, sm: 1.5 },
                       borderBottom: `2px solid ${theme.palette.divider}`,
                     },
                   }}
@@ -833,7 +834,7 @@ export default function MuiTable({
                             variant="subtitle1"
                             sx={{
                               fontWeight: 700,
-                              fontSize: { xs: "0.8rem", sm: "0.95rem" },
+                              fontSize: { xs: "0.72rem", sm: "0.78rem" },
                               color: "inherit",
                               textTransform: "uppercase",
                               letterSpacing: "0.5px",

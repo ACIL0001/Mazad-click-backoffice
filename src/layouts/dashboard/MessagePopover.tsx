@@ -1,5 +1,5 @@
 import { useRef, useState, useEffect, useContext, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link as RouterLink } from 'react-router-dom';
 import {
   Box,
   List,
@@ -12,17 +12,18 @@ import {
   ListItemAvatar,
   ListItemButton,
   Tooltip,
+  ListSubheader,
+  Button,
 } from '@mui/material';
 import { alpha } from '@mui/material/styles';
 import { debounce } from 'lodash';
-import Scrollbar from '../../components/Scrollbar';
 import MenuPopover from '../../components/MenuPopover';
 import Iconify from '../../components/Iconify';
 import { ChatAPI } from '../../api/Chat';
+import { MessageAPI } from '../../api/message';
 import { SocketContext } from '../../contexts/SocketContext';
 import useAuth from '../../hooks/useAuth';
 import { fToNow } from '../../utils/formatTime';
-import { isValidToken } from '../../utils/jwt';
 
 // ----------------------------------------------------------------------
 
@@ -95,32 +96,40 @@ export default function MessagePopover() {
     }
   }, [isReady, auth?.user?._id, auth?.tokens?.accessToken]);
 
-  // Real-time updates via socket - COMMENTED OUT TO PREVENT INTERFERENCE
-  /*
+  // Real-time updates via socket
   useEffect(() => {
     if (!socketContext?.socket) return;
 
     const handleNewMessage = (payload: any) => {
-      console.log('🔔 MessagePopover received new message:', payload);
+      console.log('🔔 MessagePopover received real-time socket event:', payload);
       // Use debounced fetch
       fetchChatsDebounced();
     };
 
-    // Listen for various message events
+    // Listen for various message and read status events
     socketContext.socket.on('adminMessage', handleNewMessage);
     socketContext.socket.on('messageReceived', handleNewMessage);
     socketContext.socket.on('newMessage', handleNewMessage);
-    socketContext.socket.on('sendMessage', handleNewMessage); // For self-sent messages
+    socketContext.socket.on('sendMessage', handleNewMessage);
+    socketContext.socket.on('chatMessageUpdate', handleNewMessage);
+    socketContext.socket.on('messageRead', handleNewMessage);
+    socketContext.socket.on('messagesMarkedAsRead', handleNewMessage);
+    socketContext.socket.on('adminMessagesMarkedAsRead', handleNewMessage);
 
     return () => {
-      socketContext.socket.off('adminMessage', handleNewMessage);
-      socketContext.socket.off('messageReceived', handleNewMessage);
-      socketContext.socket.off('newMessage', handleNewMessage);
-      socketContext.socket.off('sendMessage', handleNewMessage);
+      if (socketContext?.socket) {
+        socketContext.socket.off('adminMessage', handleNewMessage);
+        socketContext.socket.off('messageReceived', handleNewMessage);
+        socketContext.socket.off('newMessage', handleNewMessage);
+        socketContext.socket.off('sendMessage', handleNewMessage);
+        socketContext.socket.off('chatMessageUpdate', handleNewMessage);
+        socketContext.socket.off('messageRead', handleNewMessage);
+        socketContext.socket.off('messagesMarkedAsRead', handleNewMessage);
+        socketContext.socket.off('adminMessagesMarkedAsRead', handleNewMessage);
+      }
       fetchChatsDebounced.cancel(); // Cancel any pending debounce on cleanup
     };
   }, [socketContext?.socket, fetchChatsDebounced]);
-  */
 
   const handleOpen = (event: any) => {
     setOpen(event.currentTarget);
@@ -136,6 +145,26 @@ export default function MessagePopover() {
     // Navigate to ChatLayout with specific chat selected
     // Pass chatId in state so ChatLayout can pick it up
     navigate('/dashboard/chat', { state: { chatId } });
+  };
+
+  const handleMarkAllAsRead = async () => {
+    try {
+      const unreadChats = chats.filter(chat => chat.unreadCount > 0);
+      if (unreadChats.length === 0) return;
+
+      await Promise.all(unreadChats.map(chat => MessageAPI.markAllAsRead(chat._id)));
+      
+      // Update state locally
+      setChats(prev => prev.map(chat => ({ ...chat, unreadCount: 0 })));
+      setUnreadCount(0);
+      
+      // Notify via socket so other tabs or the chat page can update
+      if (socketContext?.socket) {
+        socketContext.socket.emit('adminMessagesMarkedAsRead', { adminId: auth?.user?._id });
+      }
+    } catch (error) {
+      console.error('Error marking all messages as read:', error);
+    }
   };
 
   const getChatName = (chat: any) => {
@@ -162,6 +191,75 @@ export default function MessagePopover() {
     
     const otherUser = chat.users.find((u: any) => u._id !== 'admin' && u.AccountType !== 'admin' && u._id !== auth?.user?._id);
     return otherUser?.avatarUrl; // Assuming avatarUrl exists
+  };
+
+  const unreadChats = chats.filter(chat => chat.unreadCount > 0);
+  const readChats = chats.filter(chat => !chat.unreadCount || chat.unreadCount === 0);
+
+  const renderChatItem = (chat: any) => {
+    const isUnread = chat.unreadCount > 0;
+    return (
+      <ListItemButton
+        key={chat._id}
+        onClick={() => handleSelectChat(chat._id)}
+        sx={{
+          py: 1.5,
+          px: 2.5,
+          mt: '1px',
+          transition: 'all 0.25s ease-in-out',
+          ...(isUnread ? {
+            bgcolor: 'action.selected',
+            borderLeft: '4px solid',
+            borderColor: 'primary.main',
+            '&:hover': {
+              bgcolor: (theme) => alpha(theme.palette.primary.main, 0.08),
+            }
+          } : {
+            '&:hover': {
+              bgcolor: 'action.hover',
+            }
+          })
+        }}
+      >
+        <ListItemAvatar>
+          <Avatar src={getChatAvatar(chat)} alt={getChatName(chat)}>
+            {getChatName(chat).charAt(0)}
+          </Avatar>
+        </ListItemAvatar>
+        <ListItemText
+          primary={
+            <Typography variant="subtitle2" component="span" sx={{ fontWeight: isUnread ? 700 : 500 }}>
+              {getChatName(chat)}
+            </Typography>
+          }
+          secondary={
+            <Typography
+              component="span"
+              variant="caption"
+              sx={{
+                display: 'block',
+                color: isUnread ? 'text.primary' : 'text.secondary',
+                fontWeight: isUnread ? 600 : 400,
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+                mt: 0.5,
+              }}
+            >
+              {chat.lastMessage?.message || 'Aucun message'}
+            </Typography>
+          }
+        />
+        <Box sx={{ ml: 1, textAlign: 'right' }}>
+          <Typography variant="caption" sx={{ display: 'block', color: isUnread ? 'primary.main' : 'text.disabled', fontWeight: isUnread ? 600 : 400, mb: 0.5 }}>
+            {fToNow(chat.lastMessage?.createdAt || chat.createdAt)}
+          </Typography>
+          {isUnread && (
+            <Badge color="error" badgeContent={chat.unreadCount} />
+          )}
+        </Box>
+      </ListItemButton>
+    );
   };
 
   return (
@@ -192,91 +290,126 @@ export default function MessagePopover() {
         sx={{
           mt: 1.5,
           ml: 0.75,
-          width: 360,
+          width: 320,
+          p: 0,
+          borderRadius: '16px',
+          boxShadow: (theme) => `0 12px 40px 0 ${alpha(theme.palette.common.black, 0.12)}, 0 1px 3px 0 ${alpha(theme.palette.common.black, 0.05)}`,
+          border: (theme) => `1px solid ${theme.palette.divider}`,
+          backdropFilter: 'blur(20px)',
+          bgcolor: (theme) => alpha(theme.palette.background.paper, 0.98),
+          overflow: 'hidden',
+          '& .MuiList-root': {
+            p: 0
+          }
         }}
       >
         <Box sx={{ display: 'flex', alignItems: 'center', py: 2, px: 2.5 }}>
           <Box sx={{ flexGrow: 1 }}>
-            <Typography variant="subtitle1">Messages</Typography>
+            <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>Messages</Typography>
             <Typography variant="body2" sx={{ color: 'text.secondary' }}>
               Vous avez {unreadCount} nouveau(x) message(s)
             </Typography>
           </Box>
+          
+          {unreadCount > 0 && (
+            <Tooltip title="Marquer tout comme lu">
+              <IconButton color="primary" onClick={handleMarkAllAsRead} sx={{ transition: 'transform 0.2s', '&:hover': { transform: 'scale(1.1)' } }}>
+                <Iconify icon="eva:done-all-fill" width={20} height={20} />
+              </IconButton>
+            </Tooltip>
+          )}
         </Box>
 
         <Divider sx={{ borderStyle: 'dashed' }} />
 
-        <Scrollbar sx={{ height: { xs: 340, sm: 'auto' }, maxHeight: 400 }}>
-          <List disablePadding>
-            {chats.length === 0 && (
-               <Box sx={{ p: 3, textAlign: 'center' }}>
-                 <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                   Aucune conversation
-                 </Typography>
-               </Box>
-            )}
-            
-            {chats.map((chat) => (
-              <ListItemButton
-                key={chat._id}
-                onClick={() => handleSelectChat(chat._id)}
-                sx={{
-                  py: 1.5,
-                  px: 2.5,
-                  ...(chat.unreadCount > 0 && {
-                    bgcolor: 'action.selected',
-                  }),
-                }}
-              >
-                <ListItemAvatar>
-                  <Avatar src={getChatAvatar(chat)} alt={getChatName(chat)}>
-                    {getChatName(chat).charAt(0)}
-                  </Avatar>
-                </ListItemAvatar>
-                <ListItemText
-                  primary={
-                    <Typography variant="subtitle2" component="span">
-                      {getChatName(chat)}
-                    </Typography>
-                  }
-                  secondary={
-                    <Typography
-                      component="span"
-                      variant="caption"
-                      sx={{
-                        display: 'block',
+        <Box sx={{ 
+          maxHeight: { xs: 260, sm: 320 },
+          overflowY: 'auto',
+          overflowX: 'hidden',
+          '&::-webkit-scrollbar': { width: 6 },
+          '&::-webkit-scrollbar-thumb': {
+            borderRadius: 3,
+            bgcolor: (theme) => alpha(theme.palette.grey[600], 0.4),
+          },
+          '&::-webkit-scrollbar-thumb:hover': {
+            bgcolor: (theme) => alpha(theme.palette.grey[600], 0.65),
+          },
+          '&::-webkit-scrollbar-track': { bgcolor: 'transparent' },
+        }}>
+          {chats.length === 0 ? (
+             <Box sx={{ p: 5, textAlign: 'center' }}>
+               <Iconify icon="eva:message-square-outline" width={48} height={48} sx={{ color: 'text.disabled', mb: 1, mx: 'auto' }} />
+               <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                 Aucune conversation
+               </Typography>
+             </Box>
+          ) : (
+            <>
+              {unreadChats.length > 0 && (
+                <List
+                  disablePadding
+                  subheader={
+                    <ListSubheader 
+                      disableSticky 
+                      sx={{ 
+                        py: 1, 
+                        px: 2.5, 
+                        typography: 'overline',
+                        bgcolor: 'background.paper',
                         color: 'text.secondary',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap',
+                        fontWeight: 700,
+                        zIndex: 1
                       }}
                     >
-                      {chat.lastMessage?.message || 'Aucun message'}
-                    </Typography>
+                      Nouveau
+                    </ListSubheader>
                   }
-                />
-                <Box sx={{ ml: 1, textAlign: 'right' }}>
-                  <Typography variant="caption" sx={{ display: 'block', color: 'text.disabled', mb: 0.5 }}>
-                    {fToNow(chat.lastMessage?.createdAt || chat.createdAt)}
-                  </Typography>
-                  {chat.unreadCount > 0 && (
-                    <Badge color="error" badgeContent={chat.unreadCount} />
-                  )}
-                </Box>
-              </ListItemButton>
-            ))}
-          </List>
-        </Scrollbar>
+                >
+                  {unreadChats.map((chat) => renderChatItem(chat))}
+                </List>
+              )}
+
+              {readChats.length > 0 && (
+                <List
+                  disablePadding
+                  subheader={
+                    <ListSubheader 
+                      disableSticky 
+                      sx={{ 
+                        py: 1, 
+                        px: 2.5, 
+                        typography: 'overline',
+                        bgcolor: 'background.paper',
+                        color: 'text.disabled',
+                        fontWeight: 700,
+                        zIndex: 1
+                      }}
+                    >
+                      Anciens messages
+                    </ListSubheader>
+                  }
+                >
+                  {readChats.map((chat) => renderChatItem(chat))}
+                </List>
+              )}
+            </>
+          )}
+        </Box>
 
         <Divider sx={{ borderStyle: 'dashed' }} />
 
         <Box sx={{ p: 1 }}>
-          <IconButton 
-            onClick={() => navigate('/dashboard/chat')}
-            sx={{ width: '100%', borderRadius: 1, typography: 'button' }}
+          <Button 
+            fullWidth 
+            component={RouterLink}
+            to="/dashboard/chat"
+            onClick={handleClose}
+            variant="text"
+            color="primary"
+            sx={{ py: 1, fontWeight: 700, borderRadius: 1.5 }}
           >
             Voir tout
-          </IconButton>
+          </Button>
         </Box>
       </MenuPopover>
     </>

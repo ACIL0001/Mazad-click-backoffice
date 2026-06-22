@@ -16,6 +16,11 @@ export const useNavConfig = () => {
       icon: getIcon('typcn:chart-pie'),
     },
     {
+      title: t('navigation.analytics') || 'Analytics',
+      path: '/dashboard/analytics',
+      icon: getIcon('mdi:chart-areaspline'),
+    },
+    {
       title: t('navigation.users'),
       path: '/dashboard/users',
       icon: getIcon('mdi:user-online'),
@@ -30,11 +35,7 @@ export const useNavConfig = () => {
           path: '/dashboard/users/professionals', 
           icon: getIcon('mdi:account-group'), 
         },
-        {
-          title: t('navigation.resellers'), 
-          path: '/dashboard/users/resellers', 
-          icon: getIcon('mdi:store'), 
-        },
+
         {
           title: t('navigation.sellers'), 
           path: '/dashboard/users/sellers',
@@ -187,6 +188,11 @@ const navConfig = [
     icon: getIcon('typcn:chart-pie'),
   },
   {
+    title: 'Analytics',
+    path: '/dashboard/analytics',
+    icon: getIcon('mdi:chart-areaspline'),
+  },
+  {
     title: 'Utilisateurs',
     path: '/dashboard/users',
     icon: getIcon('mdi:user-online'),
@@ -201,11 +207,7 @@ const navConfig = [
         path: '/dashboard/users/professionals', 
         icon: getIcon('mdi:account-group'), 
       },
-      {
-        title: 'Resellers', 
-        path: '/dashboard/users/resellers', 
-        icon: getIcon('mdi:store'), 
-      },
+
       {
         title: 'Sellers', 
         path: '/dashboard/users/sellers',

@@ -120,12 +120,18 @@ function SellerItem({ seller, selected, setSelected, onOpenVerificationModal, on
         cursor: "pointer",
         transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
         borderBottom: `1px solid ${alpha(theme.palette.divider, 0.8)}`,
+        "& .MuiTableCell-root": {
+          fontSize: "0.8rem",
+          padding: "8px 12px",
+        },
         "&:hover": {
           backgroundColor: alpha(theme.palette.primary.main, 0.04),
           transform: "translateY(-1px)",
           boxShadow: `0 4px 20px 0 ${alpha(theme.palette.primary.main, 0.12)}`,
           "& .MuiTableCell-root": {
             borderBottom: `1px solid ${alpha(theme.palette.primary.main, 0.2)}`,
+            fontSize: "0.8rem",
+            padding: "8px 12px",
           },
         },
         "&.Mui-selected": {

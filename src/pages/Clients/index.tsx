@@ -21,7 +21,9 @@ import {
     alpha,
     IconButton,
     Checkbox,
-    MenuItem
+    MenuItem,
+    Link,
+    Avatar
 } from '@mui/material';
 import Page from '../../components/Page';
 import Label from '../../components/Label';
@@ -61,35 +63,44 @@ const COLUMNS = [
 
 const StyledCard = styled(Card)(({ theme }) => ({
     display: 'flex',
-    alignItems: 'center',
-    padding: theme.spacing(3),
-    borderRadius: theme.shape.borderRadius,
-    boxShadow: theme.customShadows ? theme.customShadows.z4 : '0 4px 20px 0 rgba(0, 0, 0, 0.05)',
+    flexDirection: 'column',
+    alignItems: 'flex-start',
+    padding: theme.spacing(1.5, 1.5, 1.25),
+    borderRadius: theme.shape.borderRadius * 1.5,
+    border: '1px solid',
+    borderColor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.08)' : 'rgba(145, 158, 171, 0.12)',
+    boxShadow: theme.customShadows ? theme.customShadows.z1 : '0 2px 8px rgba(0, 0, 0, 0.04)',
     backgroundColor: theme.palette.background.paper,
+    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+    width: '100%',
+    minHeight: 100,
+    '&:hover': {
+        transform: 'translateY(-3px)',
+        boxShadow: theme.customShadows ? theme.customShadows.z16 : '0 10px 30px 0 rgba(0, 0, 0, 0.08)',
+    },
     [theme.breakpoints.down('sm')]: {
-        padding: theme.spacing(2),
-        flexDirection: 'column',
+        padding: theme.spacing(1.25),
+        alignItems: 'center',
         textAlign: 'center',
     },
 }));
 
 const IconWrapperStyle = styled('div')(({ theme }) => ({
-    marginRight: theme.spacing(2),
-    width: 48,
-    height: 48,
+    width: 36,
+    height: 36,
     display: 'flex',
     borderRadius: '50%',
     alignItems: 'center',
     justifyContent: 'center',
-    color: theme.palette.primary.main,
-    backgroundColor: alpha(theme.palette.primary.main, 0.16),
+    transition: 'all 0.3s ease',
+    marginBottom: theme.spacing(1),
+    '& svg': { fontSize: 18 },
     [theme.breakpoints.down('sm')]: {
-        marginRight: 0,
-        marginBottom: theme.spacing(1),
-        width: 40,
-        height: 40,
+        marginBottom: theme.spacing(0.75),
+        width: 32,
+        height: 32,
         '& svg': {
-            fontSize: 24,
+            fontSize: 18,
         },
     },
 }));
@@ -194,10 +205,7 @@ export default function Clients() {
                     await UserAPI.verifyUser(userToConfirmId, false);
                     enqueueSnackbar('Vérification du client annulée.', { variant: 'success' });
                     break;
-                case 'promote':
-                    await UserAPI.promoteToReseller(userToConfirmId);
-                    enqueueSnackbar('Client promu au rang de revendeur avec succès.', { variant: 'success' });
-                    break;
+
                 case 'delete':
                     await UserAPI.deleteUser(userToConfirmId);
                     enqueueSnackbar('Client supprimé avec succès.', { variant: 'success' });
@@ -243,9 +251,6 @@ export default function Clients() {
         handleOpenConfirmDialog(id, 'unverify', 'Êtes-vous sûr de vouloir annuler la vérification de', name);
     };
 
-    const promoteToReseller = (id: string, name: string) => {
-        handleOpenConfirmDialog(id, 'promote', 'Êtes-vous sûr de vouloir promouvoir', name + ' au rang de revendeur');
-    };
 
     // Updated delete handlers to match professional table pattern
     const handleDeleteSingleClient = (id: string) => {
@@ -420,8 +425,8 @@ export default function Clients() {
                             aria-checked={isItemSelected}
                             sx={{
                                 '& .MuiTableCell-root': {
-                                    fontSize: isMobile ? '0.75rem' : '0.875rem',
-                                    padding: isMobile ? '8px' : '16px',
+                                    fontSize: isMobile ? '0.7rem' : '0.8rem',
+                                    padding: isMobile ? '6px 8px' : '8px 12px',
                                 },
                             }}
                         >
@@ -441,15 +446,40 @@ export default function Clients() {
                             {/* First Name cell */}
                             <TableCell component="th" scope="row" padding="none">
                                 <Stack direction="row" alignItems="center" spacing={isMobile ? 1 : 2}>
-                                    <Typography variant="subtitle2" noWrap sx={{ fontSize: isMobile ? '0.8rem' : '0.9rem' }}>
-                                        <Chip onClick={() => goToProfile(row)} label={firstName || 'N/A'} component="a" href="#" clickable sx={{ fontSize: isMobile ? '0.7rem' : '0.8rem' }} />
-                                    </Typography>
+                                    <Avatar 
+                                        sx={{ 
+                                            width: 32, 
+                                            height: 32, 
+                                            fontSize: '0.8rem', 
+                                            fontWeight: 'bold',
+                                            bgcolor: (theme) => alpha(theme.palette.primary.main, 0.12),
+                                            color: 'primary.main',
+                                            boxShadow: (theme) => `0 2px 8px 0 ${alpha(theme.palette.primary.main, 0.15)}`
+                                        }}
+                                    >
+                                        {(firstName?.[0] || '').toUpperCase() + (lastName?.[0] || '').toUpperCase()}
+                                    </Avatar>
+                                    <Link
+                                        component="button"
+                                        variant="subtitle2"
+                                        onClick={() => goToProfile(row)}
+                                        sx={{ 
+                                            fontWeight: 'bold', 
+                                            color: 'text.primary',
+                                            textDecoration: 'none',
+                                            fontSize: isMobile ? '0.8rem' : '0.9rem',
+                                            textAlign: 'left',
+                                            '&:hover': { color: 'primary.main' }
+                                        }}
+                                    >
+                                        {firstName || 'N/A'}
+                                    </Link>
                                 </Stack>
                             </TableCell>
 
                             {/* Last Name cell */}
                             <TableCell align="left" sx={{ display: isMobile ? 'none' : 'table-cell' }}>
-                                <Typography variant="body2" sx={{ fontSize: isMobile ? '0.75rem' : '0.875rem' }}>
+                                <Typography variant="subtitle2" sx={{ fontSize: isMobile ? '0.75rem' : '0.875rem', fontWeight: 'bold' }}>
                                     {lastName || 'N/A'}
                                 </Typography>
                             </TableCell>
@@ -541,7 +571,6 @@ export default function Clients() {
                                 <ActionsMenu
                                     _id={_id}
                                     actions={[
-                                        ...(row.type === 'CLIENT' ? [{ label: 'Promouvoir en Revendeur', onClick: () => promoteToReseller(_id, clientFullName), icon: 'eva:star-outline' }] : []),
                                         { label: 'Supprimer', onClick: () => handleDeleteSingleClient(_id), icon: 'eva:trash-2-outline' },
                                     ]}
                                 />
@@ -560,75 +589,90 @@ export default function Clients() {
 
     return (
         <Page title="Users - Clients">
-            <Container maxWidth="xl" sx={{ py: { xs: 2, sm: 3 } }}>
+            <Container 
+                maxWidth="xl" 
+                sx={{ 
+                    py: { xs: 2, sm: 3 }, 
+                    bgcolor: '#ffffff', 
+                    p: { xs: 2, md: 4 }, 
+                    borderRadius: 2,
+                    border: '1px solid',
+                    borderColor: 'divider',
+                    boxShadow: (theme) => theme.customShadows.z1
+                }}
+            >
                 <Grid container spacing={isMobile ? 2 : 3} sx={{ mb: { xs: 2, sm: 3 } }}>
-                    <Grid item xs={12} sm={6} md={3}>
+                    <Grid item xs={12} sm={6} md={2.4}>
                         <StyledCard>
                             <IconWrapperStyle sx={{
-                                color: theme.palette.info.dark,
-                                backgroundImage: `linear-gradient(135deg, ${alpha(theme.palette.info.dark, 0)} 0%, ${alpha(theme.palette.info.dark, 0.24)} 100%)`
+                                color: 'info.main',
+                                bgcolor: (theme) => alpha(theme.palette.info.main, 0.12),
+                                boxShadow: (theme) => `0 4px 12px 0 ${alpha(theme.palette.info.main, 0.15)}`
                             }}>
                                 <PeopleAltIcon fontSize={isMobile ? 'small' : 'medium'} />
                             </IconWrapperStyle>
                             <Box>
-                                <Typography variant={isMobile ? "body2" : "h6"} color="textSecondary" sx={{ opacity: 0.72 }}>
+                                <Typography variant="body2" color="textSecondary" sx={{ opacity: 0.72, fontSize: '0.68rem', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: 0.5 }}>
                                     Total Clients
                                 </Typography>
-                                <Typography variant={isMobile ? "h5" : "h4"} component="div">
+                                <Typography variant="h6" component="div" fontWeight="800" sx={{ mt: 0.25, fontSize: '1.15rem', lineHeight: 1.2 }}>
                                     {totalClients}
                                 </Typography>
                             </Box>
                         </StyledCard>
                     </Grid>
-                    <Grid item xs={12} sm={6} md={3}>
+                    <Grid item xs={12} sm={6} md={2.4}>
                         <StyledCard>
                             <IconWrapperStyle sx={{
-                                color: theme.palette.error.dark,
-                                backgroundImage: `linear-gradient(135deg, ${alpha(theme.palette.error.dark, 0)} 0%, ${alpha(theme.palette.error.dark, 0.24)} 100%)`
+                                color: 'error.main',
+                                bgcolor: (theme) => alpha(theme.palette.error.main, 0.12),
+                                boxShadow: (theme) => `0 4px 12px 0 ${alpha(theme.palette.error.main, 0.15)}`
                             }}>
                                 <GppBadIcon fontSize={isMobile ? 'small' : 'medium'} />
                             </IconWrapperStyle>
                             <Box>
-                                <Typography variant={isMobile ? "body2" : "h6"} color="textSecondary" sx={{ opacity: 0.72 }}>
+                                <Typography variant="body2" color="textSecondary" sx={{ opacity: 0.72, fontSize: '0.68rem', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: 0.5 }}>
                                     Clients Bannis
                                 </Typography>
-                                <Typography variant={isMobile ? "h5" : "h4"} component="div">
+                                <Typography variant="h6" component="div" fontWeight="800" sx={{ mt: 0.25, fontSize: '1.15rem', lineHeight: 1.2 }}>
                                     {bannedClients}
                                 </Typography>
                             </Box>
                         </StyledCard>
                     </Grid>
-                    <Grid item xs={12} sm={6} md={3}>
+                    <Grid item xs={12} sm={6} md={2.4}>
                         <StyledCard>
                             <IconWrapperStyle sx={{
-                                color: theme.palette.success.dark,
-                                backgroundImage: `linear-gradient(135deg, ${alpha(theme.palette.success.dark, 0)} 0%, ${alpha(theme.palette.success.dark, 0.24)} 100%)`
+                                color: 'success.main',
+                                bgcolor: (theme) => alpha(theme.palette.success.main, 0.12),
+                                boxShadow: (theme) => `0 4px 12px 0 ${alpha(theme.palette.success.main, 0.15)}`
                             }}>
                                 <VerifiedUserIcon fontSize={isMobile ? 'small' : 'medium'} />
                             </IconWrapperStyle>
                             <Box>
-                                <Typography variant={isMobile ? "body2" : "h6"} color="textSecondary" sx={{ opacity: 0.72 }}>
+                                <Typography variant="body2" color="textSecondary" sx={{ opacity: 0.72, fontSize: '0.68rem', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: 0.5 }}>
                                     Clients Vérifiés
                                 </Typography>
-                                <Typography variant={isMobile ? "h5" : "h4"} component="div">
+                                <Typography variant="h6" component="div" fontWeight="800" sx={{ mt: 0.25, fontSize: '1.15rem', lineHeight: 1.2 }}>
                                     {verifiedClients}
                                 </Typography>
                             </Box>
                         </StyledCard>
                     </Grid>
-                    <Grid item xs={12} sm={6} md={3}>
+                    <Grid item xs={12} sm={6} md={2.4}>
                         <StyledCard>
                             <IconWrapperStyle sx={{
-                                color: theme.palette.warning.dark,
-                                backgroundImage: `linear-gradient(135deg, ${alpha(theme.palette.warning.dark, 0)} 0%, ${alpha(theme.palette.warning.dark, 0.24)} 100%)`
+                                color: 'warning.main',
+                                bgcolor: (theme) => alpha(theme.palette.warning.main, 0.12),
+                                boxShadow: (theme) => `0 4px 12px 0 ${alpha(theme.palette.warning.main, 0.15)}`
                             }}>
                                 <HowToRegIcon fontSize={isMobile ? 'small' : 'medium'} />
                             </IconWrapperStyle>
                             <Box>
-                                <Typography variant={isMobile ? "body2" : "h6"} color="textSecondary" sx={{ opacity: 0.72 }}>
+                                <Typography variant="body2" color="textSecondary" sx={{ opacity: 0.72, fontSize: '0.68rem', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: 0.5 }}>
                                     Clients Actifs
                                 </Typography>
-                                <Typography variant={isMobile ? "h5" : "h4"} component="div">
+                                <Typography variant="h6" component="div" fontWeight="800" sx={{ mt: 0.25, fontSize: '1.15rem', lineHeight: 1.2 }}>
                                     {activeClients}
                                 </Typography>
                             </Box>
@@ -681,7 +725,6 @@ export default function Clients() {
                          actionType === 'disable' ? 'Désactiver Client' :
                          actionType === 'verify' ? 'Vérifier Client' :
                          actionType === 'unverify' ? 'Annuler Vérification' :
-                         actionType === 'promote' ? 'Promouvoir Client' :
                          actionType === 'delete' ? 'Supprimer Client' :
                          actionType === 'deleteSelected' ? 'Supprimer Clients' : ''}
                     </DialogTitle>

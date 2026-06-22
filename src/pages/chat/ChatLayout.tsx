@@ -188,10 +188,9 @@ export function ChatLayout() {
   const [selectedChat, setSelectedChat] = useState<Chat | null>(null);
   const selectedChatRef = useRef<Chat | null>(null);
   
-  // Update ref when selectedChat changes
-  useEffect(() => {
-    selectedChatRef.current = selectedChat;
-  }, [selectedChat]);
+  // selectedChatRef is updated synchronously inside handleChatSelect.
+  // We intentionally do NOT use a useEffect here because it fires after
+  // paint, creating a window where socket messages arrive with a stale ref.
   const [chats, setChats] = useState<Chat[]>([]);
   const [messages, setMessages] = useState<Message[]>([]);
   const [message, setMessage] = useState('');
@@ -295,7 +294,7 @@ export function ChatLayout() {
             // Update the guest user info if available from last message
             if (lastMessage && (lastMessage.guestName || lastMessage.guestPhone)) {
               enhancedChat.users = enhancedChat.users.map((user: any) => {
-                if (user._id === 'guest') {
+                if (user._id === 'guest' || user.AccountType === 'guest' || user._id?.startsWith('guest')) {
                   return {
                     ...user,
                     firstName: lastMessage.guestName || user.firstName || 'Guest',
@@ -413,7 +412,7 @@ export function ChatLayout() {
             // Update the guest user info if available from last message
             if (lastMessage && (lastMessage.guestName || lastMessage.guestPhone)) {
               enhancedChat.users = enhancedChat.users.map((user: any) => {
-                if (user._id === 'guest') {
+                if (user._id === 'guest' || user.AccountType === 'guest' || user._id?.startsWith('guest')) {
                   return {
                     ...user,
                     firstName: lastMessage.guestName || user.firstName || 'Guest',
@@ -551,31 +550,40 @@ export function ChatLayout() {
     
     if (isGuestChat) {
       console.log('📤 Admin responding to guest chat');
-      
-      // For guest chats, send response through the regular API
-      // The server will handle sending to the guest user
-      const messageData = {
-        idChat: selectedChat._id,
-        message: message.trim(),
-        sender: 'admin',
-        reciver: 'guest', // Send to guest
-      };
+      const trimmedMsg = message.trim();
 
-      console.log('📤 Sending admin response via API:', messageData);
-      const sentMessage = await MessageAPI.send(messageData);
-      console.log('✅ Admin response sent successfully:', sentMessage);
-      
-      setMessage('');
-      
-      // Refresh messages to show the new response
-      await loadMessages(selectedChat._id);
-      await silentlyUpdateChats();
-      
-      // Auto-scroll to bottom
-      setTimeout(() => {
-        scrollToBottom();
-      }, 100);
-      
+      // ── Optimistic update ──────────────────────────────────────────────────
+      const optimisticId = `optimistic-${Date.now()}`;
+      const optimisticMsg: Message = {
+        _id: optimisticId,
+        message: trimmedMsg,
+        sender: 'admin',
+        reciver: 'guest',
+        idChat: selectedChat._id,
+        createdAt: new Date().toISOString(),
+        isRead: false,
+      };
+      setMessages(prev => [...prev, optimisticMsg]);
+      setMessage(''); // clear input immediately
+      scrollToBottom();
+      // ──────────────────────────────────────────────────────────────────────
+
+      try {
+        const messageData = {
+          idChat: selectedChat._id,
+          message: trimmedMsg,
+          sender: 'admin',
+          reciver: 'guest',
+        };
+        await MessageAPI.send(messageData);
+        // Replace optimistic msg with real data from server
+        await loadMessages(selectedChat._id);
+        await silentlyUpdateChats();
+      } catch (error) {
+        console.error('❌ Error sending guest message:', error);
+        // Roll back optimistic update on failure
+        setMessages(prev => prev.filter(m => m._id !== optimisticId));
+      }
       return;
     }
 
@@ -646,30 +654,43 @@ export function ChatLayout() {
       isAdmin
     });
 
-    try {
-      const messageData = {
-        idChat: selectedChat._id,
-        message: message.trim(),
-        sender,
-        reciver,
-      };
+    const trimmedMsg = message.trim();
 
+    // ── Optimistic update ──────────────────────────────────────────────────────
+    // Show the message in the UI immediately so the admin doesn't have to wait
+    // for the API round-trip. The real message (with server _id) replaces it
+    // when loadMessages() resolves.
+    const optimisticId = `optimistic-${Date.now()}`;
+    const optimisticMsg: Message = {
+      _id: optimisticId,
+      message: trimmedMsg,
+      sender,
+      reciver,
+      idChat: selectedChat._id,
+      createdAt: new Date().toISOString(),
+      isRead: false,
+    };
+    setMessages(prev => [...prev, optimisticMsg]);
+    setMessage(''); // clear input right away
+    scrollToBottom();
+    // ──────────────────────────────────────────────────────────────────────────
+
+    try {
+      const messageData = { idChat: selectedChat._id, message: trimmedMsg, sender, reciver };
       console.log('📤 Sending message data:', messageData);
-      const sentMessage = await MessageAPI.send(messageData);
-      console.log('✅ Message sent successfully:', sentMessage);
-      
-      // The server-side MessageService.create will handle socket events automatically
-      // No need to emit socket events from client-side
-      
-      setMessage('');
-      // Refresh messages
+      await MessageAPI.send(messageData);
+      console.log('✅ Message sent successfully');
+
+      // Replace optimistic message with real server data
       await loadMessages(selectedChat._id);
       await silentlyUpdateChats();
-      
-      // Immediately trigger badge refresh after sending message
+
       window.dispatchEvent(new CustomEvent('refreshAdminNotifications'));
     } catch (error) {
       console.error('❌ Error sending message:', error);
+      // Roll back optimistic update on failure
+      setMessages(prev => prev.filter(m => m._id !== optimisticId));
+      setMessage(trimmedMsg); // restore typed text so admin can retry
     }
   }, [message, selectedChat, auth?.user, socketContext?.socket, loadMessages, silentlyUpdateChats, scrollToBottom]);
 
@@ -950,63 +971,87 @@ export function ChatLayout() {
 
   const processedMessageIds = useRef<Set<string>>(new Set());
 
-  // Handle socket messages - memoized with useCallback
-  const handleNewMessage = useCallback((data: Message) => {
-    console.group('📨 INCOMING SOCKET MESSAGE');
-    console.log('Processed IDs Set Size:', processedMessageIds.current.size);
-    console.log('Message Data:', data);
-    console.log('Message ID (raw):', data._id, typeof data._id);
-    
-    if (!data._id) {
-       console.log('❌ Message has no ID, aborting');
-       console.groupEnd();
-       return;
-    }
-    const msgId = String(data._id); // Ensure string ID
-    console.log('Message ID (string):', msgId);
+  // Ref that always holds the latest handleNewMessage without causing socket re-subscription
+  const handleNewMessageRef = useRef<(data: any) => void>();
 
-    // Strict deduplication using ref (handles rapid double-events)
-    if (processedMessageIds.current.has(msgId)) {
-      console.log('🚫 BLOCKED: Message ID already in processed set:', msgId);
-      console.groupEnd();
+  // Handle socket messages — defined as a plain function and stored in a ref.
+  // Using a ref means the socket useEffect only runs once (when socket connects)
+  // and never re-attaches listeners on re-renders, eliminating the "listener gap" bug.
+  const handleNewMessage = useCallback((data: any) => {
+    console.log('📬 handleNewMessage entered with data:', data);
+    
+    // Support both _id and messageId fields (different events use different keys)
+    const rawId = data._id || data.messageId || data.id;
+    // Support both idChat and chatId fields (different events use different keys)
+    const chatId = data.idChat || data.chatId;
+
+    const currentChat = selectedChatRef.current;
+    console.log('📬 handleNewMessage parsed fields:', { rawId, chatId, currentChatId: currentChat?._id });
+
+    if (!rawId) {
+      // newMessage from sendMessageToAllAdmins has no _id — treat as refresh signal
+      console.log('🔄 No-ID message event received (newMessage notification) — triggering silent refresh');
+      if (currentChat && chatId === currentChat._id) {
+        console.log('🔄 Chat matches current. Silently reloading messages for:', currentChat._id);
+        silentlyLoadMessages(currentChat._id);
+        setTimeout(scrollToBottom, 150);
+      } else {
+        console.log('🔄 Chat mismatch. Silently updating chats list.');
+        silentlyUpdateChats();
+      }
       return;
     }
 
-    // Add to processed set and clear after 2 seconds
+    const msgId = String(rawId);
+
+    // Strict deduplication using ref (handles rapid double-events / multiple event types)
+    if (processedMessageIds.current.has(msgId)) {
+      console.log('🚫 BLOCKED: Message ID already processed:', msgId);
+      return;
+    }
     processedMessageIds.current.add(msgId);
-    setTimeout(() => {
-      processedMessageIds.current.delete(msgId);
-    }, 2000);
-    
-    const currentChat = selectedChatRef.current;
-    
-    // Check if this message belongs to the currently selected chat
-    if (currentChat && data.idChat === currentChat._id) {
-      console.log('✅ Message matches current chat:', currentChat._id);
+    setTimeout(() => processedMessageIds.current.delete(msgId), 5000);
+
+    // Check if this message belongs to the currently open chat
+    if (currentChat && chatId === currentChat._id) {
+      console.log('🎯 Message belongs to current chat. Normalizing and adding to state.');
+      // Build a normalized Message so the render works regardless of event shape
+      const normalizedMsg: Message = {
+        _id: msgId,
+        message: data.message || '',
+        sender: data.sender || '',
+        reciver: data.reciver || data.receiver || data.receiverId || '',
+        idChat: chatId,
+        createdAt: data.createdAt || data.timestamp || new Date().toISOString(),
+        isRead: data.isRead ?? false,
+        attachment: data.attachment,
+      };
+
+      console.log('🎯 Constructed normalized message:', normalizedMsg);
+
       setMessages(prev => {
-        // Double check against state to be sure
-        const exists = prev.some(msg => String(msg._id) === msgId);
-        if (exists) {
-          console.log('🚫 BLOCKED: Message already exists in state:', msgId);
-          console.groupEnd();
+        // Remove any optimistic placeholder for this message if present
+        const withoutOptimistic = prev.filter(m => !String(m._id).startsWith('optimistic-'));
+        // Guard against duplicate by real ID
+        if (withoutOptimistic.some(m => String(m._id) === msgId)) {
+          console.log('⚠️ Message with real ID already in state, skipping add.');
           return prev;
         }
-        console.log('✅ ACCEPTED: Adding new message to state');
-        console.groupEnd();
-        return [...prev, data];
+        console.log('✅ Real-time: adding message', msgId, 'to chat', chatId);
+        return [...withoutOptimistic, normalizedMsg];
       });
-      
-      // Auto-scroll to bottom for new messages
-      setTimeout(() => {
-        scrollToBottom();
-      }, 100);
+
+      setTimeout(scrollToBottom, 100);
     } else {
-      console.log('🚫 Message NOT for current chat (Current:', currentChat?._id, ', MsgChat:', data.idChat, ')');
-      console.groupEnd();
-      // Update chat list to show new message indicator
+      console.log('🔀 Message belongs to different chat. Refreshing sidebar unread counts.');
+      // Message is for a different chat — refresh the sidebar unread counts
       silentlyUpdateChats();
     }
-  }, [scrollToBottom, silentlyUpdateChats]);
+  }, [scrollToBottom, silentlyUpdateChats, silentlyLoadMessages]);
+
+  // Keep the ref current every render so the stable socket listeners always
+  // call the latest version of handleNewMessage without re-subscribing.
+  handleNewMessageRef.current = handleNewMessage;
 
   // Handle notifications - memoized with useCallback
   const handleNewNotification = useCallback((notification: any) => {
@@ -1026,37 +1071,74 @@ export function ChatLayout() {
     }
   }, [auth?.user?.role, auth?.user?._id, silentlyUpdateChats]);
 
-  // Handle socket messages - fixed useEffect
-  // Handle socket messages - fixed useEffect
-  // Handle socket messages - fixed useEffect
+  // ─── STABLE SOCKET LISTENERS ────────────────────────────────────────────────
+  // The effect depends ONLY on the socket object, never on handler functions.
+  // This means listeners are registered exactly once per socket connection and
+  // are never torn down / re-added on re-renders (which was causing message loss).
+  // The ref pattern (handleNewMessageRef) lets inner functions still call the
+  // latest version of handleNewMessage without being in the dependency array.
   useEffect(() => {
     if (!socketContext?.socket) return;
-    
     const socket = socketContext.socket;
 
-    // Use direct socket listeners to avoid Context state issues
-    console.log('🎧 Adding direct socket listeners for ChatLayout. Listener Count:', socket.listeners('sendMessage').length);
-    
-    const onMessage = (data: any) => {
-        console.log('🔥 RAW SOCKET EVENT: sendMessage', data._id);
-        handleNewMessage(data);
+    console.log('🎧 ChatLayout: registering stable socket listeners');
+
+    // Wrap every handler through the ref so it always uses the latest closure
+    const onSendMessage        = (d: any) => { console.log('🔥 sendMessage',        d._id || d.messageId); handleNewMessageRef.current?.(d); };
+    const onAdminMessage       = (d: any) => { console.log('🔥 adminMessage',       d._id || d.messageId); handleNewMessageRef.current?.(d); };
+    const onNewMessage         = (d: any) => { console.log('🔥 newMessage',         d._id || d.messageId); handleNewMessageRef.current?.(d); };
+    const onChatMessageUpdate  = (d: any) => { console.log('🔥 chatMessageUpdate',  d.messageId);          handleNewMessageRef.current?.(d); };
+    const onRealtimeUpdate     = (d: any) => {
+      console.log('🔥 realtimeMessageUpdate');
+      const cur = selectedChatRef.current;
+      if (cur && d.chatId === cur._id) silentlyLoadMessages(cur._id);
     };
-    const onAdminMessage = (data: any) => {
-        console.log('🔥 RAW SOCKET EVENT: adminMessage', data._id);
-        handleNewMessage(data);
+    const onNotification = handleNewNotification;
+
+    socket.on('sendMessage',         onSendMessage);
+    socket.on('adminMessage',        onAdminMessage);
+    socket.on('newMessage',          onNewMessage);
+    socket.on('chatMessageUpdate',   onChatMessageUpdate);
+    socket.on('realtimeMessageUpdate', onRealtimeUpdate);
+    socket.on('notification',        onNotification);
+
+    return () => {
+      console.log('🧹 ChatLayout: removing socket listeners');
+      socket.off('sendMessage',          onSendMessage);
+      socket.off('adminMessage',         onAdminMessage);
+      socket.off('newMessage',           onNewMessage);
+      socket.off('chatMessageUpdate',    onChatMessageUpdate);
+      socket.off('realtimeMessageUpdate', onRealtimeUpdate);
+      socket.off('notification',         onNotification);
+    };
+  }, [socketContext?.socket]);
+
+  // Handle room joining/leaving and connection state changes for ChatLayout
+  useEffect(() => {
+    const socket = socketContext?.socket;
+    const currentChat = selectedChat;
+    if (!socket || !currentChat?._id) return;
+
+    const joinRoom = () => {
+      if (socket.connected) {
+        socket.emit('joinChat', { chatId: currentChat._id, userId: auth?.user?._id || 'admin' });
+        console.log('🔌 ChatLayout: Joined chat room:', currentChat._id);
+      }
     };
 
-    socket.on('sendMessage', onMessage);
-    socket.on('adminMessage', onAdminMessage);
-    socket.on('notification', handleNewNotification);
-    
+    joinRoom();
+
+    socket.on('connect', joinRoom);
+
     return () => {
-      console.log('🧹 Unmounting ChatLayout - removing direct listeners');
-      socket.off('sendMessage', onMessage);
-      socket.off('adminMessage', onAdminMessage);
-      socket.off('notification', handleNewNotification);
+      socket.off('connect', joinRoom);
+      if (socket.connected) {
+        socket.emit('leaveChat', { chatId: currentChat._id, userId: auth?.user?._id || 'admin' });
+        console.log('🔌 ChatLayout: Left chat room:', currentChat._id);
+      }
     };
-  }, [socketContext?.socket, handleNewMessage, handleNewNotification]);
+  }, [socketContext?.socket, selectedChat?._id, auth?.user?._id]);
+
 
   // Load chats when component mounts - fixed useEffect
   useEffect(() => {
@@ -1437,11 +1519,17 @@ export function ChatLayout() {
     
     // Reset processed message IDs when switching chats
     processedMessageIds.current.clear();
-    
+
+    // Update ref SYNCHRONOUSLY before any awaits so that socket messages
+    // arriving during the loadMessages() call are matched to the correct chat.
+    selectedChatRef.current = chat;
+
     setSelectedChat(chat);
     setView('chat');
     await loadMessages(chat._id);
     
+    // Join room is now managed automatically by the selectedChat useEffect room manager
+
     // Clear new notifications when chat is opened
     if (window.adminNotificationsHook?.clearNewNotifications) {
       window.adminNotificationsHook.clearNewNotifications();
@@ -1467,16 +1555,22 @@ export function ChatLayout() {
       // Still trigger badge refresh for consistency
       window.dispatchEvent(new CustomEvent('refreshAdminNotifications'));
     }
-  }, [loadMessages, silentlyUpdateChats]);
+  }, [loadMessages, silentlyUpdateChats, socketContext?.socket, auth?.user?._id]);
 
   const handleBackToOverview = useCallback(() => {
+    // Leave the chat room via socket before going back
+    if (selectedChatRef.current && socketContext?.socket?.connected) {
+      socketContext.socket.emit('leaveChat', { chatId: selectedChatRef.current._id, userId: auth?.user?._id || 'admin' });
+      console.log('🔌 Left chat room:', selectedChatRef.current._id);
+    }
+
     setView('overview');
     setSelectedChat(null);
     setMessages([]);
     
     // Trigger badge refresh when leaving chat
     window.dispatchEvent(new CustomEvent('refreshAdminNotifications'));
-  }, []);
+  }, [socketContext?.socket, auth?.user?._id]);
   
   // Debug filtered chats when they change
   useEffect(() => {
