@@ -47,6 +47,7 @@ import {
   Refresh as RefreshIcon,
   TrendingUp as TrendingUpIcon,
   ArrowUpward as ArrowUpwardIcon,
+  ShoppingCart
 } from "@mui/icons-material"
 
 import ReactApexChart from "react-apexcharts"
@@ -63,6 +64,7 @@ import { OffersAPI } from '../api/offers'
 import { CategoryAPI } from '../api/category'
 import { SubscriptionAPI } from '../api/subscription'
 import { IdentityAPI } from '../api/identity'
+import { DirectSaleAPI } from '../api/direct-sale'
 
 interface TabPanelProps {
   children?: React.ReactNode
@@ -97,6 +99,8 @@ interface DashboardData {
     totalOffers: number
     verifiedUsers: number
     pendingIdentities: number
+    totalDirectSales: number
+    activeDirectSales: number
   }
   userStats: any
   auctionStats: any
@@ -109,6 +113,7 @@ interface DashboardData {
   userGrowth: any[]
   categoryDistribution: any[]
   recentActivities: any[]
+  directSales: any[]
 }
 
 const COLORS = ['#0063b1', '#1890FF', '#54D62C', '#FFC107', '#FF4842', '#826AF9', '#2CD9C5']
@@ -209,7 +214,8 @@ export default function ComprehensiveDashboard() {
         auctionTimeSeries,
         pendingIdentities,
         subscriptionStats,
-        sectorStats
+        sectorStats,
+        directSales
       ] = await Promise.all([
         StatsAPI.getUserStats().catch(() => ({ total: 0, byType: { admin: 0, professional: 0, client: 0 } })),
         StatsAPI.getAuctionStats().catch(() => ({ total: 0, byStatus: { active: 0, completed: 0, pending: 0, cancelled: 0 }, byCategory: [], dailyAverage: 0, weeklyGrowth: 0 })),
@@ -220,8 +226,11 @@ export default function ComprehensiveDashboard() {
         StatsAPI.getAuctionTimeSeries().catch(() => ({ labels: [], data: [] })),
         IdentityAPI.getPendingIdentities().catch(() => []),
         SubscriptionAPI.getStats().catch(() => ({ total: 0, subscriptions: 0, commissions: 0, growth: 0 })),
-        StatsAPI.getUsersBySector().catch(() => [])
+        StatsAPI.getUsersBySector().catch(() => []),
+        DirectSaleAPI.getDirectSales().catch(() => [])
       ]);
+
+      const directSalesList = Array.isArray(directSales) ? directSales : [];
 
       // Process category distribution for pie chart
       const categoryDistribution = categoryStats.slice(0, 5).map((cat, index) => ({
@@ -262,7 +271,9 @@ export default function ComprehensiveDashboard() {
           activeAuctions: auctionStats.byStatus?.active || 0,
           totalOffers: 0, 
           verifiedUsers: Math.floor((userStats.total || 0) * 0.85),
-          pendingIdentities: pendingIdentities.length || 0
+          pendingIdentities: pendingIdentities.length || 0,
+          totalDirectSales: directSalesList.length,
+          activeDirectSales: directSalesList.filter((d: any) => d.status === 'ACTIVE').length
         },
         userStats,
         auctionStats,
@@ -277,7 +288,8 @@ export default function ComprehensiveDashboard() {
         revenueData: auctionTrendData,
         userGrowth: userGrowthData,
         categoryDistribution,
-        recentActivities
+        recentActivities,
+        directSales: directSalesList
       } as DashboardData;
     },
     staleTime: 60000, // 1 minute stale time
@@ -499,14 +511,9 @@ export default function ComprehensiveDashboard() {
     <Container 
       maxWidth="xl" 
       sx={{ 
-        mt: 2, 
-        mb: 4, 
         bgcolor: '#ffffff', 
-        p: { xs: 2, md: 4 }, 
-        borderRadius: 2,
-        border: '1px solid',
-        borderColor: 'divider',
-        boxShadow: (theme) => theme.customShadows.z1
+        p: { xs: 2, md: 4 },
+        pt: { xs: 0, md: 0 }
       }}
     >
       
@@ -516,7 +523,7 @@ export default function ComprehensiveDashboard() {
         mb: 4,
         background: theme.palette.mode === 'dark' 
           ? 'linear-gradient(135deg, rgba(26, 35, 126, 0.25) 0%, rgba(74, 20, 140, 0.2) 100%)' 
-          : 'linear-gradient(135deg, #e0f2fe 0%, #e0e7ff 100%)',
+          : '#ffffff',
         border: '1px solid',
         borderColor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.05)',
         boxShadow: theme.customShadows.z4,
@@ -602,56 +609,6 @@ export default function ComprehensiveDashboard() {
         </Grid>
         <Grid item xs={12} sm={6} md={4}>
           <StatCard
-            title="Revenus Total"
-            value={`${numeral(dashboardData.stats.totalRevenue).format('0,0')} DZD`}
-            icon={AttachMoney}
-            color="info"
-            subtitle="Abonnements et commissions"
-          />
-        </Grid>
-      </Grid>
-
-      {/* Metrics Row 2: Transactions & Activities */}
-      <Typography variant="subtitle1" fontWeight="800" sx={{ mb: 2, textTransform: 'uppercase', letterSpacing: 1.2, color: 'text.secondary', fontSize: '0.75rem' }}>
-        Supervision Activités
-      </Typography>
-      <Grid container spacing={3} mb={4}>
-        <Grid item xs={12} sm={6} md={4}>
-          <StatCard
-            title="Enchères Totales"
-            value={dashboardData.stats.totalAuctions.toLocaleString()}
-            icon={Gavel}
-            color="secondary"
-            subtitle={`${dashboardData.stats.activeAuctions} enchères en cours`}
-          />
-        </Grid>
-        <Grid item xs={12} sm={6} md={4}>
-          <StatCard
-            title="Soumissions Totales"
-            value={dashboardData.stats.totalTenders.toLocaleString()}
-            icon={Assignment}
-            color="info"
-            subtitle={`${dashboardData.stats.activeTenders} soumissions ouvertes`}
-          />
-        </Grid>
-        <Grid item xs={12} sm={6} md={4}>
-          <StatCard
-            title="Offres Soumises"
-            value={dashboardData.stats.totalOffers.toLocaleString()}
-            icon={LocalOffer}
-            color="error"
-            subtitle="Total des propositions formulées"
-          />
-        </Grid>
-      </Grid>
-
-      {/* Metrics Row 3: Pending Queues */}
-      <Typography variant="subtitle1" fontWeight="800" sx={{ mb: 2, textTransform: 'uppercase', letterSpacing: 1.2, color: 'text.secondary', fontSize: '0.75rem' }}>
-        Actions Requises
-      </Typography>
-      <Grid container spacing={3} mb={4}>
-        <Grid item xs={12} sm={6} md={6}>
-          <StatCard
             title="Identités en Attente"
             value={dashboardData.stats.pendingIdentities}
             icon={Verified}
@@ -659,13 +616,88 @@ export default function ComprehensiveDashboard() {
             subtitle="Dossiers KYC en attente de revue"
           />
         </Grid>
-        <Grid item xs={12} sm={6} md={6}>
+      </Grid>
+
+      {/* Metrics Row 2: Transactions & Activities */}
+      <Typography variant="subtitle1" fontWeight="800" sx={{ mb: 2, textTransform: 'uppercase', letterSpacing: 1.2, color: 'text.secondary', fontSize: '0.75rem' }}>
+        Supervision Activités (Enchères & Soumissions)
+      </Typography>
+      <Grid container spacing={3} mb={4}>
+        <Grid item xs={12} sm={6} md={3}>
+          <StatCard
+            title="Enchères Totales"
+            value={dashboardData.stats.totalAuctions.toLocaleString()}
+            icon={Gavel}
+            color="secondary"
+            subtitle="Total des enchères créées"
+          />
+        </Grid>
+        <Grid item xs={12} sm={6} md={3}>
           <StatCard
             title="Enchères Actives"
-            value={dashboardData.stats.activeAuctions}
+            value={dashboardData.stats.activeAuctions.toLocaleString()}
             icon={Gavel}
             color="success"
-            subtitle="Événements en cours d'enchère"
+            subtitle="Enchères actives en cours"
+          />
+        </Grid>
+        <Grid item xs={12} sm={6} md={3}>
+          <StatCard
+            title="Soumissions Totales"
+            value={dashboardData.stats.totalTenders.toLocaleString()}
+            icon={Assignment}
+            color="info"
+            subtitle="Total des soumissions créées"
+          />
+        </Grid>
+        <Grid item xs={12} sm={6} md={3}>
+          <StatCard
+            title="Soumissions Actives"
+            value={dashboardData.stats.activeTenders.toLocaleString()}
+            icon={Assignment}
+            color="warning"
+            subtitle="Soumissions ouvertes en cours"
+          />
+        </Grid>
+      </Grid>
+
+      {/* Metrics Row 3: Ventes Directes */}
+      <Typography variant="subtitle1" fontWeight="800" sx={{ mb: 2, textTransform: 'uppercase', letterSpacing: 1.2, color: 'text.secondary', fontSize: '0.75rem' }}>
+        Ventes Directes
+      </Typography>
+      <Grid container spacing={3} mb={4}>
+        <Grid item xs={12} sm={6} md={6}>
+          <StatCard
+            title="Ventes Directes Totales"
+            value={dashboardData.stats.totalDirectSales.toLocaleString()}
+            icon={ShoppingCart}
+            color="primary"
+            subtitle="Total des ventes directes créées"
+          />
+        </Grid>
+        <Grid item xs={12} sm={6} md={6}>
+          <StatCard
+            title="Ventes Directes Actives"
+            value={dashboardData.stats.activeDirectSales.toLocaleString()}
+            icon={ShoppingCart}
+            color="success"
+            subtitle="Ventes directes actives en cours"
+          />
+        </Grid>
+      </Grid>
+
+      {/* Metrics Row 4: Actions Requises */}
+      <Typography variant="subtitle1" fontWeight="800" sx={{ mb: 2, textTransform: 'uppercase', letterSpacing: 1.2, color: 'text.secondary', fontSize: '0.75rem' }}>
+        Actions Requises
+      </Typography>
+      <Grid container spacing={3} mb={4}>
+        <Grid item xs={12} sm={12} md={6}>
+          <StatCard
+            title="Revenus Total"
+            value={`${numeral(dashboardData.stats.totalRevenue).format('0,0')} DZD`}
+            icon={AttachMoney}
+            color="info"
+            subtitle="Abonnements et commissions"
           />
         </Grid>
       </Grid>
@@ -837,6 +869,7 @@ export default function ComprehensiveDashboard() {
           <Tab icon={<People sx={{ fontSize: 18 }} />} label="Utilisateurs" />
           <Tab icon={<Gavel sx={{ fontSize: 18 }} />} label="Enchères" />
           <Tab icon={<Assignment sx={{ fontSize: 18 }} />} label="Soumissions" />
+          <Tab icon={<ShoppingCart sx={{ fontSize: 18 }} />} label="Ventes Directes" />
           <Tab icon={<Category sx={{ fontSize: 18 }} />} label="Catégories" />
           <Tab icon={<AttachMoney sx={{ fontSize: 18 }} />} label="Abonnements" />
           <Tab icon={<Verified sx={{ fontSize: 18 }} />} label="Identités" />
@@ -1206,8 +1239,131 @@ export default function ComprehensiveDashboard() {
         </Grid>
       </TabPanel>
 
-      {/* Categories Tab */}
+      {/* Ventes Directes Tab */}
       <TabPanel value={tabValue} index={4}>
+        <Grid container spacing={3}>
+          {/* Status Summary */}
+          <Grid item xs={12} md={4}>
+            <Card sx={{ border: '1px solid', borderColor: 'divider', boxShadow: theme.customShadows.z4 }}>
+              <CardContent sx={{ p: 3 }}>
+                <Typography variant="h6" fontWeight="bold" gutterBottom>
+                  Statut des Ventes Directes
+                </Typography>
+                <Typography variant="body2" color="text.secondary" mb={3}>
+                  Volume global des ventes directes selon le statut
+                </Typography>
+                {(() => {
+                  const sales = dashboardData.directSales || [];
+                  const active = sales.filter((d: any) => d.status === 'ACTIVE').length;
+                  const inactive = sales.filter((d: any) => d.status === 'INACTIVE').length;
+                  const soldOut = sales.filter((d: any) => d.status === 'SOLD_OUT').length;
+                  const archived = sales.filter((d: any) => d.status === 'ARCHIVED').length;
+                  
+                  return (
+                    <Box display="flex" flexDirection="column" gap={2}>
+                      <Box display="flex" justifyContent="space-between" alignItems="center">
+                        <Typography variant="body2" fontWeight="600">Actives</Typography>
+                        <Chip label={active} size="small" color="success" sx={{ fontWeight: 'bold' }} />
+                      </Box>
+                      <Box display="flex" justifyContent="space-between" alignItems="center">
+                        <Typography variant="body2" fontWeight="600">Inactives</Typography>
+                        <Chip label={inactive} size="small" color="default" sx={{ fontWeight: 'bold' }} />
+                      </Box>
+                      <Box display="flex" justifyContent="space-between" alignItems="center">
+                        <Typography variant="body2" fontWeight="600">Épuisées (Sold Out)</Typography>
+                        <Chip label={soldOut} size="small" color="warning" sx={{ fontWeight: 'bold' }} />
+                      </Box>
+                      <Box display="flex" justifyContent="space-between" alignItems="center">
+                        <Typography variant="body2" fontWeight="600">Archivées</Typography>
+                        <Chip label={archived} size="small" color="error" sx={{ fontWeight: 'bold' }} />
+                      </Box>
+                    </Box>
+                  );
+                })()}
+              </CardContent>
+            </Card>
+          </Grid>
+
+          {/* Product vs Service Split */}
+          <Grid item xs={12} md={4}>
+            <Card sx={{ border: '1px solid', borderColor: 'divider', boxShadow: theme.customShadows.z4, height: '100%' }}>
+              <CardContent sx={{ p: 3 }}>
+                <Typography variant="h6" fontWeight="bold" gutterBottom>
+                  Types de Ventes Directes
+                </Typography>
+                <Typography variant="body2" color="text.secondary" mb={3}>
+                  Répartition par type de vente directe
+                </Typography>
+                
+                {(() => {
+                  const sales = dashboardData.directSales || [];
+                  const total = sales.length || 1;
+                  const productCount = sales.filter((d: any) => d.saleType === 'PRODUCT').length;
+                  const serviceCount = sales.filter((d: any) => d.saleType === 'SERVICE').length;
+                  const prodPct = (productCount / total) * 100;
+                  const servPct = (serviceCount / total) * 100;
+                  return (
+                    <Box display="flex" flexDirection="column" gap={2}>
+                      <Box>
+                        <Box display="flex" justifyContent="space-between" mb={0.5}>
+                          <Typography variant="body2" fontWeight="700">Produits</Typography>
+                          <Typography variant="caption" fontWeight="bold" color="primary.main">{prodPct.toFixed(0)}% ({productCount})</Typography>
+                        </Box>
+                        <LinearProgress variant="determinate" value={prodPct} sx={{ height: 8, borderRadius: 4 }} />
+                      </Box>
+                      <Box mt={1}>
+                        <Box display="flex" justifyContent="space-between" mb={0.5}>
+                          <Typography variant="body2" fontWeight="700">Services</Typography>
+                          <Typography variant="caption" fontWeight="bold" color="secondary.main">{servPct.toFixed(0)}% ({serviceCount})</Typography>
+                        </Box>
+                        <LinearProgress variant="determinate" value={servPct} color="secondary" sx={{ height: 8, borderRadius: 4 }} />
+                      </Box>
+                    </Box>
+                  );
+                })()}
+              </CardContent>
+            </Card>
+          </Grid>
+
+          {/* Quantities sold/remaining KPIs */}
+          <Grid item xs={12} md={4}>
+            <Card sx={{ border: '1px solid', borderColor: 'divider', boxShadow: theme.customShadows.z4, height: '100%' }}>
+              <CardContent sx={{ p: 3, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', height: '100%' }}>
+                {(() => {
+                  const sales = dashboardData.directSales || [];
+                  const totalQuantity = sales.reduce((sum: number, d: any) => sum + (d.quantity || 0), 0);
+                  const totalSold = sales.reduce((sum: number, d: any) => sum + (d.soldQuantity || 0), 0);
+                  const remaining = totalQuantity - totalSold;
+
+                  return (
+                    <>
+                      <Box textAlign="center" py={1.5} bgcolor="background.neutral" borderRadius={2}>
+                        <Typography variant="h3" fontWeight="800" color="primary">
+                          {totalSold.toLocaleString()}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary" fontWeight="700">
+                          Unités vendues au total
+                        </Typography>
+                      </Box>
+                      <Box textAlign="center" py={1.5} bgcolor="background.neutral" borderRadius={2} mt={2}>
+                        <Typography variant="h3" fontWeight="800" color="success.main">
+                          {remaining.toLocaleString()}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary" fontWeight="700">
+                          Unités restantes en stock
+                        </Typography>
+                      </Box>
+                    </>
+                  );
+                })()}
+              </CardContent>
+            </Card>
+          </Grid>
+        </Grid>
+      </TabPanel>
+
+      {/* Categories Tab */}
+      <TabPanel value={tabValue} index={5}>
         <Grid container spacing={3}>
           <Grid item xs={12}>
             <Card sx={{ border: '1px solid', borderColor: 'divider', boxShadow: theme.customShadows.z4 }}>
@@ -1283,7 +1439,7 @@ export default function ComprehensiveDashboard() {
       </TabPanel>
 
       {/* Subscriptions Tab */}
-      <TabPanel value={tabValue} index={5}>
+      <TabPanel value={tabValue} index={6}>
         <Grid container spacing={3}>
           {/* Revenue Total Highlight Card */}
           <Grid item xs={12} md={6}>
@@ -1377,7 +1533,7 @@ export default function ComprehensiveDashboard() {
       </TabPanel>
 
       {/* Identity Tab */}
-      <TabPanel value={tabValue} index={6}>
+      <TabPanel value={tabValue} index={7}>
         <Grid container spacing={3}>
           {/* Identity Verification Rate Gauge */}
           <Grid item xs={12} md={6}>
