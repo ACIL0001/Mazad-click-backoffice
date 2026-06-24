@@ -679,34 +679,36 @@ export default function PendingAndRejectedSellers({
       )}
 
       {/* MUI Table */}
-      <MuiTable
-        data={pendingAndRejectedSellers}
-        columns={TABLE_HEAD}
-        TableBodyComponent={(props) => (
-          <SellersTableBody
-            {...props}
-            onOpenVerificationModal={onOpenVerificationModal}
-            onNavigateToDetails={goToIdentityDetails}
-            onVerifyIdentity={onVerifyIdentity}
-          />
-        )}
-        page={page}
-        setPage={setPage}
-        order={order}
-        setOrder={setOrder}
-        orderBy={orderBy}
-        setOrderBy={setOrderBy}
-        selected={selected}
-        setSelected={setSelected}
-        filterName={filterName}
-        setFilterName={setFilterName}
-        rowsPerPage={rowsPerPage}
-        setRowsPerPage={setRowsPerPage}
-        searchFields={["user.firstName", "user.lastName", "user.email", "user.secteur", "user.entreprise", "user.postOccupé"]}
-        numSelected={selected.length}
-        onDeleteSelected={handleDeleteSelected}
-        loading={loading}
-      />
+      {pendingAndRejectedSellers.length > 0 && (
+        <MuiTable
+          data={pendingAndRejectedSellers}
+          columns={TABLE_HEAD}
+          TableBodyComponent={(props) => (
+            <SellersTableBody
+              {...props}
+              onOpenVerificationModal={onOpenVerificationModal}
+              onNavigateToDetails={goToIdentityDetails}
+              onVerifyIdentity={onVerifyIdentity}
+            />
+          )}
+          page={page}
+          setPage={setPage}
+          order={order}
+          setOrder={setOrder}
+          orderBy={orderBy}
+          setOrderBy={setOrderBy}
+          selected={selected}
+          setSelected={setSelected}
+          filterName={filterName}
+          setFilterName={setFilterName}
+          rowsPerPage={rowsPerPage}
+          setRowsPerPage={setRowsPerPage}
+          searchFields={["user.firstName", "user.lastName", "user.email", "user.secteur", "user.entreprise", "user.postOccupé"]}
+          numSelected={selected.length}
+          onDeleteSelected={handleDeleteSelected}
+          loading={loading}
+        />
+      )}
 
       {/* Empty state */}
       {pendingAndRejectedSellers.length === 0 && (

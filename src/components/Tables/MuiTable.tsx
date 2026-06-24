@@ -776,7 +776,7 @@ export default function MuiTable({
                       fontWeight: 700,
                       fontSize: { xs: "0.72rem", sm: "0.78rem" },
                       color: theme.palette.text.primary,
-                      textTransform: "uppercase",
+                      textTransform: "none",
                       letterSpacing: "0.5px",
                       py: { xs: 1.2, sm: 1.5 },
                       px: { xs: 1, sm: 1.5 },
@@ -836,7 +836,7 @@ export default function MuiTable({
                               fontWeight: 700,
                               fontSize: { xs: "0.72rem", sm: "0.78rem" },
                               color: "inherit",
-                              textTransform: "uppercase",
+                              textTransform: "none",
                               letterSpacing: "0.5px",
                             }}
                           >

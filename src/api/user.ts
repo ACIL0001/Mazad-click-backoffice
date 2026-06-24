@@ -31,6 +31,7 @@ export const UserAPI = {
   setUserActive: (userId: string, isActive: boolean): Promise<any> => requests.put(`users/active/${userId}`, { isActive }),
   setUserBanned: (userId: string, isBanned: boolean): Promise<any> => requests.put(`users/ban/${userId}`, { isBanned }),
   promoteToReseller: (userId: string): Promise<any> => requests.put(`users/promote-to-reseller/${userId}`, {}),
+  demoteToClient: (userId: string): Promise<any> => requests.put(`users/demote-to-client/${userId}`, {}),
   deleteUser: (userId: string): Promise<any> => requests.delete(`users/${userId}`),
   
   // Additional methods needed by components

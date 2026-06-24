@@ -1,5 +1,5 @@
-// ClientDetailsPage.tsx
-import { useEffect, useState, useCallback } from 'react';
+// ClientsDetailsPage.tsx
+import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
     Container,
@@ -8,14 +8,12 @@ import {
     CircularProgress,
     Alert,
     Card,
-    CardContent,
     Grid,
     Button,
     Stack,
     Divider,
     Chip,
     Avatar,
-    Paper,
     IconButton,
     Tooltip,
     Dialog,
@@ -27,81 +25,96 @@ import {
     useTheme
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
-import Iconify from '@/components/Iconify';
-import PopulatedUser from '@/types/PopulatedUser';
-import app from '@/config';
-import { UserAPI } from '../../api/user';
 import { useSnackbar } from 'notistack';
 import useMediaQuery from '@mui/material/useMediaQuery';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+
+// Icons
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import ContentCopyIcon from '@mui/icons-material/ContentCopy';
+import PhoneIcon from '@mui/icons-material/Phone';
+import EmailIcon from '@mui/icons-material/Email';
+import LocationOnIcon from '@mui/icons-material/LocationOn';
+import RedeemIcon from '@mui/icons-material/Redeem';
+import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
+import StarIcon from '@mui/icons-material/Star';
+import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
+import PersonIcon from '@mui/icons-material/Person';
+import KeyboardArrowRightIcon from '@mui/icons-material/KeyboardArrowRight';
+
+import PopulatedUser from '@/types/PopulatedUser';
+import { UserAPI } from '../../api/user';
 import DetailSkeleton from '@/components/skeletons/DetailSkeleton';
 
-// Extended type to handle additional properties that might exist
-interface ExtendedPopulatedUser extends PopulatedUser {
-    fullName?: string;
-    isHasIdentity?: boolean;
-    t?: string;
-    id?: string;
-    isBanned?: boolean;
-    rate?: number;
-}
-
-// Styled components for modern design
-const StyledCard = styled(Card)(({ theme }) => ({
-    borderRadius: 16,
-    padding: theme.spacing(3),
-    boxShadow: '0 8px 32px rgba(0, 0, 0, 0.08)',
-    border: `1px solid ${alpha(theme.palette.grey[300], 0.3)}`,
-    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+// Styled components for dashboard UI/UX
+const DashboardCard = styled(Card)(({ theme }) => ({
+    borderRadius: 20,
+    boxShadow: '0 4px 20px 0 rgba(145, 158, 171, 0.04)',
+    border: `1px solid ${alpha(theme.palette.grey[500], 0.08)}`,
+    padding: theme.spacing(3.5),
+    backgroundColor: theme.palette.background.paper,
+    transition: 'all 300ms cubic-bezier(0.4, 0, 0.2, 1)',
+    position: 'relative',
+    overflow: 'visible',
     '&:hover': {
-        transform: 'translateY(-2px)',
-        boxShadow: '0 16px 48px rgba(0, 0, 0, 0.12)',
+        boxShadow: '0 12px 40px 0 rgba(145, 158, 171, 0.12)',
     },
     [theme.breakpoints.down('sm')]: {
-        padding: theme.spacing(2),
-        borderRadius: 12,
+        padding: theme.spacing(2.5),
+        borderRadius: 16,
     },
 }));
 
-const ActionCard = styled(Card)(({ theme }) => ({
-    borderRadius: 12,
-    padding: theme.spacing(2.5),
-    boxShadow: '0 4px 16px rgba(0, 0, 0, 0.06)',
-    border: `1px solid ${alpha(theme.palette.grey[300], 0.2)}`,
-    transition: 'all 0.2s ease-in-out',
-    '&:hover': {
-        boxShadow: '0 8px 24px rgba(0, 0, 0, 0.1)',
-    },
-    [theme.breakpoints.down('sm')]: {
-        padding: theme.spacing(1.5),
-        borderRadius: 10,
-    },
-}));
-
-const InfoRow = styled(Box)(({ theme }) => ({
+const DetailRow = styled(Box)(({ theme }) => ({
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'space-between',
-    padding: theme.spacing(1.5, 0),
-    borderBottom: `1px solid ${alpha(theme.palette.grey[300], 0.3)}`,
+    padding: theme.spacing(1.8, 0),
+    borderBottom: `1px solid ${alpha(theme.palette.grey[500], 0.06)}`,
     '&:last-child': {
         borderBottom: 'none',
     },
     [theme.breakpoints.down('sm')]: {
-        padding: theme.spacing(1, 0),
+        flexDirection: 'column',
+        alignItems: 'flex-start',
+        gap: theme.spacing(0.5),
+        padding: theme.spacing(1.5, 0),
+    },
+}));
+
+const RowLabel = styled(Box)(({ theme }) => ({
+    display: 'flex',
+    alignItems: 'center',
+    gap: theme.spacing(1.5),
+    color: theme.palette.text.secondary,
+    '& svg': {
+        fontSize: 20,
+        color: theme.palette.text.secondary,
     },
 }));
 
 const StatusButton = styled(Button)(({ theme }) => ({
-    borderRadius: 8,
+    borderRadius: 10,
     textTransform: 'none',
     fontWeight: 600,
-    padding: theme.spacing(1, 2),
-    minWidth: 120,
-    [theme.breakpoints.down('sm')]: {
-        padding: theme.spacing(0.8, 1.5),
-        minWidth: 'auto',
-        fontSize: '0.8rem',
+    padding: theme.spacing(1, 1.5),
+    fontSize: '0.8rem',
+    boxShadow: 'none',
+    transition: 'all 200ms ease-in-out',
+    '&:hover': {
+        boxShadow: 'none',
+    },
+}));
+
+const SectionHeader = styled(Box)(({ theme }) => ({
+    display: 'flex',
+    alignItems: 'center',
+    gap: theme.spacing(1.5),
+    marginBottom: theme.spacing(2),
+    marginTop: theme.spacing(1),
+    '& svg': {
+        fontSize: 22,
+        color: theme.palette.primary.main,
     },
 }));
 
@@ -110,39 +123,39 @@ export default function ClientDetailsPage() {
     const navigate = useNavigate();
     const { enqueueSnackbar } = useSnackbar();
     const theme = useTheme();
-    const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
-    const isTablet = useMediaQuery(theme.breakpoints.down('md'));
     const queryClient = useQueryClient();
 
     const [isVerifying, setIsVerifying] = useState(false);
     const [isUpdatingActiveStatus, setIsUpdatingActiveStatus] = useState(false);
     const [isUpdatingBannedStatus, setIsUpdatingBannedStatus] = useState(false);
 
+    // Confirmation dialog state
+    const [confirmDialog, setConfirmDialog] = useState({
+        open: false,
+        title: '',
+        message: '',
+        action: () => {},
+        actionText: 'Confirmer',
+        color: 'primary' as 'primary' | 'error' | 'success'
+    });
+
     const { data: clientDetails, isLoading: loading, error } = useQuery({
         queryKey: ['client', id],
         queryFn: async () => {
             if (!id) throw new Error("L'ID du client est manquant.");
-            console.log('Fetching client details for ID:', id);
             const response = await UserAPI.findById(id);
-            console.log('API Response:', response);
-            
-            // Handle different response structures from your API
             let userData = null;
             if (response?.user) {
                 userData = response.user;
-                console.log('Using response.user:', userData);
             } else if (response?.data) {
                 userData = response.data;
-                console.log('Using response.data:', userData);
             } else if (response?._id) {
                 userData = response;
-                console.log('Using direct response:', userData);
             }
-            
             if (userData) {
-                return userData as ExtendedPopulatedUser;
+                return userData as PopulatedUser;
             } else {
-                throw new Error('Aucune donnée utilisateur trouvée dans la réponse.');
+                throw new Error('Aucune donnée utilisateur trouvée.');
             }
         },
         enabled: !!id,
@@ -152,78 +165,123 @@ export default function ClientDetailsPage() {
         navigate(-1);
     };
 
+    const handleCopy = (text: string | undefined, label: string) => {
+        if (!text) {
+            enqueueSnackbar('Aucune donnée à copier.', { variant: 'warning' });
+            return;
+        }
+        navigator.clipboard.writeText(text);
+        enqueueSnackbar(`${label} copié dans le presse-papiers.`, { variant: 'success' });
+    };
+
+    const openConfirmDialog = (title: string, message: string, action: () => void, actionText: string = 'Confirmer', color: 'primary' | 'error' | 'success' = 'primary') => {
+        setConfirmDialog({
+            open: true,
+            title,
+            message,
+            action,
+            actionText,
+            color
+        });
+    };
+
+    const closeConfirmDialog = () => {
+        setConfirmDialog({
+            open: false,
+            title: '',
+            message: '',
+            action: () => {},
+            actionText: 'Confirmer',
+            color: 'primary'
+        });
+    };
+
+    const handleConfirmAction = () => {
+        confirmDialog.action();
+        closeConfirmDialog();
+    };
+
     const handleVerifyUser = async (isVerified: boolean) => {
         if (!clientDetails?._id) return;
-        setIsVerifying(true);
-        try {
-            await UserAPI.verifyUser(clientDetails._id, isVerified);
-            enqueueSnackbar(`Utilisateur ${isVerified ? 'vérifié' : 'non vérifié'} avec succès.`, { variant: 'success' });
-            queryClient.invalidateQueries({ queryKey: ['client', id] });
-            queryClient.invalidateQueries({ queryKey: ['users'] });
-        } catch (err: any) {
-            enqueueSnackbar(err.message || `Échec de la ${isVerified ? 'vérification' : 'désvérification'}.`, { variant: 'error' });
-        } finally {
-            setIsVerifying(false);
-        }
+
+        const action = async () => {
+            setIsVerifying(true);
+            try {
+                await UserAPI.verifyUser(clientDetails._id, isVerified);
+                enqueueSnackbar(`Compte ${isVerified ? 'vérifié' : 'non vérifié'} avec succès.`, { variant: 'success' });
+                queryClient.invalidateQueries({ queryKey: ['client', id] });
+                queryClient.invalidateQueries({ queryKey: ['users'] });
+            } catch (err: any) {
+                enqueueSnackbar(err.message || 'Échec de la validation.', { variant: 'error' });
+            } finally {
+                setIsVerifying(false);
+            }
+        };
+
+        const title = isVerified ? 'Valider le compte' : 'Annuler la validation';
+        const message = `Voulez-vous vraiment ${isVerified ? 'valider' : 'annuler la validation de'} ce client ?`;
+        openConfirmDialog(title, message, action, isVerified ? 'Valider' : 'Annuler', isVerified ? 'success' : 'error');
     };
 
     const handleSetUserActive = async (isActive: boolean) => {
         if (!clientDetails?._id) return;
-        setIsUpdatingActiveStatus(true);
-        try {
-            await UserAPI.setUserActive(clientDetails._id, isActive);
-            enqueueSnackbar(`Utilisateur ${isActive ? 'activé' : 'désactivé'} avec succès.`, { variant: 'success' });
-            queryClient.invalidateQueries({ queryKey: ['client', id] });
-            queryClient.invalidateQueries({ queryKey: ['users'] });
-        } catch (err: any) {
-            enqueueSnackbar(err.message || `Échec de l'${isActive ? 'activation' : 'désactivation'}.`, { variant: 'error' });
-        } finally {
-            setIsUpdatingActiveStatus(false);
-        }
+
+        const action = async () => {
+            setIsUpdatingActiveStatus(true);
+            try {
+                await UserAPI.setUserActive(clientDetails._id, isActive);
+                enqueueSnackbar(`Compte ${isActive ? 'activé' : 'désactivé'} avec succès.`, { variant: 'success' });
+                queryClient.invalidateQueries({ queryKey: ['client', id] });
+                queryClient.invalidateQueries({ queryKey: ['users'] });
+            } catch (err: any) {
+                enqueueSnackbar(err.message || 'Échec de la modification.', { variant: 'error' });
+            } finally {
+                setIsUpdatingActiveStatus(false);
+            }
+        };
+
+        const title = isActive ? 'Activer le client' : 'Désactiver le client';
+        const message = `Voulez-vous vraiment ${isActive ? 'activer' : 'désactiver'} ce compte ?`;
+        openConfirmDialog(title, message, action, isActive ? 'Activer' : 'Désactiver', isActive ? 'success' : 'error');
     };
 
     const handleSetUserBanned = async (isBanned: boolean) => {
         if (!clientDetails?._id) return;
-        setIsUpdatingBannedStatus(true);
-        try {
-            await UserAPI.setUserBanned(clientDetails._id, isBanned);
-            enqueueSnackbar(`Utilisateur ${isBanned ? 'banni' : 'débanni'} avec succès.`, { variant: 'success' });
-            queryClient.invalidateQueries({ queryKey: ['client', id] });
-            queryClient.invalidateQueries({ queryKey: ['users'] });
-        } catch (err: any) {
-            enqueueSnackbar(err.message || `Échec du ${isBanned ? 'bannissement' : 'débannissement'}.`, { variant: 'error' });
-        } finally {
-            setIsUpdatingBannedStatus(false);
-        }
-    };
 
+        const action = async () => {
+            setIsUpdatingBannedStatus(true);
+            try {
+                await UserAPI.setUserBanned(clientDetails._id, isBanned);
+                enqueueSnackbar(`Compte ${isBanned ? 'banni' : 'débanni'} avec succès.`, { variant: 'success' });
+                queryClient.invalidateQueries({ queryKey: ['client', id] });
+                queryClient.invalidateQueries({ queryKey: ['users'] });
+            } catch (err: any) {
+                enqueueSnackbar(err.message || 'Échec de la modification.', { variant: 'error' });
+            } finally {
+                setIsUpdatingBannedStatus(false);
+            }
+        };
+
+        const title = isBanned ? 'Bannir le client' : 'Débannir le client';
+        const message = `Voulez-vous vraiment ${isBanned ? 'bannir' : 'débannir'} ce compte ?`;
+        openConfirmDialog(title, message, action, isBanned ? 'Bannir' : 'Débannir', 'error');
+    };
 
     if (loading) {
         return (
-            <Container maxWidth="lg" sx={{ py: { xs: 2, sm: 4 } }}>
+            <Container maxWidth="lg" sx={{ py: 4 }}>
                 <DetailSkeleton />
             </Container>
         );
     }
 
-    if (error) {
+    if (error || !clientDetails) {
         return (
-            <Container sx={{ mt: { xs: 2, sm: 4 } }}>
-                <Alert severity="error" sx={{ borderRadius: 2, fontSize: isMobile ? '0.8rem' : 'inherit' }}>
-                    {error instanceof Error ? error.message : "Erreur inconnue."}
+            <Container maxWidth="lg" sx={{ py: 4 }}>
+                <Alert severity="error" sx={{ borderRadius: 3, mb: 3 }}>
+                    {error instanceof Error ? error.message : "Impossible de charger le profil de ce client."}
                 </Alert>
-                <Button variant="contained" onClick={handleGoBack} sx={{ mt: { xs: 1.5, sm: 2 }, borderRadius: 2, fontSize: isMobile ? '0.8rem' : 'inherit' }}>
-                    Retour
-                </Button>
-            </Container>
-        );
-    }
-
-    if (!clientDetails) {
-        return (
-            <Container sx={{ mt: { xs: 2, sm: 4 } }}>
-                <Alert severity="info" sx={{ borderRadius: 2, fontSize: isMobile ? '0.8rem' : 'inherit' }}>Aucun détail de client trouvé.</Alert>
-                <Button variant="contained" onClick={handleGoBack} sx={{ mt: { xs: 1.5, sm: 2 }, borderRadius: 2, fontSize: isMobile ? '0.8rem' : 'inherit' }}>
+                <Button variant="contained" onClick={handleGoBack} startIcon={<ArrowBackIcon />} sx={{ borderRadius: 2 }}>
                     Retour
                 </Button>
             </Container>
@@ -231,165 +289,321 @@ export default function ClientDetailsPage() {
     }
 
     const user = clientDetails;
-    const isUserVerified = user?.isVerified || false;
-    const isUserActive = user?.isActive ?? true;
-    const isUserBanned = user?.isBanned || false;
-    const isClient = user?.type === 'CLIENT';
-    const isPhoneVerified = user?.isPhoneVerified || false;
-    const hasIdentity = user?.isHasIdentity || false;
+    const isUserVerified = Boolean(user?.isVerified);
+    const isUserActive = Boolean(user?.isActive ?? true);
+    const isUserBanned = Boolean(user?.isBanned);
 
-    // Get user initials safely
-    const getInitials = () => {
-        const firstName = user?.firstName || '';
-        const lastName = user?.lastName || '';
-        return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
-    };
-
-    // Helper function to get full name
-    const getFullName = () => {
-        if (user?.fullName) {
-            return user.fullName;
-        }
-        const firstName = user?.firstName || '';
-        const lastName = user?.lastName || '';
-        const fullName = `${firstName} ${lastName}`.trim();
-        return fullName || 'Nom non disponible';
-    };
-
-    // Helper function to get user ID
-    const getUserId = () => {
-        return user?._id || user?.id || 'ID non disponible';
-    };
-
-    console.log('Rendering with user data:', user);
+    const userPromoCode = user?.promoCode || user?.promo_code || user?.promotionCode || user?.promotion_code;
+    const userWilaya = user?.wilaya || user?.city || user?.region;
 
     return (
-        <Container maxWidth="lg" sx={{ py: { xs: 2, sm: 4 } }}>
+        <Container maxWidth="lg" sx={{ py: { xs: 3, md: 5 } }}>
+            {/* Header / Breadcrumb navigation */}
+            <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 3 }}>
+                <Button 
+                    onClick={handleGoBack} 
+                    startIcon={<ArrowBackIcon />} 
+                    sx={{ color: 'text.secondary', fontWeight: 600, textTransform: 'none', '&:hover': { bgcolor: alpha(theme.palette.text.secondary, 0.08) } }}
+                >
+                    Retour à la liste
+                </Button>
+                <KeyboardArrowRightIcon sx={{ color: 'text.disabled' }} />
+                <Typography variant="body2" color="text.secondary" fontWeight={500}>
+                    Détails du Client
+                </Typography>
+            </Stack>
 
-            {/* Header Section */}
-            <Paper 
-                sx={{ 
-                    p: { xs: 2, sm: 4 }, 
-                    borderRadius: 3,
-                    background: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.primary.dark} 100%)`,
-                    color: 'white',
-                    mb: { xs: 2, sm: 4 } 
-                }}
-            >
-                <Stack direction={{ xs: 'column', sm: 'row' }} alignItems="center" justifyContent="space-between" spacing={isMobile ? 2 : 0}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 1.5, sm: 3 }, flexDirection: isMobile ? 'column' : 'row' }}>
-                        <Avatar
-                            src={user?.photoURL || undefined}
-                            sx={{
-                                width: { xs: 60, sm: 80 }, 
-                                height: { xs: 60, sm: 80 },
-                                bgcolor: alpha(theme.palette.common.white, 0.2),
-                                fontSize: { xs: '1.5rem', sm: '2rem' }, 
-                                fontWeight: 'bold'
-                            }}
-                        >
-                            {getInitials()}
-                        </Avatar>
-                        <Box sx={{ textAlign: isMobile ? 'center' : 'left' }}>
-                            <Typography variant={isMobile ? "h5" : "h3"} sx={{ fontWeight: 700, mb: { xs: 0.5, sm: 1 } }}>
-                                {getFullName()}
+            <Grid container spacing={4}>
+                {/* LEFT COLUMN: Sidebar Profile & Actions (Single Card) */}
+                <Grid item xs={12} md={4}>
+                    <DashboardCard sx={{ px: 3, py: 4 }}>
+                        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
+                            <Avatar
+                                src={user?.photoURL || undefined}
+                                sx={{
+                                    width: 100,
+                                    height: 100,
+                                    mb: 2,
+                                    fontSize: '2rem',
+                                    fontWeight: 'bold',
+                                    bgcolor: alpha(theme.palette.primary.main, 0.1),
+                                    color: 'primary.main',
+                                    border: `3px solid ${theme.palette.background.paper}`,
+                                    boxShadow: `0 8px 24px 0 ${alpha(theme.palette.primary.main, 0.15)}`
+                                }}
+                            >
+                                {(user?.firstName?.[0] || 'U').toUpperCase()}{(user?.lastName?.[0] || 'N').toUpperCase()}
+                            </Avatar>
+
+                            <Typography variant="h5" sx={{ fontWeight: 700, mb: 1, color: 'text.primary' }}>
+                                {user?.firstName || ''} {user?.lastName || ''}
                             </Typography>
-                            <Stack direction="row" spacing={1} alignItems="center" justifyContent={isMobile ? 'center' : 'flex-start'}>
+
+                            <Stack direction="row" spacing={1} sx={{ mb: 3, justifyContent: 'center' }}>
                                 <Chip
                                     label={user?.type || 'CLIENT'}
+                                    size="small"
                                     sx={{
-                                        bgcolor: alpha(theme.palette.common.white, 0.2),
-                                        color: 'white',
-                                        fontWeight: 600,
-                                        fontSize: isMobile ? '0.7rem' : '0.8rem',
+                                        bgcolor: alpha(theme.palette.primary.main, 0.08),
+                                        color: 'primary.main',
+                                        fontWeight: 700,
+                                        fontSize: '0.75rem',
                                     }}
                                 />
-                                {user?.t && (
-                                    <Chip
-                                        label={user.t}
-                                        sx={{
-                                            bgcolor: alpha(theme.palette.warning.main, 0.3),
-                                            color: 'white',
-                                            fontWeight: 600,
-                                            fontSize: isMobile ? '0.7rem' : '0.8rem',
+                            </Stack>
+
+                            <Divider sx={{ width: '100%', mb: 2.5, borderStyle: 'dashed' }} />
+
+                            {/* Mini Status Chips */}
+                            <Stack spacing={1.5} sx={{ width: '100%', mb: 3 }}>
+                                <Stack direction="row" justifyContent="space-between" alignItems="center">
+                                    <Typography variant="body2" color="text.secondary" fontWeight={500}>Validation</Typography>
+                                    <Chip 
+                                        label={isUserVerified ? "Compte Valide" : "Non Valide"} 
+                                        size="small"
+                                        sx={{ 
+                                            fontWeight: 600, 
+                                            fontSize: '0.75rem', 
+                                            px: 1,
+                                            bgcolor: alpha(theme.palette[isUserVerified ? 'success' : 'warning'].main, 0.1),
+                                            color: theme.palette[isUserVerified ? 'success' : 'warning'].dark
                                         }}
                                     />
-                                )}
-                                <Typography variant={isMobile ? "body2" : "body1"} sx={{ opacity: 0.9, fontSize: isMobile ? '0.75rem' : 'inherit' }}> 
-                                    ID: {getUserId()}
-                                </Typography>
+                                </Stack>
+                                <Stack direction="row" justifyContent="space-between" alignItems="center">
+                                    <Typography variant="body2" color="text.secondary" fontWeight={500}>Activité</Typography>
+                                    <Chip 
+                                        label={isUserActive ? "Actif" : "Inactif"} 
+                                        size="small"
+                                        sx={{ 
+                                            fontWeight: 600, 
+                                            fontSize: '0.75rem', 
+                                            px: 1,
+                                            bgcolor: alpha(theme.palette[isUserActive ? 'success' : 'error'].main, 0.1),
+                                            color: theme.palette[isUserActive ? 'success' : 'error'].dark
+                                        }}
+                                    />
+                                </Stack>
+                                <Stack direction="row" justifyContent="space-between" alignItems="center">
+                                    <Typography variant="body2" color="text.secondary" fontWeight={500}>Bannissement</Typography>
+                                    <Chip 
+                                        label={isUserBanned ? "Banni" : "Sain"} 
+                                        size="small"
+                                        sx={{ 
+                                            fontWeight: 600, 
+                                            fontSize: '0.75rem', 
+                                            px: 1,
+                                            bgcolor: alpha(theme.palette[isUserBanned ? 'error' : 'success'].main, 0.1),
+                                            color: theme.palette[isUserBanned ? 'error' : 'success'].dark
+                                        }}
+                                    />
+                                </Stack>
                             </Stack>
-                        </Box>
-                    </Box>
-                    <Button
-                        variant="outlined"
-                        startIcon={<Iconify icon="eva:arrow-back-outline" />}
-                        onClick={handleGoBack}
-                        size={isMobile ? 'small' : 'medium'} 
-                        sx={{
-                            borderColor: alpha(theme.palette.common.white, 0.3),
-                            color: 'white',
-                            borderRadius: 2,
-                            '&:hover': {
-                                borderColor: 'white',
-                                bgcolor: alpha(theme.palette.common.white, 0.1)
-                            },
-                            width: isMobile ? '100%' : 'auto', 
-                        }}
-                    >
-                        Retour
-                    </Button>
-                </Stack>
-            </Paper>
 
-            <Grid container spacing={isMobile ? 2 : 3}>
-                {/* User Information Card */}
+                            <Divider sx={{ width: '100%', mb: 2.5, borderStyle: 'dashed' }} />
+
+                            {/* Actions Grid */}
+                            <Typography variant="subtitle2" sx={{ fontWeight: 700, color: 'text.secondary', width: '100%', textAlign: 'left', mb: 1.5 }}>
+                                Actions Administratives
+                            </Typography>
+                            
+                            <Grid container spacing={1.5} sx={{ width: '100%' }}>
+                                <Grid item xs={6}>
+                                    <StatusButton
+                                        variant="contained"
+                                        fullWidth
+                                        size="small"
+                                        disabled={isVerifying}
+                                        onClick={() => handleVerifyUser(!isUserVerified)}
+                                        sx={{
+                                            bgcolor: isUserVerified ? alpha(theme.palette.warning.main, 0.1) : theme.palette.success.main,
+                                            color: isUserVerified ? 'warning.dark' : 'white',
+                                            '&:hover': {
+                                                bgcolor: isUserVerified ? alpha(theme.palette.warning.main, 0.2) : theme.palette.success.dark,
+                                            }
+                                        }}
+                                    >
+                                        {isVerifying ? <CircularProgress size={14} color="inherit" /> : (isUserVerified ? 'Invalider' : 'Valider')}
+                                    </StatusButton>
+                                </Grid>
+
+                                <Grid item xs={6}>
+                                    <StatusButton
+                                        variant="contained"
+                                        fullWidth
+                                        size="small"
+                                        disabled={isUpdatingActiveStatus}
+                                        onClick={() => handleSetUserActive(!isUserActive)}
+                                        sx={{
+                                            bgcolor: isUserActive ? alpha(theme.palette.error.main, 0.08) : theme.palette.success.main,
+                                            color: isUserActive ? 'error.main' : 'white',
+                                            '&:hover': {
+                                                bgcolor: isUserActive ? alpha(theme.palette.error.main, 0.15) : theme.palette.success.dark,
+                                            }
+                                        }}
+                                    >
+                                        {isUpdatingActiveStatus ? <CircularProgress size={14} color="inherit" /> : (isUserActive ? 'Désactiver' : 'Activer')}
+                                    </StatusButton>
+                                </Grid>
+
+                                <Grid item xs={12}>
+                                    <StatusButton
+                                        variant="contained"
+                                        fullWidth
+                                        size="small"
+                                        disabled={isUpdatingBannedStatus}
+                                        onClick={() => handleSetUserBanned(!isUserBanned)}
+                                        sx={{
+                                            bgcolor: isUserBanned ? theme.palette.success.main : alpha(theme.palette.error.main, 0.08),
+                                            color: isUserBanned ? 'white' : 'error.main',
+                                            '&:hover': {
+                                                bgcolor: isUserBanned ? theme.palette.success.dark : alpha(theme.palette.error.main, 0.15),
+                                            }
+                                        }}
+                                    >
+                                        {isUpdatingBannedStatus ? <CircularProgress size={14} color="inherit" /> : (isUserBanned ? 'Débannir' : 'Bannir')}
+                                    </StatusButton>
+                                </Grid>
+                            </Grid>
+                        </Box>
+                    </DashboardCard>
+                </Grid>
+
+                {/* RIGHT COLUMN: Grouped Information in a Single Card */}
                 <Grid item xs={12} md={8}>
-                    <StyledCard sx={{ p: { xs: 2, sm: 3 } }}>
-                        <Box sx={{ display: 'flex', alignItems: 'center', mb: { xs: 2, sm: 3 } }}>
-                            <Iconify icon="eva:person-outline" sx={{ fontSize: { xs: 20, sm: 24 }, mr: { xs: 1.5, sm: 2 }, color: 'primary.main' }} />
-                            <Typography variant={isMobile ? "h6" : "h5"} sx={{ fontWeight: 600 }}>
+                    <DashboardCard>
+                        {/* Section 1: Personal & Contact */}
+                        <SectionHeader>
+                            <PersonIcon />
+                            <Typography variant="h6" fontWeight={700} color="text.primary">
                                 Informations Personnelles
                             </Typography>
-                        </Box>
-                        
-                        <Stack spacing={0}>
-                            <InfoRow>
-                                <Typography variant={isMobile ? "body2" : "body1"} color="text.secondary" sx={{ fontWeight: 500 }}>
-                                    Nom complet
+                        </SectionHeader>
+
+                        <Stack spacing={0} sx={{ mb: 4 }}>
+                            <DetailRow>
+                                <RowLabel>
+                                    <PersonIcon />
+                                    <Typography variant="body2" fontWeight={600}>Prénom</Typography>
+                                </RowLabel>
+                                <Typography variant="body2" fontWeight={700} color="text.primary">
+                                    {user?.firstName || 'Non renseigné'}
                                 </Typography>
-                                <Typography variant={isMobile ? "body1" : "body1"} sx={{ fontWeight: 600, fontSize: isMobile ? '0.85rem' : 'inherit' }}>
-                                    {getFullName()}
+                            </DetailRow>
+
+                            <DetailRow>
+                                <RowLabel>
+                                    <PersonIcon />
+                                    <Typography variant="body2" fontWeight={600}>Nom</Typography>
+                                </RowLabel>
+                                <Typography variant="body2" fontWeight={700} color="text.primary">
+                                    {user?.lastName || 'Non renseigné'}
                                 </Typography>
-                            </InfoRow>
-                            
-                            <InfoRow>
-                                <Typography variant={isMobile ? "body2" : "body1"} color="text.secondary" sx={{ fontWeight: 500 }}>
-                                    Adresse e-mail
-                                </Typography>
-                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                    <Typography variant={isMobile ? "body1" : "body1"} sx={{ fontWeight: 600, fontSize: isMobile ? '0.85rem' : 'inherit' }}>
+                            </DetailRow>
+
+                            <DetailRow>
+                                <RowLabel>
+                                    <EmailIcon />
+                                    <Typography variant="body2" fontWeight={600}>Adresse e-mail</Typography>
+                                </RowLabel>
+                                <Stack direction="row" alignItems="center" spacing={1}>
+                                    <Typography variant="body2" fontWeight={600} color="text.primary">
                                         {user?.email || 'Non renseigné'}
                                     </Typography>
-                                </Box>
-                            </InfoRow>
-                            
-                            <InfoRow>
-                                <Typography variant={isMobile ? "body2" : "body1"} color="text.secondary" sx={{ fontWeight: 500 }}>
-                                    Téléphone
+                                    {user?.email && (
+                                        <Tooltip title="Copier l'e-mail">
+                                            <IconButton size="small" onClick={() => handleCopy(user.email, 'E-mail')} sx={{ color: 'text.secondary' }}>
+                                                <ContentCopyIcon sx={{ fontSize: 16 }} />
+                                            </IconButton>
+                                        </Tooltip>
+                                    )}
+                                </Stack>
+                            </DetailRow>
+
+                            <DetailRow>
+                                <RowLabel>
+                                    <PhoneIcon />
+                                    <Typography variant="body2" fontWeight={600}>Téléphone</Typography>
+                                </RowLabel>
+                                <Stack direction="row" alignItems="center" spacing={1}>
+                                    {user?.phone ? (
+                                        <>
+                                            <Typography 
+                                                component="a" 
+                                                href={`tel:${user.phone}`}
+                                                variant="body2" 
+                                                fontWeight={600} 
+                                                sx={{ color: 'primary.main', textDecoration: 'none', '&:hover': { textDecoration: 'underline' } }}
+                                            >
+                                                {user.phone}
+                                            </Typography>
+                                            <Tooltip title="Copier le téléphone">
+                                                <IconButton size="small" onClick={() => handleCopy(user.phone, 'Téléphone')} sx={{ color: 'text.secondary' }}>
+                                                    <ContentCopyIcon sx={{ fontSize: 16 }} />
+                                                </IconButton>
+                                            </Tooltip>
+                                        </>
+                                    ) : (
+                                        <Typography variant="body2" fontWeight={600} color="text.secondary">
+                                            Non renseigné
+                                        </Typography>
+                                    )}
+                                </Stack>
+                            </DetailRow>
+
+                            <DetailRow>
+                                <RowLabel>
+                                    <LocationOnIcon />
+                                    <Typography variant="body2" fontWeight={600}>Wilaya</Typography>
+                                </RowLabel>
+                                <Typography variant="body2" fontWeight={700} color="text.primary">
+                                    {userWilaya || 'Non renseignée'}
                                 </Typography>
-                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                    <Typography variant={isMobile ? "body1" : "body1"} sx={{ fontWeight: 600, fontSize: isMobile ? '0.85rem' : 'inherit' }}>
-                                        {user?.phone || 'Non renseigné'}
-                                    </Typography>
-                                </Box>
-                            </InfoRow>
-                            
-                            <InfoRow>
-                                <Typography variant={isMobile ? "body2" : "body1"} color="text.secondary" sx={{ fontWeight: 500 }}>
-                                    Date de création
-                                </Typography>
-                                <Typography variant={isMobile ? "body1" : "body1"} sx={{ fontWeight: 600, fontSize: isMobile ? '0.85rem' : 'inherit' }}>
+                            </DetailRow>
+                        </Stack>
+
+                        <Divider sx={{ mb: 4 }} />
+
+                        {/* Section 2: Metas & System */}
+                        <SectionHeader>
+                            <RedeemIcon />
+                            <Typography variant="h6" fontWeight={700} color="text.primary">
+                                Système & Code Promo
+                            </Typography>
+                        </SectionHeader>
+
+                        <Stack spacing={0}>
+                            <DetailRow>
+                                <RowLabel>
+                                    <RedeemIcon />
+                                    <Typography variant="body2" fontWeight={600}>Code Promo</Typography>
+                                </RowLabel>
+                                <Stack direction="row" alignItems="center" spacing={1}>
+                                    {userPromoCode ? (
+                                        <>
+                                            <Typography variant="body2" fontWeight={700} sx={{ color: 'success.main', bgcolor: alpha(theme.palette.success.main, 0.08), px: 1.5, py: 0.5, borderRadius: 1 }}>
+                                                {userPromoCode}
+                                            </Typography>
+                                            <Tooltip title="Copier le code promo">
+                                                <IconButton size="small" onClick={() => handleCopy(userPromoCode, 'Code promo')} sx={{ color: 'text.secondary' }}>
+                                                    <ContentCopyIcon sx={{ fontSize: 16 }} />
+                                                </IconButton>
+                                            </Tooltip>
+                                        </>
+                                    ) : (
+                                        <Typography variant="body2" fontWeight={600} color="text.secondary">
+                                            Aucun
+                                        </Typography>
+                                    )}
+                                </Stack>
+                            </DetailRow>
+
+                            <DetailRow>
+                                <RowLabel>
+                                    <CalendarTodayIcon />
+                                    <Typography variant="body2" fontWeight={600}>Date de création</Typography>
+                                </RowLabel>
+                                <Typography variant="body2" fontWeight={600} color="text.primary">
                                     {user?.createdAt ? new Date(user.createdAt).toLocaleDateString('fr-FR', {
                                         year: 'numeric',
                                         month: 'long',
@@ -398,136 +612,63 @@ export default function ClientDetailsPage() {
                                         minute: '2-digit'
                                     }) : 'Non disponible'}
                                 </Typography>
-                            </InfoRow>
+                            </DetailRow>
 
                             {user?.rate !== undefined && user?.rate !== null && (
-                                <InfoRow>
-                                    <Typography variant={isMobile ? "body2" : "body1"} color="text.secondary" sx={{ fontWeight: 500 }}>
-                                        Note moyenne
-                                    </Typography>
-                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 0.5, sm: 1 } }}>
-                                        <Iconify icon="eva:star-fill" sx={{ color: 'warning.main', fontSize: { xs: 18, sm: 20 } }} />
-                                        <Typography variant={isMobile ? "body1" : "body1"} sx={{ fontWeight: 600, fontSize: isMobile ? '0.85rem' : 'inherit' }}>
-                                            {user.rate}/10
+                                <DetailRow>
+                                    <RowLabel>
+                                        <StarIcon />
+                                        <Typography variant="body2" fontWeight={600}>Note moyenne</Typography>
+                                    </RowLabel>
+                                    <Stack direction="row" alignItems="center" spacing={0.5}>
+                                        <StarIcon sx={{ color: 'warning.main', fontSize: 18 }} />
+                                        <Typography variant="body2" fontWeight={700} color="text.primary">
+                                            {user.rate.toFixed(1)}/10
                                         </Typography>
-                                    </Box>
-                                </InfoRow>
+                                    </Stack>
+                                </DetailRow>
                             )}
+
+
                         </Stack>
-                    </StyledCard>
-                </Grid>
-
-                {/* Actions Card */}
-                <Grid item xs={12} md={4}>
-                    <Stack spacing={isMobile ? 2 : 3}>
-                        {/* Status Overview */}
-                        <StyledCard sx={{ p: { xs: 2, sm: 3 } }}>
-                            <Box sx={{ display: 'flex', alignItems: 'center', mb: { xs: 2, sm: 3 } }}>
-                                <Iconify icon="eva:checkmark-circle-2-outline" sx={{ fontSize: { xs: 20, sm: 24 }, mr: { xs: 1.5, sm: 2 }, color: 'success.main' }} />
-                                <Typography variant={isMobile ? "h6" : "h6"} sx={{ fontWeight: 600 }}>
-                                    Statut du Compte
-                                </Typography>
-                            </Box>
-                            
-                            <Stack spacing={isMobile ? 1.5 : 2}>
-                                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                    <Typography variant={isMobile ? "body2" : "body2"} color="text.secondary">Vérification</Typography>
-                                    <Chip
-                                        label={isUserVerified ? 'Vérifié' : 'Non vérifié'}
-                                        color={isUserVerified ? 'success' : 'warning'}
-                                        size={isMobile ? "small" : "medium"} 
-                                        variant="outlined"
-                                        sx={{ fontSize: isMobile ? '0.7rem' : '0.75rem' }} 
-                                    />
-                                </Box>
-                                
-                                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                    <Typography variant={isMobile ? "body2" : "body2"} color="text.secondary">Activité</Typography>
-                                    <Chip
-                                        label={isUserActive ? 'Actif' : 'Inactif'}
-                                        color={isUserActive ? 'success' : 'error'}
-                                        size={isMobile ? "small" : "medium"} 
-                                        variant="outlined"
-                                        sx={{ fontSize: isMobile ? '0.7rem' : '0.75rem' }} 
-                                    />
-                                </Box>
-                                
-                                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                    <Typography variant={isMobile ? "body2" : "body2"} color="text.secondary">Bannissement</Typography>
-                                    <Chip
-                                        label={isUserBanned ? 'Banni' : 'Non banni'}
-                                        color={isUserBanned ? 'error' : 'success'}
-                                        size={isMobile ? "small" : "medium"} 
-                                        variant="outlined"
-                                        sx={{ fontSize: isMobile ? '0.7rem' : '0.75rem' }} 
-                                    />
-                                </Box>
-                            </Stack>
-                        </StyledCard>
-
-                        {/* Action Buttons */}
-                        <ActionCard sx={{ p: { xs: 2, sm: 2.5 } }}>
-                            <Typography variant={isMobile ? "h6" : "h6"} sx={{ fontWeight: 600, mb: { xs: 1.5, sm: 2 } }}>
-                                Actions Rapides
-                            </Typography>
-                            
-                            <Stack spacing={isMobile ? 1 : 1.5}>
-                                <StatusButton
-                                    variant={isUserVerified ? "outlined" : "contained"}
-                                    color={isUserVerified ? "error" : "success"}
-                                    fullWidth
-                                    startIcon={
-                                        isVerifying ? (
-                                            <CircularProgress size={16} />
-                                        ) : (
-                                            <Iconify icon={isUserVerified ? "eva:close-circle-outline" : "eva:checkmark-circle-outline"} sx={{ fontSize: isMobile ? 20 : 24 }} /> 
-                                        )
-                                    }
-                                    onClick={() => handleVerifyUser(!isUserVerified)}
-                                    disabled={isVerifying}
-                                >
-                                    {isUserVerified ? 'Annuler vérification' : 'Vérifier'}
-                                </StatusButton>
-
-                                <StatusButton
-                                    variant={isUserActive ? "outlined" : "contained"}
-                                    color={isUserActive ? "error" : "success"}
-                                    fullWidth
-                                    startIcon={
-                                        isUpdatingActiveStatus ? (
-                                            <CircularProgress size={16} />
-                                        ) : (
-                                            <Iconify icon={isUserActive ? "eva:person-remove-outline" : "eva:person-add-outline"} sx={{ fontSize: isMobile ? 20 : 24 }} />
-                                        )
-                                    }
-                                    onClick={() => handleSetUserActive(!isUserActive)}
-                                    disabled={isUpdatingActiveStatus}
-                                >
-                                    {isUserActive ? 'Désactiver' : 'Activer'}
-                                </StatusButton>
-
-                                <StatusButton
-                                    variant={isUserBanned ? "contained" : "outlined"}
-                                    color={isUserBanned ? "success" : "error"}
-                                    fullWidth
-                                    startIcon={
-                                        isUpdatingBannedStatus ? (
-                                            <CircularProgress size={16} />
-                                        ) : (
-                                            <Iconify icon={isUserBanned ? "eva:person-done-outline" : "eva:slash-outline"} sx={{ fontSize: isMobile ? 20 : 24 }} /> 
-                                        )
-                                    }
-                                    onClick={() => handleSetUserBanned(!isUserBanned)}
-                                    disabled={isUpdatingBannedStatus}
-                                >
-                                    {isUserBanned ? 'Débannir' : 'Bannir'}
-                                </StatusButton>
-                            </Stack>
-                        </ActionCard>
-                    </Stack>
+                    </DashboardCard>
                 </Grid>
             </Grid>
 
+            {/* Confirmation Dialog */}
+            <Dialog
+                open={confirmDialog.open}
+                onClose={closeConfirmDialog}
+                aria-labelledby="confirm-dialog-title"
+                maxWidth="xs"
+                fullWidth
+                PaperProps={{
+                    sx: { borderRadius: 3, p: 1 },
+                }}
+            >
+                <DialogTitle id="confirm-dialog-title" sx={{ fontWeight: 700, pb: 1 }}>
+                    {confirmDialog.title}
+                </DialogTitle>
+                <DialogContent>
+                    <DialogContentText sx={{ color: 'text.secondary', fontSize: '0.95rem' }}>
+                        {confirmDialog.message}
+                    </DialogContentText>
+                </DialogContent>
+                <DialogActions sx={{ px: 3, pb: 2, pt: 1 }}>
+                    <Button onClick={closeConfirmDialog} color="inherit" sx={{ fontWeight: 600, textTransform: 'none' }}>
+                        Annuler
+                    </Button>
+                    <Button
+                        onClick={handleConfirmAction}
+                        variant="contained"
+                        color={confirmDialog.color}
+                        sx={{ fontWeight: 600, borderRadius: 1.5, textTransform: 'none' }}
+                        autoFocus
+                    >
+                        {confirmDialog.actionText}
+                    </Button>
+                </DialogActions>
+            </Dialog>
         </Container>
     );
 }

@@ -355,23 +355,13 @@ export default function Professionals() {
     const { enqueueSnackbar } = useSnackbar();
 
     const COLUMNS = [
-        { id: 'firstName', label: t('common.nom') || 'Nom', alignRight: false, searchable: true },
-        { id: 'lastName', label: t('common.prenom') || 'Prénom', alignRight: false, searchable: true },
-        { id: 'email', label: t('common.email') || 'Email', alignRight: false, searchable: true },
-        { id: 'phone', label: t('common.phone') || 'Téléphone', alignRight: false, searchable: true },
-        { id: 'wilaya', label: t('common.wilaya') || 'Wilaya', alignRight: false, searchable: true },
+        { id: 'fullName', label: 'Nom & Prénom', alignRight: false, searchable: true },
         { id: 'entreprise', label: t('professionals.company') || 'Entreprise', alignRight: false, searchable: true },
-        { id: 'secteur', label: t('professionals.sector') || 'Secteur', alignRight: false, searchable: true },
-        { id: 'postOccupé', label: t('professionals.position') || 'Post occupé', alignRight: false, searchable: false },
-        { id: 'promoCode', label: t('professionals.promoCode') || 'Code promo', alignRight: false, searchable: false },
-        { id: 'subscriptionPlan', label: 'Abonnement', alignRight: false, searchable: false },
         { id: 'isVerified', label: t('professionals.verified') || 'Vérifié', alignRight: false, searchable: false },
         { id: 'isCertified', label: t('professionals.certified') || 'Certifié', alignRight: false, searchable: false },
-        { id: 'isActive', label: t('professionals.active') || 'Activé', alignRight: false, searchable: false },
         { id: 'isBanned', label: t('professionals.banned') || 'Banni', alignRight: false, searchable: false },
         { id: 'isRecommended', label: t('professionals.recommended') || 'Recommandé', alignRight: false, searchable: false },
         { id: 'rate', label: t('professionals.rate') || 'Rate', alignRight: false, searchable: false },
-        { id: 'createdAt', label: t('users.createdAt') || 'Créé Le', alignRight: false, searchable: false },
         { id: '', searchable: false },
     ];
     const navigate = useNavigate();
@@ -776,6 +766,11 @@ export default function Professionals() {
                 successMessage = `${idsToActOn.length} professionnels supprimés avec succès.`;
                 errorMessage = 'Échec de la suppression des professionnels.';
                 break;
+            case 'demote_client':
+                actionPromise = UserAPI.demoteToClient(userToConfirmId);
+                successMessage = 'Professionnel converti en client avec succès.';
+                errorMessage = 'Échec de la conversion en client.';
+                break;
             default:
                 break;
         }
@@ -837,15 +832,13 @@ export default function Professionals() {
 
         const totalDelta = currentRate - initialRate;
 
-        if (Math.abs(totalDelta) !== 1) {
-            enqueueSnackbar('La cote ne peut être ajustée que par un seul point à la fois (+1 ou -1).', { variant: 'warning' });
+        if (totalDelta === 0) {
+            handleCloseRateDialog();
             return;
         }
 
-        const operationDelta = totalDelta;
-
         try {
-            await ReviewAPI.adjustUserRateByAdmin(professionalToRateId, operationDelta);
+            await ReviewAPI.adjustUserRateByAdmin(professionalToRateId, totalDelta);
             enqueueSnackbar('Rate du professionnel mise à jour avec succès.', { variant: 'success' });
             fetchProfessionals();
             handleCloseRateDialog();
@@ -1226,30 +1219,10 @@ export default function Professionals() {
                                             '&:hover': { color: 'primary.main' }
                                         }}
                                     >
-                                        {firstName || 'N/A'}
+                                        {`${firstName || ''} ${lastName || ''}`.trim() || 'N/A'}
                                     </Link>
                                     {isRecommended && <RecommendIcon sx={{ fontSize: '16px !important', color: 'primary.main' }} />}
                                 </Stack>
-                            </TableCell>
-
-                            <TableCell align="left" sx={{ display: isMobile ? 'none' : 'table-cell' }}>
-                                <Typography variant="body2" sx={{ fontSize: isMobile ? '0.75rem' : '0.875rem' }}>
-                                    {lastName || 'N/A'}
-                                </Typography>
-                            </TableCell>
-
-                            <TableCell align="left" sx={{ display: isMobile ? 'none' : 'table-cell' }}>
-                                <Typography variant="body2" sx={{ fontSize: isMobile ? '0.75rem' : '0.875rem' }}>
-                                    {row.email || 'N/A'}
-                                </Typography>
-                            </TableCell>
-
-                            <TableCell align="left" sx={{ display: isMobile ? 'none' : 'table-cell' }}>{phone}</TableCell>
-
-                            <TableCell align="left" sx={{ display: isMobile ? 'none' : 'table-cell' }}>
-                                <Typography variant="body2" sx={{ fontSize: isMobile ? '0.75rem' : '0.875rem' }}>
-                                    {row.wilaya || 'N/A'}
-                                </Typography>
                             </TableCell>
 
                             <TableCell align="left" sx={{ display: isMobile ? 'none' : 'table-cell', maxWidth: 150 }}>
@@ -1260,46 +1233,7 @@ export default function Professionals() {
                                 </Tooltip>
                             </TableCell>
 
-                            <TableCell align="left" sx={{ display: isMobile ? 'none' : 'table-cell', maxWidth: 200 }}>
-                                <Tooltip title={row.secteur || ''} placement="top" arrow>
-                                    <Typography variant="body2" sx={{ fontSize: isMobile ? '0.75rem' : '0.875rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                        {row.secteur || 'N/A'}
-                                    </Typography>
-                                </Tooltip>
-                            </TableCell>
 
-                            <TableCell align="left" sx={{ display: isMobile ? 'none' : 'table-cell', maxWidth: 150 }}>
-                                <Tooltip title={postOccupé || ''} placement="top" arrow>
-                                    <Typography variant="body2" sx={{ fontSize: isMobile ? '0.75rem' : '0.875rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                        {postOccupé || 'N/A'}
-                                    </Typography>
-                                </Tooltip>
-                            </TableCell>
-
-                            <TableCell align="left">
-                                <Typography variant="body2" sx={{ fontSize: isMobile ? '0.75rem' : '0.875rem' }}>
-                                    {normalizedPromoCode || 'N/A'}
-                                </Typography>
-                            </TableCell>
-
-                            <TableCell align="left">
-                                {subscriptionPlan ? (
-                                    <Label
-                                        variant="ghost"
-                                        color={getSubscriptionPlanColor(subscriptionPlan).color}
-                                        sx={{
-                                            fontSize: isMobile ? '0.7rem' : '0.75rem',
-                                            fontWeight: 'bold',
-                                        }}
-                                    >
-                                        {subscriptionPlan}
-                                    </Label>
-                                ) : (
-                                    <Label variant="ghost" color="default" sx={{ fontSize: isMobile ? '0.7rem' : '0.75rem' }}>
-                                        Aucun
-                                    </Label>
-                                )}
-                            </TableCell>
 
                             <TableCell align="left">
                                 <Box
@@ -1368,27 +1302,7 @@ export default function Professionals() {
                                 </Box>
                             </TableCell>
 
-                            <TableCell align="left" sx={{ display: isMobile ? 'none' : 'table-cell' }}>
-                                <Box
-                                    onClick={() => !togglingStatus[`active-${_id}`] && toggleActive(_id, isActive)}
-                                    sx={{
-                                        cursor: togglingStatus[`active-${_id}`] ? 'wait' : 'pointer',
-                                        opacity: togglingStatus[`active-${_id}`] ? 0.6 : 1,
-                                        pointerEvents: togglingStatus[`active-${_id}`] ? 'none' : 'auto',
-                                        display: 'inline-block'
-                                    }}
-                                >
-                                    <Label 
-                                        variant="ghost" 
-                                        color={isActive ? 'success' : 'error'} 
-                                        sx={{ 
-                                            fontSize: isMobile ? '0.7rem' : '0.75rem'
-                                        }}
-                                    >
-                                        {togglingStatus[`active-${_id}`] ? '...' : sentenceCase(isActive ? 'Actif' : 'Inactif')}
-                                    </Label>
-                                </Box>
-                            </TableCell>
+
 
                             <TableCell align="left" sx={{ display: isMobile ? 'none' : 'table-cell' }}>
                                 <Box
@@ -1484,13 +1398,14 @@ export default function Professionals() {
                                 )}
                             </TableCell>
 
-                            <TableCell align="left" sx={{ display: isTablet ? 'none' : 'table-cell' }}>{new Date(createdAt).toDateString()}</TableCell>
+
 
                             <TableCell align="right">
                                 <ActionsMenu
                                     _id={_id}
                                     actions={[
                                         { label: 'Voir Documents', onClick: () => handleViewDocuments(_id, professionalFullName), icon: 'eva:file-text-outline', color: 'info' },
+                                        { label: 'Rendre Client', onClick: () => handleOpenConfirmDialog(_id, professionalFullName, 'demote_client', 'Voulez-vous vraiment changer le rôle de ce professionnel en client ? Cette action changera son type en CLIENT.'), icon: 'eva:person-outline', color: 'primary' },
                                         { label: 'Supprimer', onClick: () => deleteProfessional(_id), icon: 'eva:trash-2-outline', color: 'error' }
                                     ]}
                                 />
